@@ -1,0 +1,177 @@
+% -*- coding:utf-8-unix; mode:prolog -*-
+% ----------------------------------------------------------------------
+% builtin predicates
+% ----------------------------------------------------------------------
+atom_number(A, N) :- integer(X) | atom_number_inline(A, N).
+atom_number_inline(A, N) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const std::string s = atom_str_of(q);'),
+    inline('  const int64_t i = std::stoi(s);'),
+    inline('  MACRO_get_constant(tagvalue(TAG_INT, i), in(2));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+writeln(X) :- write(X) -> nl.
+
+nl :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  std::cout << std::endl;'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+write(X) :- integer(X) | write_number_inline(X).
+write(X) :- atom(X) | write_atom_inline(X).
+write_number_inline(X) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const int64_t i = value_of<int64_t>(q);'),
+    inline('  MACRO_get_constant(tagvalue(TAG_INT, i), in(2));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+write_atom_inline(X) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const std::string s = atom_str_of(q);'),
+    inline('  std::cout << s;'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+integer(X) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, vm->in[1]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+atom(X) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_ATOM, vm->in[1]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+X == Y :-
+    inline('{'),
+    inline('  MACRO_wait_for_nonvar(reg::in(1));'),
+    inline('  MACRO_wait_for_nonvar(reg::in(2));'),
+    inline('  Q q1 = vm->in[1];'),
+    inline('  Q q2 = vm->in[2];'),
+    inline('  if (!(q1 == q2)) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+X >= Y :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  if (!(v1 >= v2)) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+X =< Y :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  if (!(v1 <= v2)) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+X > Y :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  if (!(v1 > v2)) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+X < Y :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  if (!(v1 < v2)) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+Y := X :- integer(X) | X = Y.
+C := -A :- A1 := A -> ineg(A1, C).
+C := (A + B) :- A1 := A -> B1 := B -> iadd(A1, B1, C).
+C := (A - B) :- A1 := A -> B1 := B -> isub(A1, B1, C).
+C := (A * B) :- A1 := A -> B1 := B -> imul(A1, B1, C).
+C := (A / B) :- A1 := A -> B1 := B -> idiv(A1, B1, C).
+ineg(A, B) :-
+    inline('{'),
+    inline('  MACRO_wait(reg::in(1));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(1));'),
+    inline('  const int64_t v = -value_of<int64_t>(reg::in(1));'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+iadd(A, B, C) :-
+    inline('{'),
+    inline('  MACRO_wait(reg::in(1));'),
+    inline('  MACRO_wait(reg::in(2));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(1));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  const int64_t v = v1 + v2;'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+isub(A, B, C) :-
+    inline('{'),
+    inline('  MACRO_wait(reg::in(1));'),
+    inline('  MACRO_wait(reg::in(2));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(1));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  const int64_t v = v1 - v2;'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+imul(A, B, C) :-
+    inline('{'),
+    inline('  MACRO_wait(reg::in(1));'),
+    inline('  MACRO_wait(reg::in(2));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(1));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  const int64_t v = v1 * v2;'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+idiv(A, B, C) :-
+    inline('{'),
+    inline('  MACRO_wait(reg::in(1));'),
+    inline('  MACRO_wait(reg::in(2));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(1));'),
+    inline('  MACRO_check_tag(TAG_INT, reg::in(2));'),
+    inline('  const int64_t v1 = value_of<int64_t>(reg::in(1));'),
+    inline('  const int64_t v2 = value_of<int64_t>(reg::in(2));'),
+    inline('  const int64_t v = v1 / v2;'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
