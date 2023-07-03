@@ -65,7 +65,11 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     writeln(OStream, 'void module(VM* vm) {'),
     writeln(OStream, '  for (;;) {'),
     writeln(OStream, '    switch (vm->pc) {'),
+    writeln(OStream, '    case -1:'),
+    writeln(OStream, '      return;'),
     always_success(dump(Ts, OStream)),
+    writeln(OStream, '    default:'),
+    writeln(OStream, '      throw RuntimeError();'),
     writeln(OStream, '    }'),
     writeln(OStream, '  }'),
     writeln(OStream, '}'),
@@ -74,6 +78,41 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     always_success(dump_atom_values(Ctx, OStream)),
     writeln(OStream, '  // setup entry points'),
     always_success(dump_goals(Ctx, OStream)),
+    writeln(OStream, '}'),
+    writeln(OStream, 'int'),
+    writeln(OStream, 'main(int argc, char* argv[]) {'),
+    writeln(OStream, '  Program prog;'),
+    writeln(OStream, '  setup(&prog);'),
+    writeln(OStream, '  const int pc = prog.query_entry_point(to_atom("main", 1));'),
+    writeln(OStream, '  if (pc < 0) {'),
+    writeln(OStream, '    std::cerr << "failed to find main/1 predicate" << std::endl;'),
+    writeln(OStream, '    return 1;'),
+    writeln(OStream, '  }'),
+    writeln(OStream, '  VM vm;'),
+    writeln(OStream, '  vm.pc = pc;'),
+    writeln(OStream, '  vm.trace_mode = true;'),
+    writeln(OStream, '  vm.failed = false;'),
+    writeln(OStream, '  A* head = NULL;'),
+    writeln(OStream, '  A* prev_tail = NULL;'),
+    writeln(OStream, '  for (int i = 0; i < argc; ++i) {'),
+    writeln(OStream, '    const size_t h = vm.heap_publishing(2);'),
+    writeln(OStream, '    if (!head) {'),
+    writeln(OStream, '      head = &vm.heap[h];'),
+    writeln(OStream, '    }'),
+    writeln(OStream, '    if (prev_tail) {'),
+    writeln(OStream, '      prev_tail->store(tagptr<TAG_LIST>(&vm.heap[h]));'),
+    writeln(OStream, '    }'),
+    writeln(OStream, '    vm.heap[h] = to_atom(argv[i], 0);'),
+    writeln(OStream, '    vm.heap[h + 1].store(tagptr<TAG_REF>(&vm.heap[h + 1]));'),
+    writeln(OStream, '    prev_tail = &vm.heap[h + 1];'),
+    writeln(OStream, '    vm.heap_published(2);'),
+    writeln(OStream, '  }'),
+    writeln(OStream, '  vm.in[0] = to_atom("main", 1);'),
+    writeln(OStream, '  vm.in[1] = tagptr<TAG_LIST,A>(head);'),
+    writeln(OStream, '  prev_tail->store(tagptr<TAG_NIL,Q>(NULL));'),
+    writeln(OStream, '  vm.dump();'),
+    writeln(OStream, '  module(&vm);'),
+    writeln(OStream, '  vm.dump();'),
     writeln(OStream, '}'),
     close(OStream).
 
@@ -116,12 +155,10 @@ translate1(Ctx, try_guard_else(Label), try_guard_else(L)) :-
     ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
 translate1(Ctx, spawn(F / N), spawn(L, F / N)) :-
     Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
-translate1(Ctx, jump(F / N), jump(L, F / N)) :-
+translate1(Ctx, execute(F / N), execute(L, F / N)) :-
     Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
 translate1(_, try_guard_else_suspend, try_guard_else_suspend).
-translate1(Ctx, try_body_else(Label), try_body_else(L)) :-
-    ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
-translate1(_, try_body, try_body).
+translate1(_, trust_me, trust_me).
 translate1(_, activate, activate).
 translate1(_, proceed, proceed).
 translate1(_, seq(N), seq(N)).
@@ -232,10 +269,11 @@ dump([line(Lno, Code)|Ts], OStream) :-
       Code2 = spawn(L),
       format(OStream, '      /* ~d */  MACRO_~w;  // spawn(~w)~n',
              [Lno, Code2, Fun])
-    ; Code = jump(L, Fun) ->
+    ; Code = execute(L, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]); true),
-      Code2 = jump(L),
-      format(OStream, '      /* ~d */  MACRO_~w;  // jump(~w)~n',
+      Fun = _ / Arity,
+      Code2 = execute(L, Arity),
+      format(OStream, '      /* ~d */  MACRO_~w;  // execute(~w)~n',
              [Lno, Code2, Fun])
     ; format(OStream, '      /* ~d */  MACRO_~w;~n', [Lno, Code]) ),
     always_success(dump(Ts, OStream)).

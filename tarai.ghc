@@ -6,9 +6,9 @@ tarai(X, Y, Z, R) :- X > Y |
     Z_1 := Z - 1, tarai(Z_1, X, Y, R_Z),
     tarai(R_X, R_Y, R_Z, R).
 
-main([X, Y, Z]) :-
+main([_, X, Y, Z]) :-
     atom_number(X, Xi),
     atom_number(Y, Yi),
-    atom_number(Z, Zi),
-    tarai(Xi, Yi, Zi, Ri),
-    writeln(Ri).
+    atom_number(Z, Zi)
+    -> tarai(Xi, Yi, Zi, Ri),
+       writeln(Ri).

@@ -78,6 +78,10 @@ ghc_collect_goals([], Goals, Goals) :- !.
 ghc_collect_goals([otherwise|NextCodes], Goals, Gs) :-
     !,
     ghc_collect_goals(NextCodes, Goals, Gs).
+% builtin は単に無視する。
+ghc_collect_goals([builtin|NextCodes], Goals, Gs) :-
+    !,
+    ghc_collect_goals(NextCodes, Goals, Gs).
 ghc_collect_goals([(Head :- _)|NextCodes], Goals, Gs) :-
     functor(Head, G, N),
     !,
@@ -484,7 +488,7 @@ ghc_compile_call(Ctx, SeqPar, Goal) :-
     ghc_call_args(Ctx, Args, 1),
     ( SeqPar = seq(_) -> write_source(Ctx, call(F / Nf))
     ; SeqPar = par -> write_source(Ctx, spawn(F / Nf))
-    ; SeqPar = tail(_) -> write_source(Ctx, jump(F / Nf)) ).
+    ; SeqPar = tail(_) -> write_source(Ctx, execute(F / Nf)) ).
 ghc_call_args(_, [], _) :- !.
 ghc_call_args(Ctx, [Arg|Args], N) :-
     ghc_put(Ctx, reg(out, N), Arg),
@@ -537,20 +541,16 @@ ghc_compile_goal_call(Ctx, SeqPar, Goal) :-
     ( Goal == true -> true
     ; Goal = (X=Y)
       ->
-      Label = label(_ / _ -_ - _),
-      write_source(Ctx, try_body_else(Label)),
+      write_source(Ctx, trust_me),
       ( get(Ctx, X, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), Y)
       ; get(Ctx, Y, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), X)
       ; put(Ctx, _, reg(x, Nreg)),
         ghc_put(Ctx, reg(x, Nreg), X),
-        ghc_get(Ctx, reg(x, Nreg), Y) ),
-      write_source(Ctx, Label)
-    ; Label = label(_ / _ - _ - _),
-      write_source(Ctx, try_body_else(Label)),
-      ghc_compile_call(Ctx, SeqPar, Goal),
-      write_source(Ctx, Label)
+        ghc_get(Ctx, reg(x, Nreg), Y) )
+    ; write_source(Ctx, trust_me),
+      ghc_compile_call(Ctx, SeqPar, Goal)
     ; fail).
 % 最後のサブゴール呼び出し処理。
 % tail-call 呼び出しするか、さもなければ proceed を実行し
@@ -562,7 +562,7 @@ ghc_compile_tail_call(Ctx, Goal) :-
       write_source(Ctx, proceed)
     ; Goal = (X=Y)
       ->
-      write_source(Ctx, try_body),
+      write_source(Ctx, trust_me),
       ( get(Ctx, X, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), Y)
       ; get(Ctx, Y, reg(Reg, Nreg))
@@ -571,7 +571,7 @@ ghc_compile_tail_call(Ctx, Goal) :-
         ghc_put(Ctx, reg(x, Nreg), X),
         ghc_get(Ctx, reg(x, Nreg), Y) ),
       write_source(Ctx, proceed)
-    ; write_source(Ctx, try_body),
+    ; write_source(Ctx, trust_me),
       ghc_compile_call(Ctx, tail(_), Goal)
     ; fail).
 
@@ -596,22 +596,23 @@ assign_registers_out(Ctx, N) :-
     get(Ctx, ghc_source, Source),
     N1 is N + 1,
     assign_registers_out(Ctx, Source, N1, _).
-assign_registers_out(_, [], _, _) :- !.
+assign_registers_out(_, [], Vn, Vn) :- !.
 assign_registers_out(Ctx, [S|Ss], N, Vn) :-
     ( S =.. [comment|_]
-    -> assign_registers_out(Ctx, Ss, N, Vn)
+    -> always_success(assign_registers_out(Ctx, Ss, N, Vn))
     ; S =.. [label|_]
-    -> assign_registers_out(Ctx, Ss, N, Vn)
+    -> always_success(assign_registers_out(Ctx, Ss, N, Vn))
     ; S = seq(Out)
-    -> assign_registers_out(Ctx, Ss, N, Out)
+    -> ( var(Out) -> always_success(assign_registers_out(Ctx, Ss, N, Out))
+       ; always_success(assign_registers_out(Ctx, Ss, N, Vn)) )
     ; S = tail(Out)
-    -> assign_registers_out(Ctx, Ss, N, Out)
-    ; ( S =.. [call|_] ; S =.. [spawn|_] ; S =.. [jump|_] )
+    -> always_success(assign_registers_out(Ctx, Ss, N, Out))
+    ; ( S =.. [call|_] ; S =.. [spawn|_] ; S =.. [execute|_] )
     ->
-      Vn = N,
-      assign_registers_out(Ctx, Ss, N, _)
-    ; find_used_registers(Ctx, S, x, N, N1),
-      assign_registers_out(Ctx, Ss, N1, Vn) ).
+      N = Vn,
+      always_success(assign_registers_out(Ctx, Ss, N, _))
+    ; always_success(find_used_registers(Ctx, S, x, N, N1)),
+      always_success(assign_registers_out(Ctx, Ss, N1, Vn) )).
     
 %% max_register_index(+Ctx, +Type, -Max)
 % 現在のコンパイルコード（ゴール単位の断片）で使用している最大レジスタ位置を
@@ -695,7 +696,7 @@ dump([S|Ss], OStream) :-
       ; S =.. [check_variable|_] ; S =.. [check_value|_]
       ; S =.. [check_constant|_] ; S =.. [check_nil|_]
       ; S =.. [check_list|_] ; S =.. [check_structure|_]
-      ; S =.. [call|_] ; S =.. [spawn|_] ; S =.. [jump|_] )
+      ; S =.. [call|_] ; S =.. [spawn|_] ; S =.. [execute|_] )
       ->  indent(4, OStream), print(OStream, S)
     ; ( S =.. [write_variable|_] ; S =.. [write_value|_]
       ; S =.. [write_constant|_] ; S =.. [write_nil|_]
