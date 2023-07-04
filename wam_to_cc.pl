@@ -90,7 +90,7 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     writeln(OStream, '  }'),
     writeln(OStream, '  VM vm;'),
     writeln(OStream, '  vm.pc = pc;'),
-    writeln(OStream, '  vm.trace_mode = true;'),
+    writeln(OStream, '  vm.log_level = TRACE;'),
     writeln(OStream, '  vm.failed = false;'),
     writeln(OStream, '  A* head = NULL;'),
     writeln(OStream, '  A* prev_tail = NULL;'),

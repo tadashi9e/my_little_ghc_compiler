@@ -239,7 +239,7 @@ ghc_compile_guard1(Ctx, Guard) :-
         put(Ctx, _, reg(x, Xn)),
         always_success(ghc_put(Ctx, reg(x, Xn), X)),
         always_success(ghc_get_check(Ctx, reg(x, Xn), Y)))
-    ; ghc_compile_call(Ctx, seq(_), Guard)
+    ; ghc_compile_call(Ctx, seq, Guard)
     ; format('error: invalid guard: ~w~n', [Guard]), fail).
 
 %% ghc_put(?Ctx, +Register, +X)
@@ -483,12 +483,14 @@ ghc_get(Ctx, reg(Reg, Nreg), X,
 %% ghc_compile_call(?Ctx, +SeqPar, +Goal)
 % サブゴール Goal の呼び出し処理をコンパイルする。
 ghc_compile_call(Ctx, SeqPar, Goal) :-
-    write_source(Ctx, SeqPar),
+    ( SeqPar = seq -> write_source(Ctx, seq(_))
+    ; SeqPar = par -> write_source(Ctx, par)
+    ; SeqPar = tail -> write_source(Ctx, tail(_)) ),
     functor(Goal, F, Nf), Goal =.. [_|Args],
     ghc_call_args(Ctx, Args, 1),
-    ( SeqPar = seq(_) -> write_source(Ctx, call(F / Nf))
+    ( SeqPar = seq -> write_source(Ctx, call(F / Nf))
     ; SeqPar = par -> write_source(Ctx, spawn(F / Nf))
-    ; SeqPar = tail(_) -> write_source(Ctx, execute(F / Nf)) ).
+    ; SeqPar = tail -> write_source(Ctx, execute(F / Nf)) ).
 ghc_call_args(_, [], _) :- !.
 ghc_call_args(Ctx, [Arg|Args], N) :-
     ghc_put(Ctx, reg(out, N), Arg),
@@ -519,7 +521,7 @@ ghc_flatten_goal_body(Ctx, SeqPar, (B1,B2), FlatBody) :-
     append(Body1, Body2, FlatBody).
 ghc_flatten_goal_body(Ctx, SeqPar, (B1->B2), FlatBody) :-
     !,
-    ghc_flatten_goal_body(Ctx, seq(_), B1, Body1),
+    ghc_flatten_goal_body(Ctx, seq, B1, Body1),
     ghc_flatten_goal_body(Ctx, SeqPar, B2, Body2),
     append(Body1, Body2, FlatBody).
 ghc_flatten_goal_body(_, SeqPar, B, [body(SeqPar, B)]) :-
@@ -572,7 +574,7 @@ ghc_compile_tail_call(Ctx, Goal) :-
         ghc_get(Ctx, reg(x, Nreg), Y) ),
       write_source(Ctx, proceed)
     ; write_source(Ctx, trust_me),
-      ghc_compile_call(Ctx, tail(_), Goal)
+      ghc_compile_call(Ctx, tail, Goal)
     ; fail).
 
 %% assign_registers(?Ctx, +N)
@@ -583,7 +585,8 @@ ghc_compile_tail_call(Ctx, Goal) :-
 assign_registers(Ctx, N) :-
     keys(Ctx, Keys),
     always_success(assign_registers_x(Ctx, Keys, N, _)),
-    always_success(assign_registers_out(Ctx, N)).
+    N1 is N + 1,
+    always_success(assign_registers_out(Ctx, N1)).
 assign_registers_x(_, [], N, N) :- !.
 assign_registers_x(Ctx, [K|Ks], N, N2) :-
     ( var(K), N1 is N + 1, get(Ctx, K, reg(x, N1))
@@ -594,8 +597,7 @@ assign_registers_x(Ctx, [K|Ks], N, N2) :-
 % 最も低い位置の未使用レジスタ位置を out レジスタ位置とする。
 assign_registers_out(Ctx, N) :-
     get(Ctx, ghc_source, Source),
-    N1 is N + 1,
-    assign_registers_out(Ctx, Source, N1, _).
+    assign_registers_out(Ctx, Source, N, _).
 assign_registers_out(_, [], Vn, Vn) :- !.
 assign_registers_out(Ctx, [S|Ss], N, Vn) :-
     ( S =.. [comment|_]
@@ -603,13 +605,14 @@ assign_registers_out(Ctx, [S|Ss], N, Vn) :-
     ; S =.. [label|_]
     -> always_success(assign_registers_out(Ctx, Ss, N, Vn))
     ; S = seq(Out)
-    -> ( var(Out) -> always_success(assign_registers_out(Ctx, Ss, N, Out))
-       ; always_success(assign_registers_out(Ctx, Ss, N, Vn)) )
+      ->
+      always_success(assign_registers_out(Ctx, Ss, N, Out))
     ; S = tail(Out)
-    -> always_success(assign_registers_out(Ctx, Ss, N, Out))
+      ->
+      always_success(assign_registers_out(Ctx, Ss, N, Out))
     ; ( S =.. [call|_] ; S =.. [spawn|_] ; S =.. [execute|_] )
-    ->
-      N = Vn,
+      ->
+      Vn is N + 1,
       always_success(assign_registers_out(Ctx, Ss, N, _))
     ; always_success(find_used_registers(Ctx, S, x, N, N1)),
       always_success(assign_registers_out(Ctx, Ss, N1, Vn) )).
