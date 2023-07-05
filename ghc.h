@@ -18,7 +18,8 @@ enum TAG_T {
   TAG_ATOM,
   TAG_INT,
   TAG_LIST,
-  TAG_NIL
+  TAG_NIL,
+  TAG_STR,
 };
 
 std::string to_str(TAG_T tag) {
@@ -149,6 +150,9 @@ std::string to_str(Q q) {
   case TAG_NIL:
     ss << "<NIL>" << ptr_of<A>(q);
     break;
+  case TAG_STR:
+    ss << "<STR>" << ptr_of<A>(q);
+    break;
   }
   return ss.str();
 }
@@ -180,8 +184,8 @@ namespace reg {
   };
 }  // namespace reg
 
-#define INITIAL_REG_SIZE 256
-#define HEAP_SIZE 256
+#define INITIAL_REG_SIZE 4096
+#define HEAP_SIZE 4096
 
 class Heap {
  public:
@@ -279,6 +283,9 @@ struct VM {
   bool is_log_debug() const {
     return log_level <= DEBUG;
   }
+  bool is_log_info() const {
+    return log_level <= INFO;
+  }
   void dump() const {
     if (!is_log_debug()) {
       return;
@@ -330,24 +337,29 @@ struct VM {
     next_context = reinterpret_cast<Context*>(&in[n]);
     out = reinterpret_cast<Q*>(next_context + 1);
     if (out - &reg[0] > reg.size() + 64) {
-      const size_t in_offset = &in[0] - &reg[0];
       reg.resize(reg.size() * 2);
       next_context = reinterpret_cast<Context*>(&in[n]);
       out = reinterpret_cast<Q*>(next_context + 1);
     }
   }
   void switch_next_window(int target, int return_pc) {
-    next_context->pc_continue = return_pc;
     next_context->prev = context;
+    next_context->pc_continue = return_pc;
+    next_context->pc_on_error = -1;
     context = next_context;
     in = out;
     pc = target;
     in[0] = 0;
   }
-  void switch_prev_window() {
+  bool switch_prev_window() {
+    if (context->prev == NULL) {
+      pc = -1;
+      return false;
+    }
     pc = context->pc_continue;
     context = context->prev;
     in = reinterpret_cast<Q*>(context + 1);
+    return true;
   }
   void require(int n) {
     while (&in[n] > &reg.back()) {
@@ -437,26 +449,45 @@ struct VM {
   }
   // レジスタ Ai の値がタグ tag でなければ fail
   // tag がリストなら car/cdr を push
-  bool push_if(TAG_T tag, reg::in Ai) {
+  bool push_if_list(reg::in Ai) {
     const int i = Ai;
     const Q q = in[i] = deref(in[i]);
-    const TAG_T t = tag_of(q);
-    if (t == TAG_REF) {
+    const TAG_T tag = tag_of(q);
+    if (tag == TAG_REF) {
       add_wait_list(q);
       fail();
       return false;
     }
-    if (t != tag) {
+    if (tag != TAG_LIST) {
       fail();
       return false;
     }
-    if (tag == TAG_LIST) {
-      A* cons = ptr_of<A>(q);
-      push((cons + 1)->load());  // cdr
-      push((cons + 0)->load());  // car
-      return true;
+    A* cons = ptr_of<A>(q);
+    push((cons + 1)->load());  // cdr
+    push((cons + 0)->load());  // car
+    return true;
+  }
+  bool push_if_structure(Q Fn, reg::in Ai) {
+    const int i = Ai;
+    const Q q = in[i] = deref(in[i]);
+    const TAG_T tag = tag_of(q);
+    if (tag == TAG_REF) {
+      add_wait_list(q);
+      fail();
+      return false;
     }
-    push(q);
+    if (tag != TAG_STR) {
+      fail();
+      return false;
+    }
+    A* p = ptr_of<A>(q);
+    if (p->load() != Fn) {
+      fail();
+      return false;
+    }
+    for (int i = atom_arity_of(Fn); i > 0; --i) {
+      push((p + i)->load());
+    }
     return true;
   }
   void add_wait_list(Q q) {
@@ -464,7 +495,19 @@ struct VM {
   }
   void fail() {
     pc = context->pc_on_error;
-    context->pc_on_error = -1;
+    if (pc != -1) {
+      return;
+    }
+    for (;;) {
+      if (!switch_prev_window()) {
+        pc = -1;
+        return;
+      }
+      pc = context->pc_on_error;
+      if (pc != -1) {
+        return;
+      }
+    }
   }
   void proceed() {
     if (!wait_list.empty()) {
@@ -487,7 +530,36 @@ struct VM {
       A* p1 = ptr_of<A>(q1);
       return p1->compare_exchange_strong(q1, q2);
     }
-    return false;
+    if (tag1 != tag2) {
+      return false;
+    }
+    switch (tag1) {
+    case TAG_LIST:
+      {
+        A* p1 = ptr_of<A>(q1);
+        A* p2 = ptr_of<A>(q1);
+        return unify(p1[0].load(), p2[0].load())
+          && unify(p1[1].load(), p2[1].load());
+      }
+    case TAG_STR:
+      {
+        A* p1 = ptr_of<A>(q1);
+        A* p2 = ptr_of<A>(q1);
+        Q f1 = p1[0].load();
+        Q f2 = p2[0].load();
+        if (f1 != f2) {
+          return false;
+        }
+        for (int i = 1; i <= atom_arity_of(f1); ++i) {
+          if (!unify(p1[i].load(), p2[i].load())) {
+            return false;
+          }
+        }
+        return true;
+      }
+    default:
+      return false;
+    }
   }
 };
 
@@ -499,7 +571,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_goal(pc, goal)                                     \
   vm->in[0] = (goal);                                            \
-  if (vm->is_log_debug()) {                                      \
+  if (vm->is_log_info()) {                                       \
     std::stringstream ss;                                        \
     ss << pc << ": goal("                                        \
        << atom_str_of(goal) << "/" << atom_arity_of(goal)        \
@@ -512,7 +584,7 @@ class RuntimeError: public std::runtime_error {
       ss << to_str(vm->in[i]);                                   \
     }                                                            \
     ss << ")";                                                   \
-    log_debug(vm, ss.str());                                     \
+    log_info(vm, ss.str());                                      \
     vm->dump();                                                  \
   }
 
@@ -523,9 +595,8 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_wait(Ai)                                \
   log_trace(vm, vm->pc << ": wait(" << Ai << ")");    \
   {                                                   \
-    const int i = Ai;                                 \
-    const Q q = deref(vm->in[i]);                     \
-    vm->in[i] = q;                                    \
+    const Q q = deref(vm->in[Ai]);                    \
+    vm->in[Ai] = q;                                   \
     const TAG_T t = tag_of(q);                        \
     if (t == TAG_REF) {                               \
       vm->add_wait_list(q);                           \
@@ -534,13 +605,13 @@ class RuntimeError: public std::runtime_error {
     }                                                 \
   }
 #define MACRO_wait_for(tag, Ai)                   \
-  log_trace(vm, vm->pc                            \
-            << ": wait_for(" << to_str(tag)       \
-            << ", " << Ai << ")");                \
   {                                               \
-    const int i = Ai;                             \
-    const Q q = deref(vm->in[i]);                 \
-    vm->in[i] = q;                                \
+    const Q q = deref(vm->in[Ai]);                \
+    vm->in[Ai] = q;                               \
+    log_trace(vm, vm->pc                          \
+              << ": wait_for(" << to_str(tag)     \
+              << ", " << Ai << "):"               \
+              << to_str(q));                      \
     const TAG_T t = tag_of(q);                    \
     if (t == TAG_REF) {                           \
       vm->add_wait_list(q);                       \
@@ -618,8 +689,6 @@ class RuntimeError: public std::runtime_error {
   continue
 
 #define MACRO_out_variable(Vn, Oi)                              \
-  log_trace(vm, vm->pc                                          \
-            << ": out_variable(" << Vn << "," << Oi << ")");    \
   {                                                             \
     const size_t h = vm->heap_publishing(1);                    \
     const Q q = tagptr<TAG_REF>(&vm->heap[h]);                  \
@@ -627,31 +696,131 @@ class RuntimeError: public std::runtime_error {
     vm->out[Oi] = q;                                            \
     vm->in[Vn] = q;                                             \
     vm->heap_published(1);                                      \
-  }
+  }                                                             \
+  log_trace(vm, vm->pc                                          \
+            << ": out_variable(" << Vn << "," << Oi << ") :"    \
+            << to_str(vm->in[Vn]))
 
-#define MACRO_out_value(Vn, Ai)                             \
+#define MACRO_out_value(Vn, Oi)                             \
   log_trace(vm, vm->pc                                      \
-            << ": out_value(" << Vn << "," << Ai << ") :"   \
+            << ": out_value(" << Vn << "," << Oi << ") :"   \
             << to_str(vm->in[Vn]));                         \
   {                                                         \
     const Q q = deref(vm->in[Vn]);                          \
     vm->in[Vn] = q;                                         \
-    vm->out[Ai] = q;                                        \
+    vm->out[Oi] = q;                                        \
   }
-#define MACRO_out_constant(C, Ai)
-#define MACRO_out_nil(Ai)
-#define MACRO_out_list(Ai)
-#define MACRO_out_structure(Fn, Ai)
+#define MACRO_out_constant(C, Oi)                           \
+  log_trace(vm, vm->pc                                      \
+            << ": out_constant(" << to_str(C) << "," << Oi  \
+            << ")");                                        \
+ vm->out[Oi] = C
+#define MACRO_out_nil(Oi)                                   \
+  log_trace(vm, vm->pc                                      \
+            << ": out_nil(" << to_str(C) << ")");           \
+  vm->out[Oi] = tagptr<TAG_NIL, Q>(0)
+#define MACRO_out_list(Oi)                                        \
+  log_trace(vm, vm->pc                                            \
+            << ": out_list(" << Oi << ")");                       \
+  {                                                               \
+    const size_t h = vm->heap_publishing(2);                      \
+    const Q q = tagptr<TAG_LIST>(&vm->heap[h]);                   \
+    vm->out[Oi] = q;                                              \
+    vm->heap_published(2);                                        \
+  }
+  
+#define MACRO_out_structure(Fn, Oi)                               \
+  log_trace(vm, vm->pc                                            \
+            << ": out_structure("                                 \
+            << atom_str_of(Fn) << "/" << atom_arity_of(Fn)        \
+            << "," << Oi << ")");                                 \
+  {                                                               \
+    const size_t h = vm->heap_publishing(1 + atom_arity_of(Fn));  \
+    vm->heap[h].store(Fn);                                        \
+    for (int i = atom_arity_of(Fn); i > 0; --i) {                 \
+      vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                \
+    }                                                             \
+    const Q q = tagptr<TAG_STR>(&vm->heap[h]);                    \
+    vm->out[Oi] = q;                                              \
+    vm->heap_published(1 + atom_arity_of(Fn));                    \
+  }
 
-#define MACRO_write_variable(Vn)
-#define MACRO_write_value(Vn)
-#define MACRO_write_constant(C)
-#define MACRO_write_nil
-#define MACRO_write_list
-#define MACRO_write_structure(Fn)
+#define MACRO_write_variable(Vn)                                  \
+  log_trace(vm, vm->pc                                            \
+            << ": write_variable(" << Vn << ") :"                 \
+            << to_str(vm->in[Vn]));                               \
+  {                                                               \
+    const Q q = vm->pop();                                        \
+    vm->in[Vn] = q;                                               \
+  }
+#define MACRO_write_value(Vn)                                     \
+  log_trace(vm, vm->pc                                            \
+            << ": write_value(" << Vn << ") :"                    \
+            << to_str(vm->in[Vn]));                               \
+  {                                                               \
+    const Q q = vm->pop();                                        \
+    ptr_of<A>(q)->store(deref(vm->in[Vn]));                       \
+  }
+  
+#define MACRO_write_constant(C)                                   \
+  log_trace(vm, vm->pc                                            \
+            << ": write_constant(" << to_str(C) << ")");          \
+  {                                                               \
+    const Q q = vm->pop();                                        \
+    ptr_of<A>(q)->store(C);                                       \
+  }
+#define MACRO_write_nil                                           \
+  log_trace(vm, vm->pc                                            \
+            << ": write_nil()");                                  \
+  {                                                               \
+    const Q q = vm->pop();                                        \
+    ptr_of<A>(q)->store(tagptr<TAG_NIL, Q>(0));                   \
+  }
+#define MACRO_write_list                                          \
+  log_trace(vm, vm->pc                                            \
+            << ": write_list()");                                 \
+  {                                                               \
+    const Q q = vm->pop();                                        \
+    const size_t h = vm->heap_publishing(2);                      \
+    vm->push(tagptr<TAG_REF>(&vm->heap[h + 1]));                  \
+    vm->push(tagptr<TAG_REF>(&vm->heap[h + 0]));                  \
+    vm->heap_published(2);                                        \
+  }
+#define MACRO_write_structure(Fn)                                 \
+  log_trace(vm, vm->pc                                            \
+            << ": write_structure("                               \
+            << atom_str_of(Fn) << "/" << atom_arity_of(Fn)        \
+            << ")");                                              \
+  {                                                               \
+    const Q q = vm->pop();                                        \
+    const size_t h = vm->heap_publishing(1 + atom_arity_of(Fn));  \
+    vm->heap[h].store(Fn);                                        \
+    for (int i = atom_arity_of(Fn); i > 0; --i) {                 \
+      vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                \
+    }                                                             \
+    ptr_of<A>(q)->store(tagptr<TAG_STR>(&vm->heap[h]));           \
+    vm->heap_published(1 + atom_arity_of(Fn));                    \
+  }
 
-#define MACRO_get_variable(Vn, Ai)
-#define MACRO_get_value(Vn, Ai)
+#define MACRO_get_variable(Vn, Ai)                        \
+  log_trace(vm, vm->pc                                    \
+            << ": get_value(" << Vn << "," << Ai << "):"  \
+            << to_str(vm->in[Ai]));                       \
+  {                                                       \
+    const Q q = deref(vm->in[Ai]);                        \
+    vm->in[Ai] = q;                                       \
+    vm->in[Vn] = q;                                       \
+  }
+#define MACRO_get_value(Vn, Ai)                           \
+  log_trace(vm, vm->pc                                    \
+            << ": get_value(" << Vn << "," << Ai << "):"  \
+            << to_str(vm->in[Vn]) << ","                  \
+            << to_str(vm->in[Ai]));                       \
+  if (!vm->unify(vm->in[Vn], vm->in[Ai])) {               \
+    vm->fail();                                           \
+    continue;                                             \
+  }
+  
 #define MACRO_get_constant(C, Ai)                                   \
   log_trace(vm, vm->pc                                              \
             << ": get_constant(" << to_str(C) << "," << Ai << ")"); \
@@ -660,20 +829,61 @@ class RuntimeError: public std::runtime_error {
     continue;                                                       \
   }
   
-#define MACRO_get_nil(Ai)
-#define MACRO_get_list(Ai)
-#define MACRO_get_structure(Fn, Ai)
+#define MACRO_get_nil(Ai)                               \
+  log_trace(vm, vm->pc                                  \
+            << ": get_nil(" << Ai << ")");              \
+  if (!vm->unify(tagptr<TAG_NIL, Q>(0), vm->in[Ai])) {  \
+    vm->fail();                                         \
+    continue;                                           \
+  }
+#define MACRO_get_list(Ai)                                  \
+  log_trace(vm, vm->pc                                      \
+            << ": get_list(" << Ai << ")");                 \
+  {                                                         \
+    const Q q = deref(vm->in[Ai]);                          \
+    vm->in[Ai] = q;                                         \
+    cont TAG_T tag = tag_of(q);                             \
+    if (tag == TAG_REF) {                                   \
+      const size_t h = vm->heap_publishing(2);              \
+      Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);             \
+      Q q1 = tagptr<TAG_REF>(&vm->heap[h + 1]);             \
+      vm->heap[h + 0].store(q0);                            \
+      vm->heap[h + 1].store(q1);                            \
+      Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]);           \
+      if (!p->compare_exchange_strong(q, lst)) {            \
+        fail();                                             \
+        continue;                                           \
+      }                                                     \
+      vm->heap_published(2);                                \
+      vm->push(q1);                                         \
+      vm->push(q0);                                         \
+    } else if (tag == TAG_LIST) {                           \
+      A* p = ptr_of<A>(q);                                  \
+      vm->push(p + 1);                                      \
+      vm->push(p + 0);                                      \
+    }
+#define MACRO_get_structure(Fn, Ai)             \
+  throw std::runtime_error("fix me: get_structure")
 
-#define MACRO_unify_variable(Vn)
-#define MACRO_unify_value(Vn)
-#define MACRO_unify_constant(C)
-#define MACRO_unify_nil
-#define MACRO_unify_list
-#define MACRO_unify_structure(Fn)
+#define MACRO_unify_variable(Vn)                      \
+  throw std::runtime_error("fix me: unify_variable")
+#define MACRO_unify_value(Vn)                     \
+  throw std::runtime_error("fix me: unify_value")
+#define MACRO_unify_constant(C)                       \
+  throw std::runtime_error("fix me: unify_constant")
+#define MACRO_unify_nil                         \
+  throw std::runtime_error("fix me: unify_nil")
+#define MACRO_unify_list                          \
+  throw std::runtime_error("fix me: unify_list")
+#define MACRO_unify_structure(Fn)                   \
+  throw std::runtime_error("fix me: unify_structure")
 
-#define MACRO_check_variable(Vn, Ai)
-#define MACRO_check_value(Vn, Ai)
-#define MACRO_check_constant(C, Ai)
+#define MACRO_check_variable(Vn, Ai)                  \
+  throw std::runtime_error("fix me: check_variable")
+#define MACRO_check_value(Vn, Ai)                 \
+  throw std::runtime_error("fix me: check_value")
+#define MACRO_check_constant(C, Ai)                   \
+  throw std::runtime_error("fix me: check_constant")
 #define MACRO_check_nil(Ai)                                 \
   log_trace(vm, vm->pc << ": check_nil(" << Ai << ")");     \
   if (!check_if(TAG_NIL, Ai)) {                             \
@@ -683,10 +893,18 @@ class RuntimeError: public std::runtime_error {
   log_trace(vm, vm->pc                            \
             << ": check_list(" << Ai << "): "     \
             << to_str(vm->in[Ai]));               \
-  if (!vm->push_if(TAG_LIST, Ai)) {               \
+  if (!vm->push_if_list(Ai)) {                    \
     continue;                                     \
   }
-#define MACRO_check_structure(Fn, Ai)
+#define MACRO_check_structure(Fn, Ai)                      \
+  log_trace(vm, vm->pc                                     \
+            << ": check_structure("                        \
+            << atom_str_of(Fn) << "/" << atom_arity_of(Fn) \
+            << "," << Ai << "): "                          \
+            << to_str(vm->in[Ai]));                        \
+  if (!vm->push_if_structure(Fn, Ai)) {                    \
+    continue;                                              \
+  }
 
 #define MACRO_read_variable(Vn)                               \
   {                                                           \
@@ -697,8 +915,10 @@ class RuntimeError: public std::runtime_error {
     vm->in[Vn] = q;                                           \
   }
   
-#define MACRO_read_value(Vn)
-#define MACRO_read_constant(C)
+#define MACRO_read_value(Vn)                   \
+  throw std::runtime_error("fix me: read_value")
+#define MACRO_read_constant(C)                      \
+  throw std::runtime_error("fix me: read_constant")
 #define MACRO_read_nil \
   {                                                         \
     Q q = vm->pop();                                        \
@@ -715,7 +935,8 @@ class RuntimeError: public std::runtime_error {
       continue;                                               \
     }                                                         \
   }
-#define MACRO_read_structure(Fn)
+#define MACRO_read_structure(Fn)                    \
+  throw std::runtime_error("fix me: read_structure")
 
 typedef void(*Code)(VM*);
 
@@ -723,9 +944,11 @@ class Program {
  public:
   void add_entry_point(Q q, int pc) {
     fun_pc_map_[q] = pc;
-    std::cout << "add_entry_point: "
+    /*
+    std::cerr << "add_entry_point: "
               << atom_str_of(q) << "/" << atom_arity_of(q)
               << " = " << pc << std::endl;
+    */
   }
   int query_entry_point(Q q) const {
     std::unordered_map<Q, int>::const_iterator

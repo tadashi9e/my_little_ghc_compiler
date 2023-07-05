@@ -90,7 +90,7 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     writeln(OStream, '  }'),
     writeln(OStream, '  VM vm;'),
     writeln(OStream, '  vm.pc = pc;'),
-    writeln(OStream, '  vm.log_level = TRACE;'),
+    writeln(OStream, '  vm.log_level = ERROR;'),
     writeln(OStream, '  vm.failed = false;'),
     writeln(OStream, '  A* head = NULL;'),
     writeln(OStream, '  A* prev_tail = NULL;'),
@@ -241,7 +241,7 @@ to_cstring(C, S) :-
     format(atom(S), '"~w"', [C]).
 
 to_constant(Ctx, C, A) :-
-    ( number(C) -> A = tagvalue('TAG_INT', C)
+    ( number(C) -> A = 'tagvalue<TAG_INT>'(C)
     ; atom(C) -> append_atom(Ctx, C / 0, AtomID), A = atom(AtomID)
     ; fail).
 to_functor(F / N, Fun) :-
