@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <atomic>
 #include <cassert>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -9,6 +10,8 @@
 #include <memory>
 #include <mutex>
 #include <vector>
+
+const char ENV_GHC_LOGLEVEL[] = "GHC_LOGLEVEL";
 
 using Q = intptr_t;
 using A = std::atomic<Q>;
@@ -140,6 +143,12 @@ std::string to_str(Q q) {
     break;
   case TAG_ATOM:
     ss << "<ATOM>'" << atom_str_of(q) << "'";
+    {
+      const int i = atom_arity_of(q);
+      if (i != 0) {
+        ss << "/" << i;
+      }
+    }
     break;
   case TAG_INT:
     ss << "<INT>" << value_of<int64_t>(q);
@@ -306,12 +315,20 @@ struct VM {
   Heap heap;
   size_t published;
   std::shared_ptr<VM> child;
-  VM() : log_level(TRACE), failed(false),
+  VM() : failed(false),
          required(0), published(0) {
+    const std::string logLevel = getenv(ENV_GHC_LOGLEVEL);
+    log_level = ((logLevel == "ERROR") ? ERROR :
+                 (logLevel == "INFO") ? INFO :
+                 (logLevel == "DEBUG") ? DEBUG :
+                 TRACE);
     reg.resize(INITIAL_REG_SIZE);
     contexts.push_back(Context());
     in = &reg[0];
     out = in;
+  }
+  bool is_log_trace() const {
+    return log_level <= TRACE;
   }
   bool is_log_debug() const {
     return log_level <= DEBUG;
@@ -320,9 +337,6 @@ struct VM {
     return log_level <= INFO;
   }
   void dump() const {
-    if (!is_log_debug()) {
-      return;
-    }
     std::cerr << "--------------------" << std::endl;
     std::cerr << "[depth] continue : on_error : (reg) Goal" << std::endl;
     int depth = 0;
@@ -331,7 +345,7 @@ struct VM {
       Q goal = *in0;
       int arity = atom_arity_of(goal);
       std::stringstream ss;
-      std::cerr << "[" << depth << "] "
+      std::cerr << "[" << std::setw(3) << depth << "] "
                 << context.pc_continue << " : " << context.pc_on_error
                 << " : (" << context.in_offset << ")"
                 << atom_str_of(goal) << "/" << arity
@@ -346,17 +360,35 @@ struct VM {
       std::cerr << ")" << std::endl;
     }
     for (size_t i = 0;i < 20; ++i) {
-      std::cerr << "reg[" << i << "] : " << to_str(reg[i]) << std::endl;
+      std::cerr << "reg[" << std::setw(3) << i << "] : "
+                << to_str(reg[i]) << std::endl;
     }
     for (size_t
            i = 0;i < std::max(required, static_cast<size_t>(10)); ++i) {
-      std::cerr << "IN[" << i << "] : " << to_str(in[i]) << std::endl;
+      std::cerr << "IN[" << std::setw(3) << i << "] : "
+                << to_str(in[i]) << std::endl;
     }
-    for (size_t i = 0;i < published; ++i) {
-      std::cerr << &heap[i] << " heap[" << i << "] : "
-                << to_str(heap[i].load()) << std::endl;
-    }
+    dump_heap(0, published + 1);
     std::cerr << "--------------------" << std::endl;
+  }
+  void dump_register(int reg_index) const {
+    std::cerr << " IN[" << std::setw(3) << reg_index << "] : "
+              << to_str(in[reg_index]) << std::endl;
+  }
+  void dump_heap(int heap_index, size_t size) const {
+    for (size_t i = 0;i < size; ++i) {
+      size_t h = heap_index + i;
+      std::cerr << " " << &heap[h] << " heap[" << std::setw(3) << h << "] : "
+                << to_str(heap[h].load()) << std::endl;
+    }
+  }
+  void dump_heap(A* p, size_t size) const {
+    for (size_t i = 0;i < size; ++i) {
+      size_t h = p - &heap[0];
+      std::cerr << " " << p << " heap[" << std::setw(3) << h << "] : "
+                << to_str(p->load()) << std::endl;
+      ++p;
+    }
   }
   void create_child_vm() {
     child = std::make_shared<VM>();
@@ -604,19 +636,20 @@ class RuntimeError: public std::runtime_error {
   vm->in[0] = (goal);                                            \
   if (vm->is_log_info()) {                                       \
     std::stringstream ss;                                        \
-    ss << pc << ": goal("                                        \
-       << atom_str_of(goal) << "/" << atom_arity_of(goal)        \
-       << ") : "                                                 \
+    ss << std::setw(5) << pc << ": GOAL: "                       \
+       << std::string(vm->contexts.size() - 1, ' ')              \
        << atom_str_of(goal) << "(";                              \
     for (int i = 1; i <= atom_arity_of(goal); ++i) {             \
       if (i != 1) {                                              \
         ss << ",";                                               \
       }                                                          \
-      ss << to_str(vm->in[i]);                                   \
+      ss << to_str(deref(vm->in[i]));                            \
     }                                                            \
     ss << ")";                                                   \
     log_info(vm, ss.str());                                      \
-    vm->dump();                                                  \
+    if (vm->is_log_debug()) {                                    \
+      vm->dump();                                                \
+    }                                                            \
   }
 
 #define MACRO_requires(n)                                 \
@@ -714,12 +747,76 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_proceed                           \
   log_trace(vm, vm->pc << ": proceed");         \
   vm->proceed();                                \
-  vm->dump();                                   \
+  if (vm->is_log_debug()) {                     \
+    vm->dump();                                 \
+  }                                             \
   continue
 #define MACRO_return                            \
   log_trace(vm, vm->pc << ": return");          \
   vm->switch_prev_window();                     \
   continue
+
+#define MACRO_put_variable(Vn, Ai)                              \
+  {                                                             \
+    const size_t h = vm->heap_publishing(1);                    \
+    const Q q = tagptr<TAG_REF>(&vm->heap[h]);                  \
+    vm->heap[h].store(q);                                       \
+    vm->in[Ai] = q;                                             \
+    vm->in[Vn] = q;                                             \
+    vm->heap_published(1);                                      \
+  }                                                             \
+  log_trace(vm, vm->pc                                          \
+            << ": put_variable(" << Vn << "," << Ai << ") :"    \
+            << to_str(vm->in[Vn]))
+
+#define MACRO_put_value(Vn, Ai)                             \
+  log_trace(vm, vm->pc                                      \
+            << ": put_value(" << Vn << "," << Ai << ") :"   \
+            << to_str(vm->in[Vn]));                         \
+  {                                                         \
+    const Q q = deref(vm->in[Vn]);                          \
+    vm->in[Vn] = q;                                         \
+    vm->in[Ai] = q;                                         \
+  }
+#define MACRO_put_constant(C, Ai)                           \
+  log_trace(vm, vm->pc                                      \
+            << ": out_constant(" << to_str(C) << "," << Ai  \
+            << ")");                                        \
+  vm->in[Ai] = C
+#define MACRO_put_nil(Ai)                       \
+  log_trace(vm, vm->pc                          \
+            << ": put_nil(" << Ai << ")");      \
+  vm->in[Ai] = tagptr<TAG_NIL, Q>(0)
+#define MACRO_put_list(Ai)                          \
+  log_trace(vm, vm->pc                              \
+            << ": put_list(" << Ai << ")");         \
+  {                                                 \
+    const size_t h = vm->heap_publishing(2);        \
+    const Q q = tagptr<TAG_LIST>(&vm->heap[h]);     \
+    vm->in[Ai] = q;                                 \
+    vm->push(tagptr<TAG_REF>(&vm->heap[h + 1]));    \
+    vm->push(tagptr<TAG_REF>(&vm->heap[h + 0]));    \
+    vm->heap_published(2);                          \
+    if (vm->is_log_trace()) {                       \
+      vm->dump_register(Ai);                        \
+      vm->dump_heap(h, 2);                          \
+    }                                               \
+  }
+#define MACRO_put_structure(Fn, Ai)                               \
+  log_trace(vm, vm->pc                                            \
+            << ": out_structure("                                 \
+            << atom_str_of(Fn) << "/" << atom_arity_of(Fn)        \
+            << "," << Ai << ")");                                 \
+  {                                                               \
+    const size_t h = vm->heap_publishing(1 + atom_arity_of(Fn));  \
+    vm->heap[h].store(Fn);                                        \
+    for (int i = atom_arity_of(Fn); i > 0; --i) {                 \
+      vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                \
+    }                                                             \
+    const Q q = tagptr<TAG_STR>(&vm->heap[h]);                    \
+    vm->in[Ai] = q;                                               \
+    vm->heap_published(1 + atom_arity_of(Fn));                    \
+  }
 
 #define MACRO_out_variable(Vn, Oi)                              \
   {                                                             \
@@ -748,18 +845,20 @@ class RuntimeError: public std::runtime_error {
             << ": out_constant(" << to_str(C) << "," << Oi  \
             << ")");                                        \
  vm->out[Oi] = C
-#define MACRO_out_nil(Oi)                                   \
-  log_trace(vm, vm->pc                                      \
-            << ": out_nil(" << to_str(C) << ")");           \
+#define MACRO_out_nil(Oi)                       \
+  log_trace(vm, vm->pc                          \
+            << ": out_nil(" << Oi << ")");      \
   vm->out[Oi] = tagptr<TAG_NIL, Q>(0)
-#define MACRO_out_list(Oi)                                        \
-  log_trace(vm, vm->pc                                            \
-            << ": out_list(" << Oi << ")");                       \
-  {                                                               \
-    const size_t h = vm->heap_publishing(2);                      \
-    const Q q = tagptr<TAG_LIST>(&vm->heap[h]);                   \
-    vm->out[Oi] = q;                                              \
-    vm->heap_published(2);                                        \
+#define MACRO_out_list(Oi)                       \
+  log_trace(vm, vm->pc                           \
+            << ": out_list(" << Oi << ")");      \
+  {                                              \
+    const size_t h = vm->heap_publishing(2);     \
+    const Q q = tagptr<TAG_LIST>(&vm->heap[h]);  \
+    vm->out[Oi] = q;                             \
+    vm->push(tagptr<TAG_REF>(&vm->heap[h + 1])); \
+    vm->push(tagptr<TAG_REF>(&vm->heap[h + 0])); \
+    vm->heap_published(2);                       \
   }
   
 #define MACRO_out_structure(Fn, Oi)                               \
@@ -784,15 +883,25 @@ class RuntimeError: public std::runtime_error {
             << to_str(vm->in[Vn]));                               \
   {                                                               \
     const Q q = vm->pop();                                        \
+    A* p = ptr_of<A>(q);                                          \
+    p->store(q);                                                  \
     vm->in[Vn] = q;                                               \
+    if (vm->is_log_trace()) {                                     \
+      vm->dump_register(Vn);                                      \
+      vm->dump_heap(p, 1);                                        \
+    }                                                             \
   }
-#define MACRO_write_value(Vn)                                     \
-  log_trace(vm, vm->pc                                            \
-            << ": write_value(" << Vn << ") :"                    \
-            << to_str(vm->in[Vn]));                               \
-  {                                                               \
-    const Q q = vm->pop();                                        \
-    ptr_of<A>(q)->store(deref(vm->in[Vn]));                       \
+#define MACRO_write_value(Vn)                       \
+  log_trace(vm, vm->pc                              \
+            << ": write_value(" << Vn << ") :"      \
+            << to_str(vm->in[Vn]));                 \
+  {                                                 \
+    const Q q = vm->pop();                          \
+    ptr_of<A>(q)->store(deref(vm->in[Vn]));         \
+    if (vm->is_log_trace()) {                       \
+      vm->dump_register(Vn);                        \
+      vm->dump_heap(ptr_of<A>(q), 2);               \
+    }                                               \
   }
   
 #define MACRO_write_constant(C)                                   \
@@ -802,12 +911,16 @@ class RuntimeError: public std::runtime_error {
     const Q q = vm->pop();                                        \
     ptr_of<A>(q)->store(C);                                       \
   }
-#define MACRO_write_nil                                           \
-  log_trace(vm, vm->pc                                            \
-            << ": write_nil()");                                  \
-  {                                                               \
-    const Q q = vm->pop();                                        \
-    ptr_of<A>(q)->store(tagptr<TAG_NIL, Q>(0));                   \
+#define MACRO_write_nil                         \
+  log_trace(vm, vm->pc                          \
+            << ": write_nil()");                \
+  {                                             \
+    const Q q = vm->pop();                      \
+    A* p = ptr_of<A>(q);                        \
+    p->store(tagptr<TAG_NIL, Q>(0));            \
+    if (vm->is_log_trace()) {                   \
+      vm->dump_heap(p, 1);                      \
+    }                                           \
   }
 #define MACRO_write_list                                          \
   log_trace(vm, vm->pc                                            \
@@ -817,7 +930,11 @@ class RuntimeError: public std::runtime_error {
     const size_t h = vm->heap_publishing(2);                      \
     vm->push(tagptr<TAG_REF>(&vm->heap[h + 1]));                  \
     vm->push(tagptr<TAG_REF>(&vm->heap[h + 0]));                  \
+    ptr_of<A>(q)->store(tagptr<TAG_LIST>(&vm->heap[h + 0]));      \
     vm->heap_published(2);                                        \
+    if (vm->is_log_trace()) {                                     \
+      vm->dump_heap(h, 2);                                        \
+    }                                                             \
   }
 #define MACRO_write_structure(Fn)                                 \
   log_trace(vm, vm->pc                                            \
@@ -869,32 +986,48 @@ class RuntimeError: public std::runtime_error {
     vm->fail();                                         \
     continue;                                           \
   }
-#define MACRO_get_list(Ai)                                  \
-  log_trace(vm, vm->pc                                      \
-            << ": get_list(" << Ai << ")");                 \
-  {                                                         \
-    const Q q = deref(vm->in[Ai]);                          \
-    vm->in[Ai] = q;                                         \
-    cont TAG_T tag = tag_of(q);                             \
-    if (tag == TAG_REF) {                                   \
-      const size_t h = vm->heap_publishing(2);              \
-      Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);             \
-      Q q1 = tagptr<TAG_REF>(&vm->heap[h + 1]);             \
-      vm->heap[h + 0].store(q0);                            \
-      vm->heap[h + 1].store(q1);                            \
-      Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]);           \
-      if (!p->compare_exchange_strong(q, lst)) {            \
-        fail();                                             \
-        continue;                                           \
-      }                                                     \
-      vm->heap_published(2);                                \
-      vm->push(q1);                                         \
-      vm->push(q0);                                         \
-    } else if (tag == TAG_LIST) {                           \
-      A* p = ptr_of<A>(q);                                  \
-      vm->push(p + 1);                                      \
-      vm->push(p + 0);                                      \
-    }
+#define MACRO_get_list(Ai)                        \
+  log_trace(vm, vm->pc                            \
+            << ": get_list(" << Ai << ")");       \
+  {                                               \
+    Q q = deref(vm->in[Ai]);                      \
+    vm->in[Ai] = q;                               \
+    const TAG_T tag = tag_of(q);                  \
+    if (tag == TAG_REF) {                         \
+      A* p = ptr_of<A>(q);                        \
+      const size_t h = vm->heap_publishing(2);    \
+      Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);   \
+      Q q1 = tagptr<TAG_REF>(&vm->heap[h + 1]);   \
+      vm->heap[h + 0].store(q0);                  \
+      vm->heap[h + 1].store(q1);                  \
+      Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]); \
+      if (!p->compare_exchange_strong(q, lst)) {  \
+        vm->fail();                               \
+        continue;                                 \
+      }                                           \
+      vm->heap_published(2);                      \
+      vm->push(q1);                               \
+      vm->push(q0);                               \
+      if (vm->is_log_trace()) {                   \
+        vm->dump_register(Ai);                    \
+        vm->dump_heap(h, 2);                      \
+      }                                           \
+    } else if (tag == TAG_LIST) {                 \
+      A* p = ptr_of<A>(q);                        \
+      vm->push((p + 1)->load());                  \
+      vm->push((p + 0)->load());                  \
+      if (vm->is_log_trace()) {                   \
+        vm->dump_register(Ai);                    \
+        vm->dump_heap(p, 2);                      \
+      }                                           \
+    } else {                                      \
+      if (vm->is_log_trace()) {                   \
+        vm->dump_register(Ai);                    \
+        vm->fail();                               \
+      }                                           \
+      continue;                                   \
+    }                                             \
+  }
 #define MACRO_get_structure(Fn, Ai)             \
   throw std::runtime_error("fix me: get_structure")
 
@@ -908,8 +1041,49 @@ class RuntimeError: public std::runtime_error {
   throw std::runtime_error("fix me: unify_nil")
 #define MACRO_unify_list                          \
   throw std::runtime_error("fix me: unify_list")
-#define MACRO_unify_structure(Fn)                   \
-  throw std::runtime_error("fix me: unify_structure")
+#define MACRO_unify_structure(Fn)                                     \
+  log_trace(vm, vm->pc                                                \
+              << ": unify_structure("                                 \
+              << atom_str_of(Fn) << "/" << atom_arity_of(Fn) << ")"); \
+  {                                                                   \
+    Q q = vm->pop();                                                  \
+    const TAG_T tag = tag_of(q);                                      \
+    if (tag == TAG_REF) {                                             \
+      A* p = ptr_of<A>(q);                                            \
+      const int arity = atom_arity_of(Fn);                            \
+      const size_t h = vm->heap_publishing(arity);                    \
+      vm->heap[h + 0] = Fn;                                           \
+      for (int i = 1; i <= arity; ++i) {                              \
+        vm->heap[h + i].store(tagptr<TAG_REF>(&vm->heap[h + i]));     \
+      }                                                               \
+      const Q s = tagptr<TAG_STR>(&vm->heap[h]);                      \
+      if (!p->compare_exchange_strong(q, s)) {                        \
+        vm->fail();                                                   \
+        continue;                                                     \
+      }                                                               \
+      vm->heap_published(arity);                                      \
+      if (vm->is_log_trace()) {                                       \
+        vm->dump_heap(p, 1);                                          \
+        vm->dump_heap(h, arity + 1);                                  \
+      }                                                               \
+    } else if (tag == TAG_STR) {                                      \
+      A* p = ptr_of<A>(q);                                            \
+      if (p->load() != Fn) {                                          \
+        vm->fail();                                                   \
+        continue;                                                     \
+      }                                                               \
+      const int arity = atom_arity_of(Fn);                            \
+      for (int i = 1; i <= arity; ++i) {                              \
+        vm->push(p[i].load());                                        \
+      }                                                               \
+      if (vm->is_log_trace()) {                                       \
+        vm->dump_heap(p, arity + 1);                                  \
+      }                                                               \
+    } else {                                                          \
+      vm->fail();                                                     \
+      continue;                                                       \
+    }                                                                 \
+  }
 
 #define MACRO_check_variable(Vn, Ai)                  \
   throw std::runtime_error("fix me: check_variable")

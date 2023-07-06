@@ -90,7 +90,6 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     writeln(OStream, '  }'),
     writeln(OStream, '  VM vm;'),
     writeln(OStream, '  vm.pc = pc;'),
-    writeln(OStream, '  vm.log_level = ERROR;'),
     writeln(OStream, '  vm.failed = false;'),
     writeln(OStream, '  A* head = NULL;'),
     writeln(OStream, '  A* prev_tail = NULL;'),
@@ -110,9 +109,12 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     writeln(OStream, '  vm.in[0] = to_atom("main", 1);'),
     writeln(OStream, '  vm.in[1] = tagptr<TAG_LIST,A>(head);'),
     writeln(OStream, '  prev_tail->store(tagptr<TAG_NIL,Q>(NULL));'),
-    writeln(OStream, '  vm.dump();'),
-    writeln(OStream, '  module(&vm);'),
-    writeln(OStream, '  vm.dump();'),
+    writeln(OStream, '  try {'),
+    writeln(OStream, '    module(&vm);'),
+    writeln(OStream, '  } catch (const std::runtime_error& ex) {'),
+    writeln(OStream, '    std::cerr << ex.what() << std::endl;'),
+    writeln(OStream, '    vm.dump();'),
+    writeln(OStream, '  }'),
     writeln(OStream, '}'),
     close(OStream).
 
