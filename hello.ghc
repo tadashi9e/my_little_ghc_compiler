@@ -1,0 +1,8 @@
+
+main([_|Ss]) :-
+    write('hello ')
+    ->
+    writes(Ss).
+
+writes([]) :- nl.
+writes([S|Ss]) :- write(S), write(' ') -> writes(Ss).
