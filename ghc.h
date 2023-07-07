@@ -1,5 +1,8 @@
+#ifndef GHC_H_
+#define GHC_H_
 #include <stdio.h>
 #include <stdint.h>
+#include <algorithm>
 #include <atomic>
 #include <cassert>
 #include <iomanip>
@@ -82,9 +85,9 @@ Q deref(Q q) {
   return q;
 }
 
-class AtomDictionary {
+class SymbolDictionary {
  public:
-  static AtomDictionary& getInstance();
+  static SymbolDictionary& getInstance();
   int64_t id_of_str(const std::string& str) {
     std::unique_lock<std::mutex> lock(mutex_);
     std::unordered_map<std::string, int64_t>::const_iterator
@@ -112,23 +115,24 @@ class AtomDictionary {
   std::unordered_map<std::string, int64_t> str_index_map_;
   std::unordered_map<int64_t, std::string> index_str_map_;
   int64_t last_index_;
-  AtomDictionary()
+  SymbolDictionary()
     : last_index_(0) {
   }
 };
-AtomDictionary& AtomDictionary::getInstance() {
-  static AtomDictionary instance_;
+
+SymbolDictionary& SymbolDictionary::getInstance() {
+  static SymbolDictionary instance_;
   return instance_;
 }
 
 Q to_atom(const char* cstr, int arity) {
   const int64_t id =
-    AtomDictionary::getInstance().id_of_str(cstr);
+    SymbolDictionary::getInstance().id_of_str(cstr);
   return tagvalue<TAG_ATOM>(id << 5 | arity);
 }
 std::string atom_str_of(Q q) {
   int64_t id = value_of<int64_t>(q) >> 5;
-  return AtomDictionary::getInstance().str_of_id(id);
+  return SymbolDictionary::getInstance().str_of_id(id);
 }
 int atom_arity_of(Q q) {
   return value_of<int64_t>(q) & 0x1f;
@@ -167,30 +171,32 @@ std::string to_str(Q q) {
 }
 
 namespace reg {
-  struct in {
-    int index;
-    in(int index) : index(index) {
-    }
-    operator int() {
-      return index;
-    }
-  };
-  struct x {
-    int index;
-    x(int index) : index(index) {
-    }
-    operator int() {
-      return index;
-    }
-  };
-  struct out {
-    int index;
-    out(int index) : index(index) {
-    }
-    operator int() {
-      return index;
-    }
-  };
+
+struct in {
+  int index;
+  explicit in(int index) : index(index) {
+  }
+  operator int() {
+    return index;
+  }
+};
+struct x {
+  int index;
+  explicit x(int index) : index(index) {
+  }
+  operator int() {
+    return index;
+  }
+};
+struct out {
+  int index;
+  explicit out(int index) : index(index) {
+  }
+  operator int() {
+    return index;
+  }
+};
+
 }  // namespace reg
 
 #define INITIAL_REG_SIZE 32
@@ -240,6 +246,7 @@ class Heap {
   size_t size() const {
     return HEAP_SIZE;
   }
+
  private:
   std::shared_ptr<std::array<A, HEAP_SIZE> > heap_;
 };
@@ -303,6 +310,7 @@ enum LOG_LEVEL {
 
 struct VM {
   LOG_LEVEL log_level;
+  int64_t inferences;
   bool failed;
   int pc;
   std::vector<Q> reg;
@@ -315,7 +323,7 @@ struct VM {
   Heap heap;
   size_t published;
   std::shared_ptr<VM> child;
-  VM() : failed(false),
+  VM() : inferences(0), failed(false),
          required(0), published(0) {
     const std::string logLevel = getenv(ENV_GHC_LOGLEVEL);
     log_level = ((logLevel == "ERROR") ? ERROR :
@@ -359,12 +367,12 @@ struct VM {
       }
       std::cerr << ")" << std::endl;
     }
-    for (size_t i = 0;i < 20; ++i) {
+    for (size_t i = 0; i < 20; ++i) {
       std::cerr << "reg[" << std::setw(3) << i << "] : "
                 << to_str(reg[i]) << std::endl;
     }
     for (size_t
-           i = 0;i < std::max(required, static_cast<size_t>(10)); ++i) {
+           i = 0; i < std::max(required, static_cast<size_t>(10)); ++i) {
       std::cerr << "IN[" << std::setw(3) << i << "] : "
                 << to_str(in[i]) << std::endl;
     }
@@ -376,14 +384,14 @@ struct VM {
               << to_str(in[reg_index]) << std::endl;
   }
   void dump_heap(int heap_index, size_t size) const {
-    for (size_t i = 0;i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
       size_t h = heap_index + i;
       std::cerr << " " << &heap[h] << " heap[" << std::setw(3) << h << "] : "
                 << to_str(heap[h].load()) << std::endl;
     }
   }
   void dump_heap(A* p, size_t size) const {
-    for (size_t i = 0;i < size; ++i) {
+    for (size_t i = 0; i < size; ++i) {
       size_t h = p - &heap[0];
       std::cerr << " " << p << " heap[" << std::setw(3) << h << "] : "
                 << to_str(p->load()) << std::endl;
@@ -402,7 +410,7 @@ struct VM {
   void create_new_window(size_t n) {
     out = &in[n];
     next_context.in_offset = out - &reg[0];
-    while (out - &reg[0] + 64 > reg.size()) {
+    while (static_cast<size_t>(out - &reg[0] + 64) > reg.size()) {
       reg.resize(reg.size() * 2);
       in = &reg[contexts.back().in_offset];
       out = &reg[next_context.in_offset];
@@ -633,6 +641,7 @@ class RuntimeError: public std::runtime_error {
 };
 
 #define MACRO_goal(pc, goal)                                     \
+  ++vm->inferences;                                              \
   vm->in[0] = (goal);                                            \
   if (vm->is_log_info()) {                                       \
     std::stringstream ss;                                        \
@@ -730,9 +739,9 @@ class RuntimeError: public std::runtime_error {
   vm->out = &vm->in[N]
 // out レジスタの内容を in レジスタにコピーし、
 // 制御を jump_to に移す。
-#define MACRO_execute(jump_to, n)                           \
+#define MACRO_execute(jump_to, arity)                       \
   log_trace(vm, vm->pc << ": execute(" << jump_to << ")");  \
-  for (int i = 1; i <= n; ++i) {                            \
+  for (int i = 1; i <= arity; ++i) {                        \
     vm->in[i] = vm->out[i];                                 \
   }                                                         \
   vm->pc = jump_to;                                         \
@@ -844,7 +853,7 @@ class RuntimeError: public std::runtime_error {
   log_trace(vm, vm->pc                                      \
             << ": out_constant(" << to_str(C) << "," << Oi  \
             << ")");                                        \
- vm->out[Oi] = C
+  vm->out[Oi] = C
 #define MACRO_out_nil(Oi)                       \
   log_trace(vm, vm->pc                          \
             << ": out_nil(" << Oi << ")");      \
@@ -860,7 +869,7 @@ class RuntimeError: public std::runtime_error {
     vm->push(tagptr<TAG_REF>(&vm->heap[h + 0])); \
     vm->heap_published(2);                       \
   }
-  
+
 #define MACRO_out_structure(Fn, Oi)                               \
   log_trace(vm, vm->pc                                            \
             << ": out_structure("                                 \
@@ -903,7 +912,7 @@ class RuntimeError: public std::runtime_error {
       vm->dump_heap(ptr_of<A>(q), 2);               \
     }                                               \
   }
-  
+
 #define MACRO_write_constant(C)                                   \
   log_trace(vm, vm->pc                                            \
             << ": write_constant(" << to_str(C) << ")");          \
@@ -970,7 +979,7 @@ class RuntimeError: public std::runtime_error {
     vm->fail();                                           \
     continue;                                             \
   }
-  
+
 #define MACRO_get_constant(C, Ai)                                   \
   log_trace(vm, vm->pc                                              \
             << ": get_constant(" << to_str(C) << "," << Ai << ")"); \
@@ -978,7 +987,7 @@ class RuntimeError: public std::runtime_error {
     vm->fail();                                                     \
     continue;                                                       \
   }
-  
+
 #define MACRO_get_nil(Ai)                               \
   log_trace(vm, vm->pc                                  \
             << ": get_nil(" << Ai << ")");              \
@@ -1121,7 +1130,7 @@ class RuntimeError: public std::runtime_error {
               << to_str(q));                                  \
     vm->in[Vn] = q;                                           \
   }
-  
+
 #define MACRO_read_value(Vn)                   \
   throw std::runtime_error("fix me: read_value")
 #define MACRO_read_constant(C)                      \
@@ -1171,4 +1180,6 @@ class Program {
 };
 
 extern void setup(Program* prog);
-extern void module(VM* vm);
+extern void module(VM* vm, Program* prog);
+
+#endif  // GHC_H_

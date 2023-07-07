@@ -1,7 +1,8 @@
 % -*- coding:utf-8-unix; mode:prolog -*-
 
 tarai(X, Y, _, R) :- X =< Y | R = Y.
-tarai(X, Y, Z, R) :- X > Y |
+otherwise.
+tarai(X, Y, Z, R) :- true |
     X_1 := X - 1, tarai(X_1, Y, Z, R_X),
     Y_1 := Y - 1, tarai(Y_1, Z, X, R_Y),
     Z_1 := Z - 1, tarai(Z_1, X, Y, R_Z)
@@ -11,5 +12,5 @@ main([_, X, Y, Z]) :-
     atom_number(X, Xi),
     atom_number(Y, Yi),
     atom_number(Z, Zi),
-    tarai(Xi, Yi, Zi, Ri)
+    time(tarai(Xi, Yi, Zi, Ri))
     -> writeln(Ri).

@@ -78,10 +78,6 @@ ghc_collect_goals([], Goals, Goals) :- !.
 ghc_collect_goals([otherwise|NextCodes], Goals, Gs) :-
     !,
     ghc_collect_goals(NextCodes, Goals, Gs).
-% builtin は単に無視する。
-ghc_collect_goals([builtin|NextCodes], Goals, Gs) :-
-    !,
-    ghc_collect_goals(NextCodes, Goals, Gs).
 ghc_collect_goals([(Head :- _)|NextCodes], Goals, Gs) :-
     functor(Head, G, N),
     !,
