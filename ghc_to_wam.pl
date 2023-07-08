@@ -59,7 +59,7 @@ ghc_read_all_terms(Stream, Source) :-
     ; Source = [Term|Source2],
       ghc_read_all_terms(Stream, Source2)).
 
-%% ghc_compile(+Source, +OFile)
+%% ghc_compile(+Source, +WamFile)
 % GHC ソースコード Source を WAM 風中間コードにコンパイルして
 % OFile に書き込む。
 ghc_compile(Source, WamFile) :-
@@ -240,48 +240,6 @@ ghc_compile_guard1(Ctx, Guard) :-
 
 %% ghc_put(?Ctx, +Register, +X)
 % put 系命令およびそれに続く write 系命令列を生成する。
-% - put_variable(Vn, Ai) は Vn := Ai := ref<&H[0]>, H += 1
-%  つまり、ヒープ上に未実現引数を確保して Vn と Ai に代入する。
-% - put_value(Vn, Ai) は Ai := Vn
-%  つまり、Ai に Vn を代入する。
-% - put_nil(Ai) は Ai := []
-%  つまり、A[i] に [] を代入する。
-% put_constant(C, Ai) は Ai := C
-%  つまり、A[i] に C を代入する。
-% - put_list(Ai) は
-%  Ai := list<H>, push(&H[1]), push(&H[0]),
-%  H += 2
-%  つまり、CAR/CDRはヒープ上に領域だけ確保して設定は後続の write 系命令に委ねる。
-% - put_structure(F / N, Ai) は
-%  Ai := str<H>,
-%  H[0] = F/N, push(&H[N]), push(&H[ref(N-1)]),.., push(&H[1]),
-%  H += N
-%  つまり、引数はヒープ上に領域だけ確保して設定は後続の write 命令に委ねる。
-%
-% put 系命令に続けて、引数の組み立てを継続する。
-% - write_variable(Vn)/out_variable(Vn) は p = pop(), Vn := *p
-%  つまり、スタックからポインタを取り出してその場所の値を Vn を代入する。
-% - write_value(Vn)/out_value(Vn) は p = pop(), *p := Vn
-%  つまり、スタックからポインタを取り出してその場所に Vn を代入する。
-% - write_nil/out_nil は p = pop(), *p := []
-%  つまり、スタックからポインタを取り出してその場所に [] を代入する。
-% - write_constant(C)/out_constant(C) は p = pop(), *p := C
-%  つまり、スタックからポインタを取り出してその場所に C を代入する。
-% - write_list/out_list は
-%  p = pop(), *p := list<&H[0]>,
-%  push(&H[1]), push(&H[0]),
-%  H += 2
-%  つまり、新たに作るリストの CAR/CDR の場所をヒープ上に確保し、
-%  スタックから取り出したポインタにその場所を書き込む。
-%  また、CAR/CDR を処理継続のためにスタックにプッシュする。
-% - write_structure(F / N)/out_structure(F / N) は
-%  p = pop(), *p = str<&H[0]>,
-%  H[0] = atm<F/N>, push(&H[N]), push(&H[N-1]),.., push(&H[1]), 
-%  H += N
-%  つまり、新たに作る構造体の場所をヒープ上に確保し、
-%  スタックから取り出したポインタにその場所を書き込む。
-%  また、構造体引数を処理継続のためにスタックにプッシュする。
-%
 ghc_put(Ctx, reg(x, Nreg), X) :-
     ghc_put(Ctx, reg(x, Nreg), X,
             [ put_variable, put_value,
@@ -368,41 +326,6 @@ ghc_unify_structure_args(Ctx, [Arg|Args], UnifyOperations) :-
 %% ghc_get_check(?Ctx, +Register, +X)
 % パッシブモードでのガードチェック処理を生成する。
 % ガードチェック処理は check 系命令と、それに続く read 系命令からなる。
-%
-% - check_variable(Vn, Ai)
-%  V[n] := A[i]
-% - check_value(Vn, Ai)
-%  A[i] が未実現なら実現待ち合わせリストに登録して fail。
-%  実現済みなら V[n] の値と一致するか調べて、一致しなければ fail。
-% - check_constant(C, Ai)
-%  A[i] が未実現なら実現待ち合わせリストに登録して fail。
-%  実現済みなら C と一致するか調べて、一致しなければ fail。
-% - check_nil(Ai)
-%  A[i] が未実現なら実現待ち合わせリストに登録して fail。
-%  実現済みなら [] と一致するか調べて、一致しなければ fail。
-% - check_list(Ai)
-%  A[i] が未実現なら実現待ち合わせリストに登録して fail。
-%  実現済みならリストか調べて、リストでなければ fail。
-%  リストならその CAR/CDR をスタックにプッシュする。
-% - check_structure(F / N, Ai)
-%  A[i] が未実現なら実現待ち合わせリストに登録して fail。
-%  実現済みなら構造体 F/N か調べて、構造体 F/N でなければ fail。
-%  構造体 F/N なら N 個の引数すべてをスタックにプッシュする。
-%
-% check 系命令に続くガード処理は以下。
-% - read_variable(Vn) は p = pop(), Vn := *p
-% - read_value(Vn) は p = pop(), if (Vn != *p) then fail
-% - read_nil は p = pop(), if ([] != *p) then fail
-% - read_constant(C) は p = pop(), if (C != *p) then fail
-% - read_list は
-%  p = pop(),
-%  if (*p is not list) then { fail }
-%  else { push(&p[1] /* CDR */), push(&p[0] /* CAR */) }
-% - read_structure(F / N) は
-%  p = pop(),
-%  if (*p is not F/N) then { fail }
-%  else { push(&p[N]), push(&p[N-1]), ..., push(&p[1]) }
-%
 ghc_get_check(Ctx, reg(Reg, Nreg), X) :-
     ghc_get(Ctx, reg(Reg, Nreg), X,
             [ check_variable, check_value,
@@ -413,25 +336,6 @@ ghc_get_check(Ctx, reg(Reg, Nreg), X) :-
               read_list, read_structure ]).
 %% ghc_get(?Ctx, +Register, +X)
 % get 系命令およびそれに続く unify 系命令列を生成する。
-% - get_variable(Vn, Ai) は V[n] := A[i]
-% - get_value(Vn, Ai) は unify(V[n], A[i])
-% - get_constant(C, Ai) は unify(C, A[i])
-% - get_nil(Ai) は unify([], A[i])
-% - get_list(Ai) は unify([_|_], A[i])
-% - get_structure(F / N, Ai) は unify(F/N, A[i])
-%
-% - unify_variable(Vn) は p = pop(), Vn := *p
-% - unify_value(Vn) は p = pop(), unify(Vn, *p)
-% - unify_constant(C) は p = pop(), unify(C, *p)
-% - unify_nil は p = pop(), unify([], *p)
-% - unify_list は
-%  p = pop(), H[0] = ref<&H[0]>, H[1] = ref<&H[1]>,
-%  unify(list<&H[0]>, *p), H += 2
-% - unify_structure(F / N) は
-%  p = pop(), 
-%  push(&H[N]), push(&H[N-1]), ..., push(&H[1]),
-%  unify(str<&H[0]>, *p), H += N
-%
 ghc_get(Ctx, reg(Reg, Nreg), X) :-
     ghc_get(Ctx, reg(Reg, Nreg), X,
             [ get_variable, get_value,
@@ -495,7 +399,7 @@ ghc_call_args(Ctx, [Arg|Args], N) :-
 
 %% ghc_compile_goal_body(?Ctx, +Body)
 % ボディ部の処理をコンパイルする。
-% '->' が含まれる場合、'->' の前の部分はシーケンシャル実行(seq)する。
+% '->' が含まれる場合、'->' の前の部分は逐次実行(seq)する。
 % '->' が含まれない場合、あるいは '->' の後ろの部分は並列実行(par)する。
 % 但し、並列実行の最後は末尾呼び出し最適化としてジャンプ(tail)に置き換える。
 ghc_compile_goal_body(Ctx, (_|Body)) :- !,
