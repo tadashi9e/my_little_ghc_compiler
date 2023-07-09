@@ -127,7 +127,7 @@ ghc_compile_goals([Goal|Goals], Source, OStream) :-
     assign_labels(Ctx),
     max_register_index(Ctx, x, MaxReg_x),
     max_register_index(Ctx, out, MaxReg_out),
-    MaxReg is MaxReg_x + MaxReg_out,
+    MaxReg is MaxReg_x + MaxReg_out + 1,
     get(Ctx, max_reg, MaxReg),
     flush_source(Ctx, OStream),
     always_success(ghc_compile_goals(Goals, Source, OStream)).
@@ -232,58 +232,80 @@ ghc_compile_guard1(Ctx, Guard) :-
       ; get(Ctx, Y, reg(in, Ai)) ->
         always_success(ghc_get_check(Ctx, reg(in, Ai), X))
       ; format('warning: Guard may not be efficient: ~w~n', [Guard]),
-        put(Ctx, _, reg(x, Xn)),
-        always_success(ghc_put(Ctx, reg(x, Xn), X)),
+        always_success(ghc_set(Ctx, reg(x, Xn), X)),
         always_success(ghc_get_check(Ctx, reg(x, Xn), Y)))
     ; ghc_compile_call(Ctx, seq, Guard)
     ; format('error: invalid guard: ~w~n', [Guard]), fail).
 
-%% ghc_put(?Ctx, +Register, +X)
-% put 系命令およびそれに続く write 系命令列を生成する。
-ghc_put(Ctx, reg(x, Nreg), X) :-
-    ghc_put(Ctx, reg(x, Nreg), X,
-            [ put_variable, put_value,
-              put_constant, put_nil,
-              put_list, put_structure ]).
-ghc_put(Ctx, reg(out, Nreg), X) :-
-    ghc_put(Ctx, reg(out, Nreg), X,
-            [ out_variable, out_value,
-              out_constant, out_nil,
-              out_list, out_structure ]).
-ghc_put(Ctx, reg(Reg, Nreg), X,
-        PutOperations) :-
-    PutOperations = [ PutVariable, PutValue,
-                      PutConstant, PutNil,
-                      PutList, PutStructure ],
+%% ghc_out(?Ctx, +Register, +X)
+% out 系命令およびそれに続く write 系命令列を生成する。
+ghc_out(Ctx, reg(out, Nreg), X) :-
     UnifyOperations = [ write_variable, write_value,
                         write_constant, write_nil,
                         write_list, write_structure ],
     ( var(X) ->
       ( get(Ctx, X, reg(R, N))
         ->
-        Op =.. [PutValue, reg(R, N), reg(Reg, Nreg)],
+        Op =.. [out_value, reg(R, N), reg(out, Nreg)],
         write_source(Ctx, Op)
       ; put(Ctx, X, reg(x, N))
         ->
-        Op =.. [PutVariable, reg(x, N), reg(Reg, Nreg)],
+        Op =.. [out_variable, reg(x, N), reg(out, Nreg)],
         write_source(Ctx, Op) )
     ; X = []
       ->
-      Op =.. [PutNil, reg(Reg, Nreg)],
+      Op =.. [out_nil, reg(out, Nreg)],
       write_source(Ctx, Op)
     ; X = [Car|Cdr]
       ->
-      Op =.. [PutList, reg(Reg, Nreg)],
+      Op =.. [out_list, reg(out, Nreg)],
       write_source(Ctx, Op),
       ghc_unify(Ctx, Car, UnifyOperations),
       ghc_unify(Ctx, Cdr, UnifyOperations)
     ; atomic(X)
       ->
-      Op =.. [PutConstant, X, reg(Reg, Nreg)],
+      Op =.. [out_constant, X, reg(out, Nreg)],
       write_source(Ctx, Op)
     ; functor(X, F, Nf), X =.. [_|As]
       ->
-      Op =.. [PutStructure, F / Nf, reg(Reg, Nreg)],
+      Op =.. [out_structure, F / Nf, reg(out, Nreg)],
+      write_source(Ctx, Op),
+      ghc_unify_structure_args(Ctx, As, UnifyOperations)
+    ; fail).
+ghc_set(Ctx, reg(Reg, Nreg), X) :-
+    UnifyOperations = [ write_variable, write_value,
+                        write_constant, write_nil,
+                        write_list, write_structure ],
+    ( get(Ctx, X, reg(Reg, Nreg))
+      ->
+      Op =.. [set_value, reg(Reg, Nreg)],
+      write_source(Ctx, Op)
+    ; var(X)
+      ->
+      put(Ctx, X, reg(Reg, Nreg)),
+      Op =.. [set_variable, reg(Reg, Nreg)],
+      write_source(Ctx, Op)
+    ; X = []
+      ->
+      put(Ctx, X, reg(Reg, Nreg)),
+      Op =.. [set_nil, reg(Reg, Nreg)],
+      write_source(Ctx, Op)
+    ; X = [Car|Cdr]
+      ->
+      put(Ctx, X, reg(Reg, Nreg)),
+      Op =.. [set_list, reg(Reg, Nreg)],
+      write_source(Ctx, Op),
+      ghc_unify(Ctx, Car, UnifyOperations),
+      ghc_unify(Ctx, Cdr, UnifyOperations)
+    ; atomic(X)
+      ->
+      put(Ctx, X, reg(Reg, Nreg)),
+      Op =.. [set_constant, X, reg(Reg, Nreg)],
+      write_source(Ctx, Op)
+    ; functor(X, F, Nf), X =.. [_|As]
+      ->
+      put(Ctx, X, reg(Reg, Nreg)),
+      Op =.. [set_structure, F / Nf, reg(Reg, Nreg)],
       write_source(Ctx, Op),
       ghc_unify_structure_args(Ctx, As, UnifyOperations)
     ; fail).
@@ -393,7 +415,7 @@ ghc_compile_call(Ctx, SeqPar, Goal) :-
     ; SeqPar = tail -> write_source(Ctx, execute(F / Nf)) ).
 ghc_call_args(_, [], _) :- !.
 ghc_call_args(Ctx, [Arg|Args], N) :-
-    ghc_put(Ctx, reg(out, N), Arg),
+    ghc_out(Ctx, reg(out, N), Arg),
     N1 is N + 1,
     ghc_call_args(Ctx, Args, N1).
 
@@ -448,8 +470,7 @@ ghc_compile_goal_call(Ctx, SeqPar, Goal) :-
         -> ghc_get(Ctx, reg(Reg, Nreg), Y)
       ; get(Ctx, Y, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), X)
-      ; put(Ctx, _, reg(x, Nreg)),
-        ghc_put(Ctx, reg(x, Nreg), X),
+      ; ghc_set(Ctx, reg(x, Nreg), X),
         ghc_get(Ctx, reg(x, Nreg), Y) )
     ; write_source(Ctx, trust_me),
       ghc_compile_call(Ctx, SeqPar, Goal)
@@ -469,8 +490,7 @@ ghc_compile_tail_call(Ctx, Goal) :-
         -> ghc_get(Ctx, reg(Reg, Nreg), Y)
       ; get(Ctx, Y, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), X)
-      ; put(Ctx, _, reg(x, Nreg)),
-        ghc_put(Ctx, reg(x, Nreg), X),
+      ; ghc_set(Ctx, reg(x, Nreg), X),
         ghc_get(Ctx, reg(x, Nreg), Y) ),
       write_source(Ctx, proceed)
     ; write_source(Ctx, trust_me),
@@ -479,14 +499,31 @@ ghc_compile_tail_call(Ctx, Goal) :-
 
 %% assign_registers(?Ctx, +N)
 % 変数をレジスタスタック上の位置に割り付ける。
-% - Y-レジスタは低位に置く（現状では Y-レジスタは存在しない）。
-% - X-レジスタは高位に置く。
 % 割り付けに使用しなかった領域は seq-call / tail-call 用に用いる。
 assign_registers(Ctx, N) :-
-    keys(Ctx, Keys),
-    always_success(assign_registers_x(Ctx, Keys, N, _)),
+    get(Ctx, ghc_source, Source),
+    always_success(assign_registers_x(Ctx, Source, N, _)),
     N1 is N + 1,
     always_success(assign_registers_out(Ctx, N1)).
+assign_registers_x(_, [], Vn, Vn) :- !.
+assign_registers_x(Ctx, [S|Ss], N, Vn) :-
+    ( var(S)
+    -> always_success(assign_registers_x(Ctx, Ss, N, Vn))
+    ;
+    S = reg(x, NReg)
+    -> ( var(NReg) -> NReg is N + 1, N1 is NReg + 1,
+                      always_success(assign_registers_x(Ctx, Ss, N1, Vn))
+       ; NReg > N -> N1 is NReg + 1,
+                     always_success(assign_registers_x(Ctx, Ss, N1, Vn))
+       ; always_success(assign_registers_x(Ctx, Ss, N, Vn)) )
+    ; S =.. [label|_]
+    -> always_success(assign_registers_x(Ctx, Ss, N, Vn))
+    ; S =.. [_|Args]
+      ->
+      always_success(assign_registers_x(Ctx, Args, N, N1)),
+      always_success(assign_registers_x(Ctx, Ss, N1, Vn))
+    ; always_success(assign_registers_x(Ctx, Ss, N, Vn)) ).
+
 assign_registers_x(_, [], N, N) :- !.
 assign_registers_x(Ctx, [K|Ks], N, N2) :-
     ( var(K), N1 is N + 1, get(Ctx, K, reg(x, N1))
@@ -500,11 +537,7 @@ assign_registers_out(Ctx, N) :-
     assign_registers_out(Ctx, Source, N, _).
 assign_registers_out(_, [], Vn, Vn) :- !.
 assign_registers_out(Ctx, [S|Ss], N, Vn) :-
-    ( S =.. [comment|_]
-    -> always_success(assign_registers_out(Ctx, Ss, N, Vn))
-    ; S =.. [label|_]
-    -> always_success(assign_registers_out(Ctx, Ss, N, Vn))
-    ; S = seq(Out)
+    ( S = seq(Out)
       ->
       always_success(assign_registers_out(Ctx, Ss, N, Out))
     ; S = tail(Out)
@@ -522,8 +555,9 @@ assign_registers_out(Ctx, [S|Ss], N, Vn) :-
 % Max に返す。
 % コンパイルコードは Ctx に ghc_source の値として格納されている。
 max_register_index(Ctx, Type, Max) :-
+    get(Ctx, goal, goal(_, Min)),
     get(Ctx, ghc_source, Source),
-    max_register_index(Ctx, Source, Type, 0, Max).
+    max_register_index(Ctx, Source, Type, Min, Max).
 max_register_index(_, [], _, Max, Max) :- !.
 max_register_index(Ctx, [S|Ss], Type, N, Max) :-
     find_used_registers(Ctx, S, Type, N, N1),
@@ -536,8 +570,6 @@ max_register_index(Ctx, [S|Ss], Type, N, Max) :-
 % -N1 : A を含めてこれまでに使用したレジスタの最大位置
 find_used_registers(Ctx, A, Type, N, N1) :-
     ( var(A) -> N1 = N
-    ; A =.. [comment|_] -> N1 = N
-    ; A =.. [label|_] -> N1 = N
     ; A == [] -> N1 = N
     ; A = [X|Xs]
     ->
@@ -587,9 +619,9 @@ dump([], _) :- !.
 dump([S|Ss], OStream) :-
     ( S =.. [label|_] -> print(OStream, S)
     ; S = comment(C) -> indent(2, OStream), format(OStream, '% ~w', [C])
-    ; ( S =.. [put_variable|_] ; S =.. [put_value|_]
-      ; S =.. [put_constant|_] ; S =.. [put_nil|_]
-      ; S =.. [put_list|_] ; S =.. [put_structure|_]
+    ; ( S =.. [set_variable|_] ; S =.. [set_value|_]
+      ; S =.. [set_constant|_] ; S =.. [set_nil|_]
+      ; S =.. [set_list|_] ; S =.. [set_structure|_]
       ; S =.. [out_variable|_] ; S =.. [out_value|_]
       ; S =.. [out_constant|_] ; S =.. [out_nil|_]
       ; S =.. [out_list|_] ; S =.. [out_structure|_]

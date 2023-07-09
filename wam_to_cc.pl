@@ -177,31 +177,31 @@ translate1(Ctx, check_structure(F / N, Ai), check_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).
 translate1(Ctx, out_structure(F / N, Ai), out_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).
-translate1(Ctx, put_structure(F / N, Ai), put_structure(atom(AtomID), A)) :-
+translate1(Ctx, set_structure(F / N, Ai), set_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).
 translate1(Ctx, get_structure(F / N, Ai), get_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).
 translate1(_, check_list(Ai), check_list(A)) :- to_reg(Ai, A).
 translate1(_, out_list(Ai), out_list(A)) :- to_reg(Ai, A).
-translate1(_, put_list(Ai), put_list(A)) :- to_reg(Ai, A).
+translate1(_, set_list(Ai), set_list(A)) :- to_reg(Ai, A).
 translate1(_, get_list(Ai), get_list(A)) :- to_reg(Ai, A).
 translate1(_, check_nil(Ai), check_nil(A)) :- to_reg(Ai, A).
 translate1(_, out_nil(Ai), out_nil(A)) :- to_reg(Ai, A).
-translate1(_, put_nil(Ai), put_nil(A)) :- to_reg(Ai, A).
+translate1(_, set_nil(Ai), set_nil(A)) :- to_reg(Ai, A).
 translate1(_, get_nil(Ai), get_nil(A)) :- to_reg(Ai, A).
 translate1(_, check_variable(Vn, Ai), check_variable(V, A)) :-
     to_reg(Vn, V), to_reg(Ai, A).
 translate1(_, out_variable(Vn, Ai), out_variable(V, A)) :-
     to_reg(Vn, V), to_reg(Ai, A).
-translate1(_, put_variable(Vn, Ai), put_variable(V, A)) :-
-    to_reg(Vn, V), to_reg(Ai, A).
+translate1(_, set_variable(Ai), set_variable(A)) :-
+    to_reg(Ai, A).
 translate1(_, get_variable(Vn, Ai), get_variable(V, A)) :-
     to_reg(Vn, V), to_reg(Ai, A).
 translate1(_, check_value(Vn, Ai), check_value(V, A)) :-
     to_reg(Vn, V), to_reg(Ai, A).
 translate1(_, out_value(Vn, Ai), out_value(V, A)) :-
     to_reg(Vn, V), to_reg(Ai, A).
-translate1(_, put_value(Vn, Ai), put_value(V, A)) :-
+translate1(_, set_value(Vn, Ai), set_value(V, A)) :-
     to_reg(Vn, V), to_reg(Ai, A).
 translate1(_, get_value(Vn, Ai), get_value(V, A)) :-
     to_reg(Vn, V), to_reg(Ai, A).
@@ -209,13 +209,13 @@ translate1(Ctx, check_constant(C, Ai), check_constant(Cc, A)) :-
     always_success(to_constant(Ctx, C, Cc)), to_reg(Ai, A).
 translate1(Ctx, out_constant(C, Ai), out_constant(Cc, A)) :-
     always_success(to_constant(Ctx, C, Cc)), to_reg(Ai, A).
-translate1(Ctx, put_constant(C, Ai), put_constant(Cc, A)) :-
+translate1(Ctx, set_constant(C, Ai), set_constant(Cc, A)) :-
     always_success(to_constant(Ctx, C, Cc)), to_reg(Ai, A).
 translate1(Ctx, get_constant(C, Ai), get_constant(Cc, A)) :-
     always_success(to_constant(Ctx, C, Cc)), to_reg(Ai, A).
 translate1(_, check_nil(Ai), check_nil(A)) :- to_reg(Ai, A).
 translate1(_, out_nil(Ai), out_nil(A)) :- to_reg(Ai, A).
-translate1(_, put_nil(Ai), put_nil(A)) :- to_reg(Ai, A).
+translate1(_, set_nil(Ai), set_nil(A)) :- to_reg(Ai, A).
 translate1(_, get_nil(Ai), get_nil(A)) :- to_reg(Ai, A).
 translate1(Ctx, read_structure(F / N), read_structure(atom(AtomID))) :-
     append_atom(Ctx, F / N, AtomID).

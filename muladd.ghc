@@ -1,8 +1,0 @@
-
-main([_, A, B, C]) :-
-    atom_number(A, Ai),
-    atom_number(B, Bi),
-    atom_number(C, Ci),
-    Xi := Ai * Bi + Ci,
-    atom_number(X, Xi)
-    -> writeln(X).

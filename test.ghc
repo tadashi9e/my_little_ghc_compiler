@@ -1,0 +1,42 @@
+test_write_var :- writeln(Var).
+test_write_atom :- writeln(atom).
+test_write_list :- writeln([1,2,3,4,5|_]).
+test_write_structure :- writeln(some(structure, and, arguments)).
+
+test_get_structure :- X = 1 + 2 -> writeln(X).
+test_set_structure :- 1 + 2 = X -> writeln(X).
+test_get_list :- X = [1, 2, 3] -> writeln(X).
+test_set_list :- [1, 2, 3] = X -> writeln(X).
+
+test_check_constant :- test_check_constant_aux(1).
+test_check_constant_aux(0) :- writeln('test failed(0)').
+test_check_constant_aux(1) :- writeln('test success(1)').
+
+test_check_list :- test_check_list_aux([a,b]).
+test_check_list_aux([x,y]) :- writeln('test failed([x,y])').
+test_check_list_aux([a,b]) :- writeln('test success([a,b])').
+
+test_check_nil :- test_check_nil_aux([]).
+test_check_nil_aux([a,b]) :- writeln('test failed([a,b])').
+test_check_nil_aux([]) :- writeln('test success([])').
+
+test_check_structure :- test_check_structure_aux(fun(a,b)).
+test_check_structure_aux(fun(x,y)) :- writeln('test failed(fun(x,y))').
+test_check_structure_aux(fun(a,b)) :- writeln('test success(fun(a,b))').
+
+do_test(X) :- write(X) -> writeln(': ') -> time(X).
+
+main(_) :-
+    do_test(test_write_var),
+    do_test(test_write_atom),
+    do_test(test_write_list),
+    do_test(test_write_structure),
+    do_test(test_get_structure),
+    do_test(test_set_structure),
+    do_test(test_get_list),
+    do_test(test_set_list),
+    do_test(test_check_constant),
+    do_test(test_check_list),
+    do_test(test_check_nil),
+    do_test(test_check_structure)
+    -> writeln(done).

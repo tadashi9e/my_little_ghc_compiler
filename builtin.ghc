@@ -7,20 +7,27 @@ call(Goal) :- call_inline(Goal).
 
 call_inline(Goal) :-
     inline('{'),
-    inline('  MACRO_wait_for(TAG_STR, reg::in(1));'),
-    inline('  A* structure = ptr_of<A>(vm->in[1]);'),
-    inline('  Q g = structure[0].load();'),
-    inline('  const int pc = prog->query_entry_point(g);'),
-    inline('  if (pc < 0) {'),
-    inline('    vm->fail();'),
-    inline('    continue;'),
+    inline('  MACRO_wait(reg::in(1));'),
+    inline('  Q q = vm->in[1];'),
+    inline('  const TAG_T tag = tag_of(q);'),
+    inline('  if (tag == TAG_ATOM) {'),
+    inline('    const int pc = prog->query_entry_point(q);'),
+    inline('    MACRO_execute(pc, 0);'),
+    inline('  } else if (tag == TAG_STR) {'),
+    inline('    A* structure = ptr_of<A>(q);'),
+    inline('    Q g = structure[0].load();'),
+    inline('    const int pc = prog->query_entry_point(g);'),
+    inline('    if (pc < 0) {'),
+    inline('      vm->fail();'),
+    inline('      continue;'),
+    inline('    }'),
+    inline('    const int arity = atom_arity_of(g);'),
+    inline('    MACRO_tail(2);'),
+    inline('    for (int i = 1; i <= arity; ++i) {'),
+    inline('      MACRO_out_constant(structure[i].load(), reg::out(i));'),
+    inline('    }'),
+    inline('    MACRO_execute(pc, arity);'),
     inline('  }'),
-    inline('  const int arity = atom_arity_of(g);'),
-    inline('  MACRO_tail(2);'),
-    inline('  for (int i = 1; i <= arity; ++i) {'),
-    inline('    MACRO_out_constant(structure[i].load(), reg::out(i));'),
-    inline('  }'),
-    inline('  MACRO_execute(pc, arity);'),
     inline('}').
 
 time(Goal) :-
@@ -84,6 +91,25 @@ nl :-
 
 write(X) :- integer(X) | write_number_inline(X).
 write(X) :- atom(X) | write_atom_inline(X).
+write(X) :- var(X) | write_var_inline(X).
+write([]) :- write('[]').
+write([A|B]) :- write('[') -> write(A) -> write_list_tail(B) -> write(']').
+write(X) :-
+    is_functor(X) |
+    X =.. [F|Args] -> write(F) -> write_functor_args(Args).
+write_functor_args([]) :- true.
+otherwise.
+write_functor_args(X) :- write('(') -> write_functor_args2(X) -> write(')').
+write_functor_args2([]) :- true.
+write_functor_args2([A|B]) :- write(A) -> write_functor_tail(B).
+write_functor_tail([]) :- true.
+write_functor_tail([A|B]) :- write(,) -> write(A) -> write_functor_tail(B).
+
+write_list_tail([]) :- true.
+write_list_tail([A|B]) :- write(',') -> write(A) -> write_list_tail(B).
+otherwise.
+write_list_tail(X) :- write('|') -> write(X).
+
 write_number_inline(X) :-
     inline('{'),
     inline('  MACRO_activate;'),
@@ -100,6 +126,14 @@ write_atom_inline(X) :-
     inline('  std::cout << s;'),
     inline('  MACRO_proceed;'),
     inline('}').
+write_var_inline(X) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const A* a = ptr_of<A>(q);'),
+    inline('  std::cout << a;'),
+    inline('  MACRO_proceed;'),
+    inline('}').
 
 integer(X) :-
     inline('{'),
@@ -111,6 +145,46 @@ atom(X) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));'),
     inline('  MACRO_return;'),
+    inline('}').
+
+var(X) :-
+    inline('{'),
+    inline('  const Q q = vm->in[1] = deref(vm->in[1]);'),
+    inline('  const TAG_T t = tag_of(q);'),
+    inline('  if (t != TAG_REF) {'),
+    inline('    vm->fail();'),
+    inline('    continue;'),
+    inline('  }'),
+    inline('  MACRO_return;'),
+    inline('}').
+is_functor(X) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_STR, reg::in(1));'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const TAG_T t = tag_of(q);'),
+    inline('  if (t != TAG_STR) {'),
+    inline('    vm->fail();'),
+    inline('    continue;'),
+    inline('  }'),
+    inline('  MACRO_return;'),
+    inline('}').
+'=..'(F, U) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_STR, reg::in(1));'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  A* p = ptr_of<A>(q);'),
+    inline('  const Q Fun = p[0].load();'),
+    inline('  const int arity = atom_arity_of(Fun);'),
+    inline('  const size_t h = vm->heap_publishing((1 + arity) * 2);'),
+    inline('  for (int i = 0; i <= arity; ++i) {'),
+    inline('    vm->heap[h + i * 2].store(p[i].load());'),
+    inline('    vm->heap[h + i * 2 + 1].store('),
+    inline('      (i < arity) ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2]) :'),
+    inline('      tagptr<TAG_NIL, Q>(0));'),
+    inline('  }'),
+    inline('  vm->heap_published((1 + arity) * 2);'),
+    inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
+    inline('  MACRO_proceed;'),
     inline('}').
 
 X == Y :-
