@@ -8,6 +8,7 @@
 #include <deque>
 #include <iomanip>
 #include <iostream>
+#include <list>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -89,6 +90,37 @@ Q deref(Q q) {
     q = q2;
   }
   return q;
+}
+
+struct VM;
+
+class SuspensionRecord {
+ public:
+  using ptr = std::shared_ptr<SuspensionRecord>;
+  std::shared_ptr<VM> vm;
+};
+
+class SuspensionList {
+ public:
+  using ptr = std::shared_ptr<SuspensionList>;
+
+ private:
+  mutable std::mutex mutex_;
+  std::list<SuspensionRecord::ptr> list_;
+};
+
+class SuspensionMap {
+ public:
+  static SuspensionMap& getInstance();
+
+ private:
+  mutable std::mutex mutex_;
+  std::unordered_map<Q, SuspensionList::ptr> map_;
+};
+
+SuspensionMap& SuspensionMap::getInstance() {
+  static SuspensionMap instance_;
+  return instance_;
 }
 
 class SymbolDictionary {
@@ -262,8 +294,6 @@ class Heap {
  private:
   std::shared_ptr<std::array<A, HEAP_SIZE> > heap_;
 };
-
-struct VM;
 
 class Scheduler {
  public:
@@ -523,6 +553,9 @@ struct VM : std::enable_shared_from_this<VM> {
     }
     switch_prev_window();
   }
+  void wake(Q q) {
+    throw std::runtime_error("fix me: wake");
+  }
   bool unify(Q q1, Q q2) {
     if (is_log_trace()) {
       log_trace(this, "  unify(" << to_str(q1) << "," << to_str(q2) << ")");
@@ -661,15 +694,17 @@ class RuntimeError: public std::runtime_error {
 
 // spawn 呼び出しに備えて新しいコンテキストを生成する。
 // out レジスタ位置を新しいコンテキスト上に設定する。
-#define MACRO_par                                 \
-  log_trace(vm, vm->pc << ": par");               \
-  vm->create_child_vm()
+#define MACRO_par(N)                              \
+  log_trace(vm, vm->pc << ": par(" << N << ")");  \
+  vm->create_new_window(N)
 
 // 新しいコンテストの実行開始位置を start_from に設定する。
 // 新しいコンテキストをコンテキストキューに投入する。
-#define MACRO_spawn(start_from)                                \
-  log_trace(vm, vm->pc << ": spawn(" << start_from << ")");    \
-  vm->spawn_child_vm(start_from)
+#define MACRO_spawn(target, return_pc)                          \
+  log_trace(vm, vm->pc                                         \
+            <<": spawn(" << target <<"," << return_pc << ")");  \
+  vm->switch_next_window(target, return_pc);                   \
+  continue
 
 // jump 呼び出しに備えて out レジスタ位置を設定する。
 #define MACRO_tail(N)                             \
@@ -984,96 +1019,115 @@ class RuntimeError: public std::runtime_error {
     vm->fail();                                         \
     continue;                                           \
   }
-#define MACRO_get_list(Ai)                        \
-  log_trace(vm, vm->pc                            \
-            << ": get_list(" << Ai << ")");       \
-  {                                               \
-    Q q = deref(vm->in[Ai]);                      \
-    vm->in[Ai] = q;                               \
-    const TAG_T tag = tag_of(q);                  \
-    if (tag == TAG_REF) {                         \
-      A* p = ptr_of<A>(q);                        \
-      const size_t h = vm->heap_publishing(2);    \
-      Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);   \
-      Q q1 = tagptr<TAG_REF>(&vm->heap[h + 1]);   \
-      vm->heap[h + 0].store(q0);                  \
-      vm->heap[h + 1].store(q1);                  \
-      Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]); \
-      if (!p->compare_exchange_strong(q, lst)) {  \
-        vm->fail();                               \
-        continue;                                 \
-      }                                           \
-      vm->heap_published(2);                      \
-      vm->push(q1);                               \
-      vm->push(q0);                               \
-      if (vm->is_log_trace()) {                   \
-        vm->dump_register(Ai);                    \
-        vm->dump_heap(h, 2);                      \
-      }                                           \
-    } else if (tag == TAG_LIST) {                 \
-      A* p = ptr_of<A>(q);                        \
-      vm->push((p + 1)->load());                  \
-      vm->push((p + 0)->load());                  \
-      if (vm->is_log_trace()) {                   \
-        vm->dump_register(Ai);                    \
-        vm->dump_heap(p, 2);                      \
-      }                                           \
-    } else {                                      \
-      if (vm->is_log_trace()) {                   \
-        vm->dump_register(Ai);                    \
-      }                                           \
-      vm->fail();                                 \
-      continue;                                   \
-    }                                             \
+#define MACRO_get_list(Ai)                                \
+  log_trace(vm, vm->pc << ": get_list(" << Ai << ")");    \
+  {                                                       \
+    bool failed = false;                                  \
+    do {                                                  \
+      Q q = deref(vm->in[Ai]);                            \
+      vm->in[Ai] = q;                                     \
+      const TAG_T tag = tag_of(q);                        \
+      if (tag == TAG_REF || tag == TAG_SUS) {             \
+        A* p = ptr_of<A>(q);                              \
+        const size_t h = vm->heap_publishing(2);          \
+        Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);         \
+        Q q1 = tagptr<TAG_REF>(&vm->heap[h + 1]);         \
+        vm->heap[h + 0].store(q0);                        \
+        vm->heap[h + 1].store(q1);                        \
+        Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]);       \
+        if (!p->compare_exchange_strong(q, lst)) {        \
+          failed = true;                                  \
+          break;                                          \
+        }                                                 \
+        if (tag == TAG_SUS) {                             \
+          vm->wake(q);                                    \
+        }                                                 \
+        vm->heap_published(2);                            \
+        vm->push(q1);                                     \
+        vm->push(q0);                                     \
+        if (vm->is_log_trace()) {                         \
+          vm->dump_register(Ai);                          \
+          vm->dump_heap(h, 2);                            \
+        }                                                 \
+      } else if (tag == TAG_LIST) {                       \
+        A* p = ptr_of<A>(q);                              \
+        vm->push((p + 1)->load());                        \
+        vm->push((p + 0)->load());                        \
+        if (vm->is_log_trace()) {                         \
+          vm->dump_register(Ai);                          \
+          vm->dump_heap(p, 2);                            \
+        }                                                 \
+      } else {                                            \
+        if (vm->is_log_trace()) {                         \
+          vm->dump_register(Ai);                          \
+        }                                                 \
+        failed = true;                                    \
+      }                                                   \
+    } while (0);                                          \
+    if (failed) {                                         \
+      vm->fail();                                         \
+      continue;                                           \
+    }                                                     \
   }
-#define MACRO_get_structure(Fn, Ai)                           \
-  log_trace(vm, vm->pc                                        \
-            << ": get_structure(" << Ai << ")");              \
-  {                                                           \
-    Q q = deref(vm->in[Ai]);                                  \
-    vm->in[Ai] = q;                                           \
-    const TAG_T tag = tag_of(q);                              \
-    if (tag == TAG_REF) {                                     \
-      A* p = ptr_of<A>(q);                                    \
-      const int arity = atom_arity_of(Fn);                    \
-      const size_t h = vm->heap_publishing(1 + arity);        \
-      vm->heap[h + 0].store(Fn);                              \
-      const Q structure = tagptr<TAG_STR>(&vm->heap[h + 0]);  \
-      for (int i = arity; i > 0; --i) {                       \
-        const Q q1 = tagptr<TAG_REF>(&vm->heap[h + i]);       \
-        vm->heap[h + i] = q1;                                 \
-        vm->push(q1);                                         \
-      }                                                       \
-      if (!p->compare_exchange_strong(q, structure)) {        \
-        vm->fail();                                           \
-        continue;                                             \
-      }                                                       \
-      vm->heap_published(1 + arity);                          \
-      if (vm->is_log_trace()) {                               \
-        vm->dump_register(Ai);                                \
-        vm->dump_heap(h, 1 + arity);                          \
-      }                                                       \
-    } else if (tag == TAG_STR) {                              \
-      A* p = ptr_of<A>(q);                                    \
-      if (p[0].load() != Fn) {                                \
-        vm->fail();                                           \
-        continue;                                             \
-      }                                                       \
-      const int arity = atom_arity_of(Fn);                    \
-      for (int i = arity; i > 0; --i) {                       \
-        vm->push(p[i].load());                                \
-      }                                                       \
-      if (vm->is_log_trace()) {                               \
-        vm->dump_register(Ai);                                \
-        vm->dump_heap(p, 1 + arity);                          \
-      }                                                       \
-    } else {                                                  \
-      if (vm->is_log_trace()) {                               \
-        vm->dump_register(Ai);                                \
-      }                                                       \
-      vm->fail();                                             \
-      continue;                                               \
-    }                                                         \
+#define MACRO_get_structure(Fn, Ai)                             \
+  log_trace(vm, vm->pc                                          \
+            << ": get_structure(" << Ai << ")");                \
+  {                                                             \
+    bool failed = false;                                        \
+    do {                                                        \
+      Q q = deref(vm->in[Ai]);                                  \
+      vm->in[Ai] = q;                                           \
+      const TAG_T tag = tag_of(q);                              \
+      if (tag == TAG_REF || tag == TAG_SUS) {                   \
+        A* p = ptr_of<A>(q);                                    \
+        const int arity = atom_arity_of(Fn);                    \
+        const size_t h = vm->heap_publishing(1 + arity);        \
+        vm->heap[h + 0].store(Fn);                              \
+        const Q structure = tagptr<TAG_STR>(&vm->heap[h + 0]);  \
+        for (int i = arity; i > 0; --i) {                       \
+          const Q q1 = tagptr<TAG_REF>(&vm->heap[h + i]);       \
+          vm->heap[h + i] = q1;                                 \
+          vm->push(q1);                                         \
+        }                                                       \
+        if (!p->compare_exchange_strong(q, structure)) {        \
+          failed = true;                                        \
+          break;                                                \
+        }                                                       \
+        if (tag == TAG_SUS) {                                   \
+          vm->wake(q);                                          \
+        }                                                       \
+        vm->heap_published(1 + arity);                          \
+        if (vm->is_log_trace()) {                               \
+          vm->dump_register(Ai);                                \
+          vm->dump_heap(h, 1 + arity);                          \
+        }                                                       \
+      } else if (tag == TAG_STR) {                              \
+        A* p = ptr_of<A>(q);                                    \
+        if (p[0].load() != Fn) {                                \
+          failed = true;                                        \
+          vm->fail();                                           \
+          break;                                                \
+        }                                                       \
+        const int arity = atom_arity_of(Fn);                    \
+        for (int i = arity; i > 0; --i) {                       \
+          vm->push(p[i].load());                                \
+        }                                                       \
+        if (vm->is_log_trace()) {                               \
+          vm->dump_register(Ai);                                \
+          vm->dump_heap(p, 1 + arity);                          \
+        }                                                       \
+      } else {                                                  \
+        if (vm->is_log_trace()) {                               \
+          vm->dump_register(Ai);                                \
+        }                                                       \
+        vm->fail();                                             \
+        continue;                                               \
+      }                                                         \
+    } while (0);                                                \
+    if (failed) {                                               \
+      vm->fail();                                               \
+      continue;                                                 \
+    }                                                           \
   }
 
 #define MACRO_unify_variable(Vn)                             \
@@ -1116,40 +1170,50 @@ class RuntimeError: public std::runtime_error {
       continue;                                           \
     }                                                     \
   }
-#define MACRO_unify_list                                \
-  log_trace(vm, vm->pc << ": unify_list" << ")");       \
-  {                                                     \
-    Q q = deref(vm->pop());                             \
-    const TAG_T tag = tag_of(q);                        \
-    if (tag == TAG_REF) {                               \
-      A* p = ptr_of<A>(q);                              \
-      if (vm->is_log_trace()) {                         \
-        vm->dump_heap(p, 1);                            \
-      }                                                 \
-      const size_t h = vm->heap_publishing(2);          \
-      const Q car = tagptr<TAG_REF>(&vm->heap[h + 0]);  \
-      const Q cdr = tagptr<TAG_REF>(&vm->heap[h + 1]);  \
-      vm->heap[h + 0] = car;                            \
-      vm->heap[h + 1] = cdr;                            \
-      const Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]); \
-      if (!p->compare_exchange_strong(q, lst)) {        \
-        vm->fail();                                     \
-        continue;                                       \
-      }                                                 \
-      vm->push(cdr);                                    \
-      vm->push(car);                                    \
-      vm->heap_published(2);                            \
-    } else if (tag == TAG_LIST) {                       \
-      A* p = ptr_of<A>(q);                              \
-      vm->push((p + 1)->load());                        \
-      vm->push((p + 0)->load());                        \
-      if (vm->is_log_trace()) {                         \
-        vm->dump_heap(p, 2);                            \
-      }                                                 \
-    } else {                                            \
-      vm->fail();                                       \
-      continue;                                         \
-    }                                                   \
+#define MACRO_unify_list                                  \
+  log_trace(vm, vm->pc << ": unify_list" << ")");         \
+  {                                                       \
+    bool failed = false;                                  \
+    do {                                                  \
+      Q q = deref(vm->pop());                             \
+      const TAG_T tag = tag_of(q);                        \
+      if (tag == TAG_REF) {                               \
+        A* p = ptr_of<A>(q);                              \
+        if (vm->is_log_trace()) {                         \
+          vm->dump_heap(p, 1);                            \
+        }                                                 \
+        const size_t h = vm->heap_publishing(2);          \
+        const Q car = tagptr<TAG_REF>(&vm->heap[h + 0]);  \
+        const Q cdr = tagptr<TAG_REF>(&vm->heap[h + 1]);  \
+        vm->heap[h + 0] = car;                            \
+        vm->heap[h + 1] = cdr;                            \
+        const Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]); \
+        if (!p->compare_exchange_strong(q, lst)) {        \
+          failed = true;                                  \
+          break;                                          \
+        }                                                 \
+        if (tag == TAG_SUS) {                             \
+          vm->wake(q);                                    \
+        }                                                 \
+        vm->push(cdr);                                    \
+        vm->push(car);                                    \
+        vm->heap_published(2);                            \
+      } else if (tag == TAG_LIST) {                       \
+        A* p = ptr_of<A>(q);                              \
+        vm->push((p + 1)->load());                        \
+        vm->push((p + 0)->load());                        \
+        if (vm->is_log_trace()) {                         \
+          vm->dump_heap(p, 2);                            \
+        }                                                 \
+      } else {                                            \
+        failed = true;                                    \
+        break;                                            \
+      }                                                   \
+    } while (0);                                          \
+    if (failed) {                                         \
+      vm->fail();                                         \
+      continue;                                           \
+    }                                                     \
   }
 
 #define MACRO_unify_structure(Fn)                                     \
@@ -1157,44 +1221,54 @@ class RuntimeError: public std::runtime_error {
               << ": unify_structure("                                 \
               << atom_str_of(Fn) << "/" << atom_arity_of(Fn) << ")"); \
   {                                                                   \
-    Q q = deref(vm->pop());                                           \
-    const TAG_T tag = tag_of(q);                                      \
-    if (tag == TAG_REF) {                                             \
-      A* p = ptr_of<A>(q);                                            \
-      if (vm->is_log_trace()) {                                       \
-        vm->dump_heap(p, 1);                                          \
+    bool failed = false;                                              \
+    do {                                                              \
+      Q q = deref(vm->pop());                                         \
+      const TAG_T tag = tag_of(q);                                    \
+      if (tag == TAG_REF) {                                           \
+        A* p = ptr_of<A>(q);                                          \
+        if (vm->is_log_trace()) {                                     \
+          vm->dump_heap(p, 1);                                        \
+        }                                                             \
+        const int arity = atom_arity_of(Fn);                          \
+        const size_t h = vm->heap_publishing(1 + arity);              \
+        vm->heap[h + 0] = Fn;                                         \
+        for (int i = arity; i > 0; --i) {                             \
+          vm->heap[h + i] = tagptr<TAG_REF>(&vm->heap[h + i]);        \
+          vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                \
+        }                                                             \
+        const Q s = tagptr<TAG_STR>(&vm->heap[h]);                    \
+        if (!p->compare_exchange_strong(q, structure)) {              \
+          failed = true;                                              \
+          break;                                                      \
+        }                                                             \
+        if (tag == TAG_SUS) {                                         \
+          vm->wake(q);                                                \
+        }                                                             \
+        vm->heap_published(1 + arity);                                \
+        if (vm->is_log_trace()) {                                     \
+          vm->dump_heap(p, 1);                                        \
+          vm->dump_heap(h, arity + 1);                                \
+        }                                                             \
+      } else if (tag == TAG_STR) {                                    \
+        A* p = ptr_of<A>(q);                                          \
+        if (p->load() != Fn) {                                        \
+          failed = true;                                              \
+          break;                                                      \
+        }                                                             \
+        const int arity = atom_arity_of(Fn);                          \
+        for (int i = arity; i > 0; --i) {                             \
+          vm->push(p[i].load());                                      \
+        }                                                             \
+        if (vm->is_log_trace()) {                                     \
+          vm->dump_heap(p, arity + 1);                                \
+        }                                                             \
+      } else {                                                        \
+        failed = true;                                                \
+        break;                                                        \
       }                                                               \
-      const int arity = atom_arity_of(Fn);                            \
-      const size_t h = vm->heap_publishing(1 + arity);                \
-      vm->heap[h + 0] = Fn;                                           \
-      for (int i = arity; i > 0; --i) {                               \
-        vm->heap[h + i] = tagptr<TAG_REF>(&vm->heap[h + i]);          \
-        vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                  \
-      }                                                               \
-      const Q s = tagptr<TAG_STR>(&vm->heap[h]);                      \
-      if (!p->compare_exchange_strong(q, s)) {                        \
-        vm->fail();                                                   \
-        continue;                                                     \
-      }                                                               \
-      vm->heap_published(1 + arity);                                  \
-      if (vm->is_log_trace()) {                                       \
-        vm->dump_heap(p, 1);                                          \
-        vm->dump_heap(h, arity + 1);                                  \
-      }                                                               \
-    } else if (tag == TAG_STR) {                                      \
-      A* p = ptr_of<A>(q);                                            \
-      if (p->load() != Fn) {                                          \
-        vm->fail();                                                   \
-        continue;                                                     \
-      }                                                               \
-      const int arity = atom_arity_of(Fn);                            \
-      for (int i = arity; i > 0; --i) {                               \
-        vm->push(p[i].load());                                        \
-      }                                                               \
-      if (vm->is_log_trace()) {                                       \
-        vm->dump_heap(p, arity + 1);                                  \
-      }                                                               \
-    } else {                                                          \
+    } while (0);                                                      \
+    if (failed) {                                                     \
       vm->fail();                                                     \
       continue;                                                       \
     }                                                                 \

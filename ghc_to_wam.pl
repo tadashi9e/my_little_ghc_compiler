@@ -406,7 +406,7 @@ ghc_get(Ctx, reg(Reg, Nreg), X,
 % サブゴール Goal の呼び出し処理をコンパイルする。
 ghc_compile_call(Ctx, SeqPar, Goal) :-
     ( SeqPar = seq -> write_source(Ctx, seq(_))
-    ; SeqPar = par -> write_source(Ctx, par)
+    ; SeqPar = par -> write_source(Ctx, par(_))
     ; SeqPar = tail -> write_source(Ctx, tail(_)) ),
     functor(Goal, F, Nf), Goal =.. [_|Args],
     ghc_call_args(Ctx, Args, 1),
@@ -538,6 +538,9 @@ assign_registers_out(Ctx, N) :-
 assign_registers_out(_, [], Vn, Vn) :- !.
 assign_registers_out(Ctx, [S|Ss], N, Vn) :-
     ( S = seq(Out)
+      ->
+      always_success(assign_registers_out(Ctx, Ss, N, Out))
+    ; S = par(Out)
       ->
       always_success(assign_registers_out(Ctx, Ss, N, Out))
     ; S = tail(Out)

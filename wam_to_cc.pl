@@ -146,7 +146,20 @@ translate(Ctx, Codes, Ts, Lno) :-
          ; Codes2 = Codes1,
            Lno1 is Lno + 1,
            Ts = [line(Lno, call(L, Lno1, F / N)),
-                 label(Lno1, return_from_call(F / N)) | Ts2]) ),
+                 label(Lno1, return_from_call(F / N)) | Ts2])
+    ; Codes = [ spawn(F / N) |Codes1]
+      -> Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ),
+         ( Codes1 = [ Label1 | Codes2], Label1 =.. [label|_]
+           -> ( get(Ctx, Label1, L1) ; put(Ctx, Label1, L1) ),
+            L1 is Lno + 1,
+            Lno1 = L1,
+            Ts = [line(Lno, spawn(L, L1, F / N)),
+                  label(Lno1, return_from_spawn(F / N)) | Ts2]
+         ; Codes2 = Codes1,
+           Lno1 is Lno + 1,
+           Ts = [line(Lno, spawn(L, Lno1, F / N)),
+                 label(Lno1, return_from_spawn(F / N)) | Ts2])
+    ),
     always_success(translate(Ctx, Codes2, Ts2, Lno1)).
 
 translate2(Ctx, label(Label), label(Lno1, Label), Lno) :-
@@ -162,8 +175,8 @@ translate1(Ctx, goal(G / N), goal(L, atom(AtomID))) :-
 translate1(_, requires(N), requires(N)).
 translate1(Ctx, try_guard_else(Label), try_guard_else(L)) :-
     ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
-translate1(Ctx, spawn(F / N), spawn(L, F / N)) :-
-    Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
+%translate1(Ctx, spawn(F / N), spawn(L, F / N)) :-
+%    Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
 translate1(Ctx, execute(F / N), execute(L, F / N)) :-
     Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
 translate1(_, try_guard_else_suspend, try_guard_else_suspend).
@@ -171,8 +184,8 @@ translate1(_, trust_me, trust_me).
 translate1(_, activate, activate).
 translate1(_, proceed, proceed).
 translate1(_, seq(N), seq(N)).
+translate1(_, par(N), par(N)).
 translate1(_, tail(N), tail(N)).
-translate1(_, par, par).
 translate1(Ctx, check_structure(F / N, Ai), check_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).
 translate1(Ctx, out_structure(F / N, Ai), out_structure(atom(AtomID), A)) :-
@@ -273,9 +286,9 @@ dump([line(Lno, Code)|Ts], OStream) :-
       Code2 = call(L, Link),
       format(OStream, '      /* ~d */  MACRO_~w;  // call(~w)~n',
              [Lno, Code2, Fun])
-    ; Code = spawn(L, Fun) ->
+    ; Code = spawn(L, Link, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]); true),
-      Code2 = spawn(L),
+      Code2 = spawn(L, Link),
       format(OStream, '      /* ~d */  MACRO_~w;  // spawn(~w)~n',
              [Lno, Code2, Fun])
     ; Code = execute(L, Fun) ->
