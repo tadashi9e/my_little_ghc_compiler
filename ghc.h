@@ -9,6 +9,7 @@
 #include <iomanip>
 #include <iostream>
 #include <list>
+#include <set>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -205,7 +206,7 @@ std::string to_str(Q q) {
     ss << "<STR>" << ptr_of<A>(q);
     break;
   case TAG_SUS:
-    ss << "<SUS>" << value_of<int64_t>(q);
+    ss << "<SUS>" << ptr_of<A>(q);
     break;
   case TAG_OBJ:
     ss << "<OBJ>" << value_of<int64_t>(q);
@@ -298,6 +299,24 @@ class Heap {
 class Scheduler {
  public:
   static Scheduler& getInstance();
+  Scheduler() {
+    head.store(tagptr<TAG_REF>(&head));
+  }
+  void enqueue_list(A* list) {
+    head.store(tagptr<TAG_REF>(list));
+    list->store(tagptr<TAG_REF>(&head));
+  }
+  A* dequeue_list() {
+    Q h = head.load();
+    A* a = ptr_of<A>(h);
+    Q h2 = a->load();
+    A* a2 = ptr_of<A>(h2);
+    if (a2 == a) {
+      return NULL;
+    }
+    head.store(tagptr<TAG_REF>(a2));
+    return ptr_of<A>(a[1].load());
+  }
   void push_vm(std::shared_ptr<VM> vm) {
     queue_.push_back(vm);
   }
@@ -312,6 +331,7 @@ class Scheduler {
 
  private:
   std::deque<std::shared_ptr<VM> > queue_;
+  A head;
 };
 
 Scheduler& Scheduler::getInstance() {
@@ -321,12 +341,15 @@ Scheduler& Scheduler::getInstance() {
 
 struct Context {
   Context()
-    : in_offset(0),
+    : in_guard(1),
+      in_offset(0),
       pc_continue(-1),
       pc_on_error(-1),
       push_pos(0) {
   }
+  int in_guard;
   size_t in_offset;
+  int pc_goal;  // ゴール開始プログラム位置
   int pc_continue;
   int pc_on_error;
   size_t push_pos;
@@ -358,6 +381,16 @@ enum LOG_LEVEL {
     }                                           \
   } while (0)
 
+std::string upper(const char* s) {
+  if (s == NULL) {
+    return "";
+  }
+  std::string str = std::string(s);
+  std::transform(str.begin(), str.end(), str.begin(),
+                 [](unsigned char c) { return std::toupper(c); });
+  return str;
+}
+
 struct VM : std::enable_shared_from_this<VM> {
   using ptr = std::shared_ptr<VM>;
   LOG_LEVEL log_level;
@@ -370,17 +403,17 @@ struct VM : std::enable_shared_from_this<VM> {
   std::vector<Context> contexts;
   Context next_context;
   size_t required;
-  std::vector<Q> wait_list;
+  std::set<Q> wait_list;
   Heap heap;
   size_t published;
-  std::shared_ptr<VM> child;
   VM() : inferences(0), failed(false),
          required(0), published(0) {
-    const std::string logLevel = getenv(ENV_GHC_LOGLEVEL);
-    log_level = ((logLevel == "ERROR") ? ERROR :
-                 (logLevel == "INFO") ? INFO :
-                 (logLevel == "DEBUG") ? DEBUG :
-                 TRACE);
+    const std::string llstr = upper(getenv(ENV_GHC_LOGLEVEL));
+    log_level = ((llstr == "TRACE") ? TRACE :
+                 (llstr == "DEBUG") ? DEBUG :
+                 (llstr == "INFO") ? INFO :
+                 (llstr == "ERROR") ? ERROR :
+                 ERROR);
     reg.resize(INITIAL_REG_SIZE);
     contexts.push_back(Context());
     in = &reg[0];
@@ -397,27 +430,7 @@ struct VM : std::enable_shared_from_this<VM> {
   }
   void dump() const {
     std::cerr << "--------------------" << std::endl;
-    std::cerr << "[depth] continue : on_error : (reg) Goal" << std::endl;
-    int depth = 0;
-    for (const Context& context : contexts) {
-      const Q* in0 = &reg[context.in_offset];
-      Q goal = *in0;
-      const int arity = atom_arity_of(goal);
-      std::stringstream ss;
-      std::cerr << "[" << std::setw(3) << depth << "] "
-                << context.pc_continue << " : " << context.pc_on_error
-                << " : (" << context.in_offset << ")"
-                << atom_str_of(goal) << "/" << arity
-                << "(";
-      ++depth;
-      for (int i = 1; i <= arity; ++i) {
-        if (i != 1) {
-          std::cerr << ",";
-        }
-        std::cerr << to_str(in0[i]);
-      }
-      std::cerr << ")" << std::endl;
-    }
+    dump_context();
     for (size_t i = 0; i < 20; ++i) {
       std::cerr << &reg[i] << " reg[" << std::setw(3) << i << "] : "
                 << to_str(reg[i]) << std::endl;
@@ -429,6 +442,31 @@ struct VM : std::enable_shared_from_this<VM> {
     }
     dump_heap(0, published + 1);
     std::cerr << "--------------------" << std::endl;
+  }
+  void dump_context() const {
+    std::cerr << "[depth] continue : on_error : (reg) Goal" << std::endl;
+    int depth = 0;
+    for (const Context& context : contexts) {
+      const Q* in0 = &reg[context.in_offset];
+      Q goal = *in0;
+      const int arity = atom_arity_of(goal);
+      std::stringstream ss;
+      std::cerr << "[" << std::setw(3) << depth << "] "
+                << context.pc_continue
+                << " : " << context.pc_on_error
+                << " : (guard " << context.in_guard
+                << ") : (in " << context.in_offset << ")"
+                << atom_str_of(goal) << "/" << arity
+                << "(";
+      ++depth;
+      for (int i = 1; i <= arity; ++i) {
+        if (i != 1) {
+          std::cerr << ",";
+        }
+        std::cerr << to_str(in0[i]);
+      }
+      std::cerr << ")" << std::endl;
+    }
   }
   void dump_register(int index) const {
     std::cerr << " " << &in[index]
@@ -456,15 +494,6 @@ struct VM : std::enable_shared_from_this<VM> {
       ++p;
     }
   }
-  void create_child_vm() {
-    child = std::make_shared<VM>();
-    out = child->in;
-  }
-  void spawn_child_vm(int pc) {
-    child->pc = pc;
-    Scheduler::getInstance().push_vm(child);
-    child.reset();
-  }
   void create_new_window(size_t n) {
     out = &in[n];
     next_context.in_offset = out - &reg[0];
@@ -479,7 +508,10 @@ struct VM : std::enable_shared_from_this<VM> {
     log_trace(this, "OUT = " << &out[0]);
   }
   void switch_next_window(int target, int return_pc) {
-    next_context.pc_continue = return_pc;
+    contexts.back().pc_continue = return_pc;
+    int in_guard = contexts.back().in_guard;
+    next_context.in_guard = (in_guard != 0) ? 2 : 1;
+    next_context.pc_continue = target;
     next_context.pc_on_error = -1;
     in = out;
     pc = target;
@@ -521,7 +553,13 @@ struct VM : std::enable_shared_from_this<VM> {
     published += sz;
   }
   void activate() {
-    wait_list.clear();
+    if (contexts.back().in_guard != 2) {
+      wait_list.clear();
+      contexts.back().in_guard = 0;
+      contexts.back().pc_on_error = -3;
+    } else {
+      contexts.back().pc_on_error = -1;
+    }
   }
   void push(Q q) {
     in[++contexts.back().push_pos] = q;
@@ -530,81 +568,289 @@ struct VM : std::enable_shared_from_this<VM> {
     return in[contexts.back().push_pos--];
   }
   void add_wait_list(Q q) {
-    wait_list.push_back(q);
+    wait_list.insert(q);
+  }
+  std::string space() {
+    std::string s;
+    for (const Context& context : contexts) {
+      switch (context.in_guard) {
+      case 0: s += '='; break;
+      case 1: s += '?'; break;
+      case 2: s += '+'; break;
+      default:
+        s += '*';
+      }
+    }
+    return s;
   }
   void fail() {
-    pc = contexts.back().pc_on_error;
-    if (pc != -1) {
-      return;
-    }
+    log_info(this,
+             std::setw(5) << pc << "        " << space()
+             << "fail()");
     for (;;) {
+      pc = contexts.back().pc_on_error;
+      contexts.back().pc_on_error = -1;
+      if (pc != -1) {
+        log_trace(this, "fail: on_error " << pc);
+        break;
+      }
       if (!switch_prev_window()) {
         pc = -1;
+        log_trace(this, "fail: no more prev goal: " << pc);
+        break;
+      }
+    }
+    if ((pc < 0) && (contexts.back().in_guard == 1)) {
+      bool retry_this_goal = false;
+      if (!wait_list.empty()) {
+        const int arity = atom_arity_of(in[0]);
+        const size_t h = heap_publishing(3 + arity);
+        Q goal = tagptr<TAG_REF>(&heap[h]);
+        heap[h + 0].store(tagvalue<TAG_INT>(0));
+        heap[h + 1].store(tagvalue<TAG_INT>(contexts.back().pc_goal));
+        for (int i = 0; i <= arity; ++i) {
+          heap[h + 2 + i].store(in[i]);
+        }
+        if (is_log_trace()) {
+          dump_heap(h, 3 + arity);
+        }
+        heap_published(3 + arity);
+        for (Q q : wait_list) {
+          log_info(this,
+                   std::setw(5) << contexts.back().pc_goal
+                   << "        " << space()
+                   << "+ wait: " << to_str(q));
+          const TAG_T tag = tag_of(q);
+          if (tag == TAG_REF) {
+            const size_t h = heap_publishing(3);
+            heap[h + 0].store(tagptr<TAG_SUS>(&heap[h + 0]));
+            heap[h + 1].store(tagptr<TAG_REF>(&heap[h + 1]));
+            heap[h + 2].store(goal);
+            A* p = ptr_of<A>(q);
+            if (!p->compare_exchange_strong(q, tagptr<TAG_REF>(&heap[h + 0]))) {
+              retry_this_goal = true;
+              break;
+            }
+            heap_published(3);
+            if (is_log_trace()) {
+              dump_heap(p, 1);
+              dump_heap(h, 3);
+            }
+          } else if (tag == TAG_SUS) {
+            const size_t h = heap_publishing(2);
+            Q lst1 = tagptr<TAG_REF>(&heap[h + 0]);
+            heap[h + 0].store(lst1);
+            heap[h + 1].store(goal);
+            A* p2 = ptr_of<A>(q) + 1;
+            Q lst2 = p2->load();
+            if (!p2->compare_exchange_strong(lst2, lst1)) {
+              retry_this_goal = true;
+              break;
+            }
+            A* p1 = &heap[h + 0];
+            if (!p1->compare_exchange_strong(lst1, lst2)) {
+              retry_this_goal = true;
+              break;
+            }
+            heap_published(2);
+            if (is_log_trace()) {
+              dump_heap(p2, 1);
+              dump_heap(h, 2);
+            }
+          }
+        }
+      }
+      if (retry_this_goal) {
+        pc = contexts.back().pc_goal;
+        log_trace(this, "fail: retry_this_goal " << pc);
         return;
       }
-      pc = contexts.back().pc_on_error;
-      if (pc != -1) {
-        return;
+      wait_list.clear();
+      /*
+      pc = contexts.back().pc_continue;
+      contexts.back().pc_continue = -1;
+      */
+      for (;;) {
+        if (!switch_prev_window()) {
+          pc = -1;
+          log_trace(this, "fail: no more prev goal: " << pc);
+          break;
+        }
+        pc = contexts.back().pc_continue;
+        if (pc != -1) {
+          log_trace(this, "fail: on_error " << pc);
+          break;
+        }
       }
     }
   }
   void proceed() {
-    if (!wait_list.empty()) {
+    log_info(this,
+             std::setw(5) << pc
+             << "        " << space()
+             << "proceed()");
+    wait_list.clear();
+    if (switch_prev_window()) {
+      pc = contexts.back().pc_continue;
+      return;
     }
-    switch_prev_window();
+    A* goal = Scheduler::getInstance().dequeue_list();
+    if (!goal) {
+      log_info(this, "no queued goals");
+      return;
+    }
+    Q g = goal[2].load();
+    const int arity = atom_arity_of(g);
+    in[0] = g;
+    for (int i = 1; i <= arity; ++i) {
+      in[i] = deref(goal[2 + i].load());
+    }
+    Context& context = contexts.back();
+    context.pc_continue = -1;
+    context.pc_on_error = -1;
+    pc = value_of<int>(goal[1]);
+    log_info(this,
+             std::setw(5) << pc
+             << "        " << space()
+             << "retrying " << to_str(g));
+    if (is_log_trace()) {
+      for (int i = 0; i <= arity; ++i) {
+        dump_register(i);
+      }
+    }
+    log_info(this, "dequeued goal " << to_str(g));
   }
   void wake(Q q) {
-    throw std::runtime_error("fix me: wake");
+    A* lst = ptr_of<A>(q) + 1;
+    Scheduler::getInstance().enqueue_list(lst);
   }
   bool unify(Q q1, Q q2) {
-    if (is_log_trace()) {
-      log_trace(this, "  unify(" << to_str(q1) << "," << to_str(q2) << ")");
-    }
+    log_trace(this, "  unify(" << to_str(q1) << "," << to_str(q2) << ")");
     q2 = deref(q2);
     q1 = deref(q1);
     if (q1 == q2) {
+      log_info(this,
+               std::setw(5) << pc << "        " << space()
+               << "unify: " << to_str(q1) << " == " << to_str(q2));
       return true;
     }
-    TAG_T tag2 = tag_of(q2);
-    if (tag2 == TAG_REF) {
-      A* p2 = ptr_of<A>(q2);
-      return p2->compare_exchange_strong(q2, q1);
-    }
-    TAG_T tag1 = tag_of(q1);
-    if (tag1 == TAG_REF) {
-      A* p1 = ptr_of<A>(q1);
-      return p1->compare_exchange_strong(q1, q2);
-    }
-    if (tag1 != tag2) {
-      return false;
-    }
-    switch (tag1) {
-    case TAG_LIST:
-      {
-        A* p1 = ptr_of<A>(q1);
+    do {
+      TAG_T tag2 = tag_of(q2);
+      if (tag2 == TAG_REF) {
         A* p2 = ptr_of<A>(q2);
-        return unify(p1[0].load(), p2[0].load())
-          && unify(p1[1].load(), p2[1].load());
-      }
-    case TAG_STR:
-      {
-        A* p1 = ptr_of<A>(q1);
-        A* p2 = ptr_of<A>(q2);
-        Q f1 = p1[0].load();
-        Q f2 = p2[0].load();
-        if (f1 != f2) {
-          return false;
+        if (!p2->compare_exchange_strong(q2, q1)) {
+          q2 = p2->load();
+          continue;
         }
-        for (int i = 1; i <= atom_arity_of(f1); ++i) {
-          if (!unify(p1[i].load(), p2[i].load())) {
-            return false;
-          }
-        }
+        log_info(this,
+                 std::setw(5) << pc << "        " << space()
+                 << "unify: " << to_str(q2) << " <-- " << to_str(q1));
         return true;
       }
-    default:
-      return false;
-    }
+      TAG_T tag1 = tag_of(q1);
+      if (tag1 == TAG_REF) {
+        A* p1 = ptr_of<A>(q1);
+        if (!p1->compare_exchange_strong(q1, q2)) {
+          q1 = p1->load();
+          continue;
+        }
+        log_info(this,
+                 std::setw(5) << pc << "        " << space()
+                 << "unify: " << to_str(q1) << " <-- " << to_str(q2));
+        return true;
+      }
+      if (tag2 == TAG_SUS && tag1 != TAG_SUS) {
+        A* p2 = ptr_of<A>(q2);
+        // p2[0] = q2 <--- q2
+        // p2[1]: 次の待ち要素へのリンク
+        // p2[2]: ゴールレコードへのポインタ
+        if (!p2->compare_exchange_strong(q2, q1)) {
+          q2 = p2->load();
+          continue;
+        }
+        Scheduler::getInstance().enqueue_list(p2 + 1);
+        log_info(this,
+                 std::setw(5) << pc << "        " << space()
+                 << "unify: enqueue " << to_str(q2)
+                 << " (bound " << to_str(q1) << ")");
+        return true;
+      }
+      if (tag1 == TAG_SUS && tag2 != TAG_SUS) {
+        A* p1 = ptr_of<A>(q1);
+        // p1[0] = q1 <--- q1
+        // p1[1]: 次の待ち要素へのリンク
+        // p1[2]: ゴールレコードへのポインタ
+        if (!p1->compare_exchange_strong(q1, q2)) {
+          q1 = p1->load();
+          continue;
+        }
+        Scheduler::getInstance().enqueue_list(p1 + 1);
+        log_info(this,
+                 std::setw(5) << pc << "        " << space()
+                 << "unify: enqueue " << to_str(q1)
+                 << " (bound " << to_str(q2) << ")");
+        return true;
+      }
+      if (tag1 == TAG_SUS && tag2 == TAG_SUS) {
+        A* p1 = ptr_of<A>(q1);
+        A* p2 = ptr_of<A>(q2);
+        A* lst1 = p1 + 1;
+        A* lst2 = p2 + 1;
+        Q qq1 = lst1->load();
+        Q qq2 = lst2->load();
+        lst1->compare_exchange_strong(qq1,qq2);
+        lst2->compare_exchange_strong(qq2,qq1);
+        log_info(this,
+                 std::setw(5) << pc << "        " << space()
+                 << "unify: " << to_str(q1) << " splice " << to_str(q2));
+        return true;
+      }
+      if (tag1 != tag2) {
+        log_info(this,
+                 std::setw(5) << pc << "        " << space()
+                 << "unify: " << to_str(q1) << " != " << to_str(q2));
+        return false;
+      }
+      switch (tag1) {
+      case TAG_LIST:
+        {
+          A* p1 = ptr_of<A>(q1);
+          A* p2 = ptr_of<A>(q2);
+          bool is_ok = unify(p1[0].load(), p2[0].load())
+            && unify(p1[1].load(), p2[1].load());
+          log_info(this,
+                   std::setw(5) << pc << "        " << space()
+                   << "unify: " << to_str(q1)
+                   << (is_ok ? "==" : " != ") << to_str(q2));
+          return is_ok;
+        }
+      case TAG_STR:
+        {
+          A* p1 = ptr_of<A>(q1);
+          A* p2 = ptr_of<A>(q2);
+          Q f1 = p1[0].load();
+          Q f2 = p2[0].load();
+          if (f1 != f2) {
+            log_info(this,
+                     std::setw(5) << pc << "        " << space()
+                     << "unify: " << to_str(q1) << " != " << to_str(q2));
+            return false;
+          }
+          for (int i = 1; i <= atom_arity_of(f1); ++i) {
+            if (!unify(p1[i].load(), p2[i].load())) {
+              log_info(this,
+                       std::setw(5) << pc << "        " << space()
+                       << "unify: " << to_str(q1) << " != " << to_str(q2));
+              return false;
+            }
+          }
+          return true;
+        }
+      default:
+        return false;
+      }
+    } while (0);
+    return false;
   }
 };
 
@@ -616,11 +862,12 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_goal(pc, goal)                                     \
   ++vm->inferences;                                              \
+  vm->contexts.back().pc_goal = pc;                              \
   vm->in[0] = (goal);                                            \
   if (vm->is_log_info()) {                                       \
     std::stringstream ss;                                        \
     ss << std::setw(5) << pc << ": GOAL: "                       \
-       << std::string(vm->contexts.size() - 1, ' ')              \
+       << vm->space()                                            \
        << atom_str_of(goal) << "(";                              \
     for (int i = 1; i <= atom_arity_of(goal); ++i) {             \
       if (i != 1) {                                              \
@@ -673,10 +920,13 @@ class RuntimeError: public std::runtime_error {
   vm->contexts.back().pc_on_error = (jump_to)
 #define MACRO_try_guard_else_suspend                       \
   log_trace(vm, vm->pc << ": try_guard_else_suspend");     \
-  vm->contexts.back().pc_on_error = -1
-#define MACRO_trust_me                      \
-  log_trace(vm, vm->pc << ": trust_me");    \
   vm->contexts.back().pc_on_error = -2
+#define MACRO_otherwise                      \
+  log_trace(vm, vm->pc << ": otherwise");    \
+  if (!vm->wait_list.empty()) {              \
+    vm->contexts.back().pc_on_error = -2;    \
+    vm->fail();                              \
+  }
 
 // call 呼び出しに備えて次レジスタウィンドウをセットアップする。
 // out レジスタ位置を次レジスタウィンドウ上に設定する。
@@ -714,10 +964,13 @@ class RuntimeError: public std::runtime_error {
 // 制御を jump_to に移す。
 #define MACRO_execute(jump_to, arity)                       \
   log_trace(vm, vm->pc << ": execute(" << jump_to << ")");  \
-  for (int i = 1; i <= arity; ++i) {                        \
+  for (int i = 1; i <= (arity); ++i) {                      \
     vm->in[i] = vm->out[i];                                 \
   }                                                         \
-  vm->pc = jump_to;                                         \
+  vm->pc = (jump_to);                                       \
+  vm->contexts.back().pc_continue = -1;                     \
+  vm->contexts.back().in_guard =                            \
+    (vm->contexts.back().in_guard != 0) ? 2 : 1;            \
   continue
 
 #define MACRO_link(jump_to)                     \
@@ -733,6 +986,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_return                            \
   log_trace(vm, vm->pc << ": return");          \
   vm->switch_prev_window();                     \
+  vm->pc = vm->contexts.back().pc_continue;     \
   continue
 
 #define MACRO_set_variable(Ai)                  \
@@ -1238,7 +1492,7 @@ class RuntimeError: public std::runtime_error {
           vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                \
         }                                                             \
         const Q s = tagptr<TAG_STR>(&vm->heap[h]);                    \
-        if (!p->compare_exchange_strong(q, structure)) {              \
+        if (!p->compare_exchange_strong(q, s)) {                      \
           failed = true;                                              \
           break;                                                      \
         }                                                             \

@@ -101,6 +101,10 @@ ghc_collect_goal([Head|_], _, _) :-
 % リストとして返す。
 find_goal_source(_, [], []) :- !.
 find_goal_source(goal(G, N),
+                 [(Head :- Body), otherwise|NextCodes],
+                 [(Head :- Body), otherwise|GoalSource]) :-
+    functor(Head, G, N) -> find_goal_source(goal(G, N), NextCodes, GoalSource).
+find_goal_source(goal(G, N),
                  [(Head :- Body)|NextCodes],
                  [(Head :- Body)|GoalSource]) :-
     functor(Head, G, N) -> find_goal_source(goal(G, N), NextCodes, GoalSource).
@@ -123,7 +127,7 @@ ghc_compile_goals([Goal|Goals], Source, OStream) :-
     put(Ctx, goal, Goal),
     always_success(
         ( ghc_compile_inline(Ctx, Goal, GoalSource)
-        ; ghc_compile_goal(Ctx, [], Goal, GoalSource) )),
+        ; ghc_compile_goal_pred(Ctx, [], Goal, GoalSource) )),
     assign_labels(Ctx),
     max_register_index(Ctx, x, MaxReg_x),
     max_register_index(Ctx, out, MaxReg_out),
@@ -154,13 +158,16 @@ ghc_compile_inline_list(Ctx, (inline(Inline), Is)) :-
 ghc_compile_inline_list(Ctx, inline(Inline)) :- !,
     write_source(Ctx, inline(Inline)).
 
-%% ghc_compile_goal(?Ctx, ?Label, +Goal, +GoalSource)
+%% ghc_compile_goal_pred(?Ctx, ?Label, +Goal, +GoalSource)
 % ゴール Goal に対応するソースコード GoalSource を元に
 % WAM 風中間コードを生成し、Ctx に ghc_source の値として格納する。
-ghc_compile_goal(Ctx, Label, Goal, GoalSource) :-
-    ghc_compile_goal(Ctx, Label, Goal, 1, GoalSource).
-ghc_compile_goal(_, _, _, _, []) :- !.
-ghc_compile_goal(Ctx, Label, goal(G, N), PredNo, [(Head :- Body)|GoalSource]) :-
+ghc_compile_goal_pred(Ctx, Label, Goal, GoalSource) :-
+    ghc_compile_goal_pred(Ctx, Label, Goal, 1, GoalSource).
+ghc_compile_goal_pred(_, _, _, _, []) :- !.
+ghc_compile_goal_pred(Ctx, Label, goal(G, N), PredNo, [otherwise|GoalSource]) :-
+    !,
+    always_success(ghc_compile_otherwise(Ctx, Label, goal(G, N), PredNo, GoalSource)).
+ghc_compile_goal_pred(Ctx, Label, goal(G, N), PredNo, [(Head :- Body)|GoalSource]) :-
     !,
     ( Label == [] -> true
     ; Label = label(G / N - PredNo), write_source(Ctx, Label) ),
@@ -173,8 +180,8 @@ ghc_compile_goal(Ctx, Label, goal(G, N), PredNo, [(Head :- Body)|GoalSource]) :-
     always_success(ghc_compile_goal_body(Ctx, Body)),
     always_success(assign_registers(Ctx, N)),
     PredNo1 is PredNo + 1,
-    always_success(ghc_compile_goal(Ctx, NextLabel, goal(G, N), PredNo1, GoalSource)).
-ghc_compile_goal(Ctx, Label, goal(G, N), PredNo, [Head|GoalSource]) :-
+    always_success(ghc_compile_goal_pred(Ctx, NextLabel, goal(G, N), PredNo1, GoalSource)).
+ghc_compile_goal_pred(Ctx, Label, goal(G, N), PredNo, [Head|GoalSource]) :-
     functor(Head, _, _),
     !,
     ( Label == [] -> true
@@ -187,7 +194,28 @@ ghc_compile_goal(Ctx, Label, goal(G, N), PredNo, [Head|GoalSource]) :-
     write_source(Ctx, proceed),
     always_success(assign_registers(Ctx, N)),
     PredNo1 is PredNo + 1,
-    always_success(ghc_compile_goal(Ctx, NextLabel, goal(G, N), PredNo1, GoalSource)).
+    always_success(ghc_compile_goal_pred(Ctx, NextLabel, goal(G, N), PredNo1, GoalSource)).
+
+ghc_compile_otherwise(Ctx, Label, goal(G, N), PredNo, [(Head :- Body)]) :-
+    !,
+    ( Label == [] -> true
+    ; Label = label(G / N - PredNo), write_source(Ctx, Label) ),
+    write_source(Ctx, otherwise),
+    always_success(ghc_compile_head_args(Ctx, Head)),
+    always_success(ghc_compile_guard(Ctx, Body)),
+    write_source(Ctx, activate),
+    always_success(ghc_compile_goal_body(Ctx, Body)),
+    always_success(assign_registers(Ctx, N)).
+ghc_compile_otherwise(Ctx, Label, goal(G, N), PredNo, [Head]) :-
+    functor(Head, _, _),
+    !,
+    ( Label == [] -> true
+    ; Label = label(G / N - PredNo), write_source(Ctx, Label) ),
+    write_source(Ctx, otherwise),
+    always_success(ghc_compile_head_args(Ctx, Head)),
+    write_source(Ctx, activate),
+    write_source(Ctx, proceed),
+    always_success(assign_registers(Ctx, N)).
 
 %% ghc_compile_head_args(?Ctx, +Head)
 % GHC ソースコードのヘッド部 Head に対応する WAM 風中間コードを生成し、
@@ -225,7 +253,7 @@ ghc_compile_guard1(Ctx, Guard) :-
     ( Guard = true -> true
     ; Guard = wait(X) ->
       ( get(Ctx, X, reg(in, Ai)) ->
-        write_source(Ctx, wait_value(Ai)) )
+        write_source(Ctx, wait(Ai)) )
     ; Guard = (X = Y) ->
       ( get(Ctx, X, reg(in, Ai)) ->
         always_success(ghc_get_check(Ctx, reg(in, Ai), Y))
@@ -465,15 +493,13 @@ ghc_compile_goal_call(Ctx, SeqPar, Goal) :-
     ( Goal == true -> true
     ; Goal = (X=Y)
       ->
-      write_source(Ctx, trust_me),
       ( get(Ctx, X, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), Y)
       ; get(Ctx, Y, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), X)
       ; ghc_set(Ctx, reg(x, Nreg), X),
         ghc_get(Ctx, reg(x, Nreg), Y) )
-    ; write_source(Ctx, trust_me),
-      ghc_compile_call(Ctx, SeqPar, Goal)
+    ; ghc_compile_call(Ctx, SeqPar, Goal)
     ; fail).
 % 最後のサブゴール呼び出し処理。
 % tail-call 呼び出しするか、さもなければ proceed を実行し
@@ -485,7 +511,6 @@ ghc_compile_tail_call(Ctx, Goal) :-
       write_source(Ctx, proceed)
     ; Goal = (X=Y)
       ->
-      write_source(Ctx, trust_me),
       ( get(Ctx, X, reg(Reg, Nreg))
         -> ghc_get(Ctx, reg(Reg, Nreg), Y)
       ; get(Ctx, Y, reg(Reg, Nreg))
@@ -493,8 +518,7 @@ ghc_compile_tail_call(Ctx, Goal) :-
       ; ghc_set(Ctx, reg(x, Nreg), X),
         ghc_get(Ctx, reg(x, Nreg), Y) ),
       write_source(Ctx, proceed)
-    ; write_source(Ctx, trust_me),
-      ghc_compile_call(Ctx, tail, Goal)
+    ; ghc_compile_call(Ctx, tail, Goal)
     ; fail).
 
 %% assign_registers(?Ctx, +N)

@@ -180,12 +180,14 @@ translate1(Ctx, try_guard_else(Label), try_guard_else(L)) :-
 translate1(Ctx, execute(F / N), execute(L, F / N)) :-
     Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ).
 translate1(_, try_guard_else_suspend, try_guard_else_suspend).
+translate1(_, otherwise, otherwise).
 translate1(_, trust_me, trust_me).
 translate1(_, activate, activate).
 translate1(_, proceed, proceed).
 translate1(_, seq(N), seq(N)).
 translate1(_, par(N), par(N)).
 translate1(_, tail(N), tail(N)).
+translate1(_, wait(N), wait(N)).
 translate1(Ctx, check_structure(F / N, Ai), check_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).
 translate1(Ctx, out_structure(F / N, Ai), out_structure(atom(AtomID), A)) :-
@@ -259,8 +261,15 @@ to_reg(reg(R, N), Rn) :-
     format(atom(A), 'reg::~w', [R]),
     Rn =.. [A, N].
 
+%to_cstring(C, S) :- format(atom(S), '"~w"', [C]).
+escape([], []) :- !.
+escape([C|Cs], [C,C|Cs2]) :- C = '\\' -> escape(Cs, Cs2).
+escape([C|Cs], [C|Cs2]) :- escape(Cs, Cs2).
 to_cstring(C, S) :-
-    format(atom(S), '"~w"', [C]).
+    atom_chars(C, Cs),
+    escape(Cs, Cs2),
+    atom_chars(C2, Cs2),
+    format(atom(S), '"~w"', [C2]).
 
 to_constant(Ctx, C, A) :-
     ( number(C) -> A = 'tagvalue<TAG_INT>'(C)

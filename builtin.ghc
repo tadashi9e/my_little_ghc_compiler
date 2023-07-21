@@ -11,9 +11,11 @@ call_inline(Goal) :-
     inline('  Q q = vm->in[1];'),
     inline('  const TAG_T tag = tag_of(q);'),
     inline('  if (tag == TAG_ATOM) {'),
+    inline('    MACRO_activate;'),
     inline('    const int pc = prog->query_entry_point(q);'),
     inline('    MACRO_execute(pc, 0);'),
     inline('  } else if (tag == TAG_STR) {'),
+    inline('    MACRO_activate;'),
     inline('    A* structure = ptr_of<A>(q);'),
     inline('    Q g = structure[0].load();'),
     inline('    const int pc = prog->query_entry_point(g);'),
@@ -27,6 +29,8 @@ call_inline(Goal) :-
     inline('      MACRO_out_constant(structure[i].load(), reg::out(i));'),
     inline('    }'),
     inline('    MACRO_execute(pc, arity);'),
+    inline('  } else {'),
+    inline('    MACRO_fail;'),
     inline('  }'),
     inline('}').
 
@@ -37,14 +41,17 @@ time(Goal) :-
 
 time_pre_inline(Start, Inferences) :-
     inline('{'),
+    inline('  MACRO_activate;'),
     inline('  const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(istart), reg::in(1));'),
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(vm->inferences), reg::in(2));'),
     inline('  MACRO_proceed;'),
     inline('}').
 
+
 time_post_inline(Start, Inferences) :-
     inline('{'),
+    inline('  MACRO_activate;'),
     inline('  const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
     inline('  const int64_t istart ='),
     inline('          value_of<int64_t>(vm->in[1]);'),
@@ -80,6 +87,12 @@ number_to_atom_inline(A, N) :-
     inline('  MACRO_proceed;'),
     inline('}').
 
+outstream([]).
+outstream([C|Cs]) :- outstream(C, Cs).
+outstream(write(P), Cmds) :- write(P), outstream(Cmds).
+outstream(writeln(P), Cmds) :- writeln(P), outstream(Cmds).
+outstream(nl, Cmds) :- nl, outstream(Cmds).
+
 writeln(X) :- write(X) -> nl.
 
 nl :-
@@ -89,9 +102,9 @@ nl :-
     inline('  MACRO_proceed;'),
     inline('}').
 
+write(X) :- var(X) | write_var_inline(X).
 write(X) :- integer(X) | write_number_inline(X).
 write(X) :- atom(X) | write_atom_inline(X).
-write(X) :- var(X) | write_var_inline(X).
 write([]) :- write('[]').
 write([A|B]) :- write('[') -> write(A) -> write_list_tail(B) -> write(']').
 write(X) :-
@@ -105,6 +118,7 @@ write_functor_args2([A|B]) :- write(A) -> write_functor_tail(B).
 write_functor_tail([]) :- true.
 write_functor_tail([A|B]) :- write(,) -> write(A) -> write_functor_tail(B).
 
+write_list_tail(X) :- var(X) | write('|') -> write(X).
 write_list_tail([]) :- true.
 write_list_tail([A|B]) :- write(',') -> write(A) -> write_list_tail(B).
 otherwise.
@@ -150,27 +164,30 @@ atom(X) :-
 var(X) :-
     inline('{'),
     inline('  const Q q = vm->in[1] = deref(vm->in[1]);'),
-    inline('  const TAG_T t = tag_of(q);'),
-    inline('  if (t != TAG_REF) {'),
+    inline('  const TAG_T tag = tag_of(q);'),
+    inline('  if (tag != TAG_REF && tag != TAG_SUS) {'),
     inline('    vm->fail();'),
     inline('    continue;'),
     inline('  }'),
     inline('  MACRO_return;'),
     inline('}').
+
 is_functor(X) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_STR, reg::in(1));'),
     inline('  const Q q = vm->in[1];'),
-    inline('  const TAG_T t = tag_of(q);'),
-    inline('  if (t != TAG_STR) {'),
+    inline('  const TAG_T tag = tag_of(q);'),
+    inline('  if (tag != TAG_STR) {'),
     inline('    vm->fail();'),
     inline('    continue;'),
     inline('  }'),
     inline('  MACRO_return;'),
     inline('}').
+
 '=..'(F, U) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_STR, reg::in(1));'),
+    inline('  MACRO_activate;'),
     inline('  const Q q = vm->in[1];'),
     inline('  A* p = ptr_of<A>(q);'),
     inline('  const Q Fun = p[0].load();'),
@@ -247,15 +264,33 @@ X < Y :-
     inline('  MACRO_return;'),
     inline('}').
 
+X =:= Y :- X1 := X, Y1 := Y, X1 == Y1.
+
+X =\= Y :- X1 := X, Y1 := Y, not_equal_inline(X1, Y1).
+
+not_equal_inline(X, Y) :-
+    inline('{'),
+    inline('  MACRO_wait(reg::in(1));'),
+    inline('  MACRO_wait(reg::in(2));'),
+    inline('  Q q1 = vm->in[1];'),
+    inline('  Q q2 = vm->in[2];'),
+    inline('  if (!(q1 != q2)) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
+    inline('  MACRO_return;'),
+    inline('}').
+
 Y := X :- integer(X) | X = Y.
 C := -A :- A1 := A -> ineg(A1, C).
 C := (A + B) :- A1 := A -> B1 := B -> iadd(A1, B1, C).
 C := (A - B) :- A1 := A -> B1 := B -> isub(A1, B1, C).
 C := (A * B) :- A1 := A -> B1 := B -> imul(A1, B1, C).
 C := (A / B) :- A1 := A -> B1 := B -> idiv(A1, B1, C).
+C := (A mod B) :- A1 := A -> B1 := B -> imod(A1, B1, C).
 ineg(A, B) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_activate;'),
     inline('  const int64_t v = -value_of<int64_t>(reg::in(1));'),
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));'),
     inline('  MACRO_proceed;'),
@@ -264,6 +299,7 @@ iadd(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  MACRO_activate;'),
     inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);'),
     inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);'),
     inline('  const int64_t v = v1 + v2;'),
@@ -274,6 +310,7 @@ isub(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  MACRO_activate;'),
     inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);'),
     inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);'),
     inline('  const int64_t v = v1 - v2;'),
@@ -284,6 +321,7 @@ imul(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  MACRO_activate;'),
     inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);'),
     inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);'),
     inline('  const int64_t v = v1 * v2;'),
@@ -294,9 +332,22 @@ idiv(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  MACRO_activate;'),
     inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);'),
     inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);'),
     inline('  const int64_t v = v1 / v2;'),
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  MACRO_proceed;'),
     inline('}').
+imod(A1, B1, C) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  MACRO_activate;'),
+    inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);'),
+    inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);'),
+    inline('  const int64_t v = v1 % v2;'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+    

@@ -14,3 +14,6 @@ main([_, X, Y, Z]) :-
     atom_number(Z, Zi),
     time(tarai(Xi, Yi, Zi, Ri))
     -> writeln(Ri).
+otherwise.
+main([Prog|_]) :-
+    outstream([write('usage: '), write(Prog), write(' X Y Z'), nl]).
