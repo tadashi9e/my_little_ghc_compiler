@@ -1,7 +1,11 @@
 #ifndef GHC_H_
 #define GHC_H_
+#include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include <algorithm>
 #include <atomic>
 #include <cassert>
@@ -581,6 +585,7 @@ struct VM : std::enable_shared_from_this<VM> {
         s += '*';
       }
     }
+    s += ' ';
     return s;
   }
   void fail() {

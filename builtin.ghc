@@ -3,9 +3,9 @@
 % builtin predicates
 % ----------------------------------------------------------------------
 
-call(Goal) :- call_inline(Goal).
+call(Goal) :- '__call__'(Goal).
 
-call_inline(Goal) :-
+'__call__'(Goal) :-
     inline('{'),
     inline('  MACRO_wait(reg::in(1));'),
     inline('  Q q = vm->in[1];'),
@@ -35,11 +35,11 @@ call_inline(Goal) :-
     inline('}').
 
 time(Goal) :-
-    time_pre_inline(Start, Inferences),
+    '__time_pre__'(Start, Inferences),
     call(Goal)
-    -> time_post_inline(Start, Inferences).
+    -> '__time_post__'(Start, Inferences).
 
-time_pre_inline(Start, Inferences) :-
+'__time_pre__'(Start, Inferences) :-
     inline('{'),
     inline('  MACRO_activate;'),
     inline('  const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
@@ -49,7 +49,7 @@ time_pre_inline(Start, Inferences) :-
     inline('}').
 
 
-time_post_inline(Start, Inferences) :-
+'__time_post__'(Start, Inferences) :-
     inline('{'),
     inline('  MACRO_activate;'),
     inline('  const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
@@ -64,10 +64,10 @@ time_post_inline(Start, Inferences) :-
     inline('  MACRO_proceed;'),
     inline('}').
 
-atom_number(A, N) :- atom(A) | atom_to_number_inline(A, N).
-atom_number(A, N) :- integer(N) | number_to_atom_inline(A, N).
+atom_number(A, N) :- atom(A) | '__atom_to_number__'(A, N).
+atom_number(A, N) :- integer(N) | '__number_to_atom__'(A, N).
 
-atom_to_number_inline(A, N) :-
+'__atom_to_number__'(A, N) :-
     inline('{'),
     inline('  MACRO_activate;'),
     inline('  const Q q = vm->in[1];'),
@@ -77,7 +77,7 @@ atom_to_number_inline(A, N) :-
     inline('  MACRO_proceed;'),
     inline('}').
 
-number_to_atom_inline(A, N) :-
+'__number_to_atom__'(A, N) :-
     inline('{'),
     inline('  MACRO_activate;'),
     inline('  const Q q = vm->in[2];'),
@@ -89,63 +89,210 @@ number_to_atom_inline(A, N) :-
 
 outstream([]).
 outstream([C|Cs]) :- outstream(C, Cs).
+outstream(open(File, Mode, Stream), Cmds) :-
+    open(File, Mode, Stream), outstream(Cmds).
+outstream(write(Stream, P), Cmds) :- write(Stream, P), outstream(Cmds).
 outstream(write(P), Cmds) :- write(P), outstream(Cmds).
+outstream(writeln(Stream, P), Cmds) :- writeln(Stream, P), outstream(Cmds).
 outstream(writeln(P), Cmds) :- writeln(P), outstream(Cmds).
+outstream(nl(Stream), Cmds) :- nl(Stream), outstream(Cmds).
 outstream(nl, Cmds) :- nl, outstream(Cmds).
 
+open(Src, Opts, Stream) :-
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode),
+    '__open__'(Src, OFlag, OMode, Stream).
+close(Stream) :-
+    '__close__'(Stream).
+
+'__open_opt_string_to_integer__'(Opts, OFlag, OMode) :-
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, 0, 0).
+'__open_opt_string_to_integer__'([], OFlag, OMode, Ac1, Ac2) :-
+    OFlag = Ac1, OMode = Ac2.
+'__open_opt_string_to_integer__'([rdonly|Opts], OFlag, OMode, Ac1, Ac2) :-
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac2).
+'__open_opt_string_to_integer__'([wronly|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac11 := Ac1 + 1,     % 00001
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac11, Ac2).
+'__open_opt_string_to_integer__'([rdwr|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac11 := Ac1 + 2,     % 00002
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac11, Ac2).
+'__open_opt_string_to_integer__'([creat|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac11 := Ac1 + 64,    % 00100
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac11, Ac2).
+'__open_opt_string_to_integer__'([excl|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac11 := Ac1 + 128,   % 00200
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac11, Ac2).
+'__open_opt_string_to_integer__'([trunc|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac11 := Ac1 + 512,   % 01000
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac11, Ac2).
+'__open_opt_string_to_integer__'([append|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac11 := Ac1 + 1024,  % 02000
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac11, Ac2).
+'__open_opt_string_to_integer__'([rusr|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 256,  % 00400
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([wusr|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 128,  % 00200
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([xusr|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 64,   % 00100
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([rgrp|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 32,   % 00040
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([wgrp|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 16,   % 00020
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([xgrp|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 8,   % 00010
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([roth|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 4,   % 00004
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([woth|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 2,   % 00002
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+'__open_opt_string_to_integer__'([xoth|Opts], OFlag, OMode, Ac1, Ac2) :-
+    Ac21 := Ac2 + 1,   % 00001
+    '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
+
+'__open__'(Src, OFlag, Mode, Stream) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(3));'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  const Q q3 = vm->in[3];'),
+    inline('  const std::string src = atom_str_of(q1);'),
+    inline('  const int oflag = value_of<int>(q2);'),
+    inline('  const int omode = value_of<int>(q3);'),
+    inline('  const int fd = open(src.c_str(), oflag, omode);'),
+    inline('  if (fd < 0) {'),
+    inline('    vm->unify(to_atom("error", 0), vm->in[4]);'),
+    inline('  } else {'),
+    inline('    vm->unify(tagvalue<TAG_INT>(fd), vm->in[4]);'),
+    inline('  }'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+'__close__'(Stream) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_activate;'),
+    inline('  const int fd = tagvalue<TAG_INT>(vm->in[1]);'),
+    inline('  close(fd);'),
+    inline('}').
+
 writeln(X) :- write(X) -> nl.
+writeln(Stream, X) :- write(Stream, X), nl(Stream).
 
-nl :-
+nl :- nl(1).
+nl(Stream) :- integer(Stream) | '__nl__'(Stream).
+'__nl__'(Stream) :-
     inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_activate;'),
-    inline('  std::cout << std::endl;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const int fd = value_of<int>(q1);'),
+    inline('  const std::string s = "\\n";'),
+    inline('  for (size_t offset = 0; offset <  s.size();) {'),
+    inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);'),
+    inline('    if (n <= 0) {'),
+    inline('      break;'),
+    inline('    }'),
+    inline('    offset += n;'),
+    inline('  }'),
     inline('  MACRO_proceed;'),
     inline('}').
 
-write(X) :- var(X) | write_var_inline(X).
-write(X) :- integer(X) | write_number_inline(X).
-write(X) :- atom(X) | write_atom_inline(X).
-write([]) :- write('[]').
-write([A|B]) :- write('[') -> write(A) -> write_list_tail(B) -> write(']').
-write(X) :-
+write(X) :- write(1, X).
+write(Stream, X) :- integer(Stream) | '__write__'(Stream, X).
+
+'__write__'(Stream, X) :- atom(X) | '__write_atom__'(Stream, X).
+'__write__'(Stream, X) :- var(X) | '__write_var__'(Stream, X).
+'__write__'(Stream, X) :- integer(X) | '__write_number__'(Stream, X).
+'__write__'(Stream, []) :- '__write__'(Stream, '[]').
+'__write__'(Stream, [A|B]) :-
+    '__write__'(Stream, '[') -> '__write__'(Stream, A)
+    -> '__write_list_tail__'(Stream, B) -> '__write__'(Stream, ']').
+'__write__'(Stream, X) :-
     is_functor(X) |
-    X =.. [F|Args] -> write(F) -> write_functor_args(Args).
-write_functor_args([]) :- true.
+    X =.. [F|Args]
+    -> '__write__'(Stream, F) -> '__write_functor_args__'(Stream, Args).
+'__write_functor_args__'(_, []) :- true.
 otherwise.
-write_functor_args(X) :- write('(') -> write_functor_args2(X) -> write(')').
-write_functor_args2([]) :- true.
-write_functor_args2([A|B]) :- write(A) -> write_functor_tail(B).
-write_functor_tail([]) :- true.
-write_functor_tail([A|B]) :- write(,) -> write(A) -> write_functor_tail(B).
+'__write_functor_args__'(Stream, X) :-
+    '__write__'(Stream, '(')
+    -> '__write_functor_args2__'(Stream, X) -> '__write__'(Stream, ')').
+'__write_functor_args2__'(_, []) :- true.
+'__write_functor_args2__'(Stream, [A|B]) :-
+    '__write__'(Stream, A) -> '__write_functor_tail__'(Stream, B).
+'__write_functor_tail__'(Stream, []) :- true.
+'__write_functor_tail__'(Stream, [A|B]) :-
+    '__write__'(Stream, ',')
+    -> '__write__'(Stream, A) -> '__write_functor_tail__'(Stream, B).
 
-write_list_tail(X) :- var(X) | write('|') -> write(X).
-write_list_tail([]) :- true.
-write_list_tail([A|B]) :- write(',') -> write(A) -> write_list_tail(B).
+'__write_list_tail__'(Stream, X) :-
+    var(X) | '__write__'(Stream, '|') -> '__write__'(Stream, X).
+'__write_list_tail__'(_, []) :- true.
+'__write_list_tail__'(Stream, [A|B]) :-
+    '__write__'(Stream, ',') -> '__write__'(Stream, A)
+    -> '__write_list_tail__'(Stream, B).
 otherwise.
-write_list_tail(X) :- write('|') -> write(X).
+'__write_list_tail__'(Stream, X) :-
+    '__write__'(Stream, '|') -> '__write__'(Stream, X).
 
-write_number_inline(X) :-
+'__write_number__'(Stream, X) :-
     inline('{'),
     inline('  MACRO_activate;'),
-    inline('  const Q q = vm->in[1];'),
-    inline('  const int64_t i = value_of<int64_t>(q);'),
-    inline('  std::cout << i;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  const int fd = value_of<int>(q1);'),
+    inline('  const int64_t i = value_of<int64_t>(q2);'),
+    inline('  const std::string s = std::to_string(i);'),
+    inline('  for (size_t offset = 0; offset <  s.size();) {'),
+    inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);'),
+    inline('    if (n <= 0) {'),
+    inline('      break;'),
+    inline('    }'),
+    inline('    offset += n;'),
+    inline('  }'),
     inline('  MACRO_proceed;'),
     inline('}').
-write_atom_inline(X) :-
+'__write_atom__'(Stream, X) :-
     inline('{'),
     inline('  MACRO_activate;'),
-    inline('  const Q q = vm->in[1];'),
-    inline('  const std::string s = atom_str_of(q);'),
-    inline('  std::cout << s;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  const int fd = value_of<int>(q1);'),
+    inline('  const std::string s = atom_str_of(q2);'),
+    inline('  for (size_t offset = 0; offset <  s.size();) {'),
+    inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);'),
+    inline('    if (n <= 0) {'),
+    inline('      break;'),
+    inline('    }'),
+    inline('    offset += n;'),
+    inline('  }'),
     inline('  MACRO_proceed;'),
     inline('}').
-write_var_inline(X) :-
+'__write_var__'(Stream, X) :-
     inline('{'),
     inline('  MACRO_activate;'),
-    inline('  const Q q = vm->in[1];'),
-    inline('  const A* a = ptr_of<A>(q);'),
-    inline('  std::cout << a;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  const int fd = value_of<int>(q1);'),
+    inline('  const A* a = ptr_of<A>(q2);'),
+    inline('  std::stringstream ss;'),
+    inline('  ss << a;'),
+    inline('  const std::string s = ss.str();'),
+    inline('  for (size_t offset = 0; offset <  s.size();) {'),
+    inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);'),
+    inline('    if (n <= 0) {'),
+    inline('      break;'),
+    inline('    }'),
+    inline('    offset += n;'),
+    inline('  }'),
     inline('  MACRO_proceed;'),
     inline('}').
 
@@ -266,9 +413,9 @@ X < Y :-
 
 X =:= Y :- X1 := X, Y1 := Y, X1 == Y1.
 
-X =\= Y :- X1 := X, Y1 := Y, not_equal_inline(X1, Y1).
+X =\= Y :- X1 := X, Y1 := Y, '__not_equal__'(X1, Y1).
 
-not_equal_inline(X, Y) :-
+'__not_equal__'(X, Y) :-
     inline('{'),
     inline('  MACRO_wait(reg::in(1));'),
     inline('  MACRO_wait(reg::in(2));'),
@@ -280,14 +427,39 @@ not_equal_inline(X, Y) :-
     inline('  MACRO_return;'),
     inline('}').
 
+C := (A + B) :- '__add__'(A, B, C).
+C := (A - B) :- '__sub__'(A, B, C).
+C := (A * B) :- '__mul__'(A, B, C).
+C := (A / B) :- '__div__'(A, B, C).
+C := (A mod B) :- '__mod__'(A, B, C).
+C := -A :- '__neg__'(A, C).
 Y := X :- integer(X) | X = Y.
-C := -A :- A1 := A -> ineg(A1, C).
-C := (A + B) :- A1 := A -> B1 := B -> iadd(A1, B1, C).
-C := (A - B) :- A1 := A -> B1 := B -> isub(A1, B1, C).
-C := (A * B) :- A1 := A -> B1 := B -> imul(A1, B1, C).
-C := (A / B) :- A1 := A -> B1 := B -> idiv(A1, B1, C).
-C := (A mod B) :- A1 := A -> B1 := B -> imod(A1, B1, C).
-ineg(A, B) :-
+
+'__add__'(A, B, C) :- integer(A), integer(B) | '__iadd__'(A, B, C).
+otherwise.
+'__add__'(A, B, C) :- A1 := A, B1 := B, '__iadd__'(A1, B1, C).
+
+'__sub__'(A, B, C) :- integer(A), integer(B) | '__isub__'(A, B, C).
+otherwise.
+'__sub__'(A, B, C) :- A1 := A, B1 := B, '__isub__'(A1, B1, C).
+
+'__mul__'(A, B, C) :- integer(A), integer(B) | '__imul__'(A, B, C).
+otherwise.
+'__mul__'(A, B, C) :- A1 := A, B1 := B, '__imul__'(A1, B1, C).
+
+'__div__'(A, B, C) :- integer(A), integer(B) | '__idiv__'(A, B, C).
+otherwise.
+'__div__'(A, B, C) :- A1 := A, B1 := B, '__idiv__'(A1, B1, C).
+
+'__mod__'(A, B, C) :- integer(A), integer(B) | '__imod__'(A, B, C).
+otherwise.
+'__mod__'(A, B, C) :- A1 := A, B1 := B, '__imod__'(A1, B1, C).
+
+'__neg__'(A, C) :- integer(A)| '__ineg__'(A, C).
+otherwise.
+'__neg__'(A, C) :- A1 := A, '__ineg__'(A1, C).
+
+'__ineg__'(A, B) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_activate;'),
@@ -295,7 +467,7 @@ ineg(A, B) :-
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));'),
     inline('  MACRO_proceed;'),
     inline('}').
-iadd(A, B, C) :-
+'__iadd__'(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
@@ -306,7 +478,7 @@ iadd(A, B, C) :-
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  MACRO_proceed;'),
     inline('}').
-isub(A, B, C) :-
+'__isub__'(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
@@ -317,7 +489,7 @@ isub(A, B, C) :-
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  MACRO_proceed;'),
     inline('}').
-imul(A, B, C) :-
+'__imul__'(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
@@ -328,7 +500,7 @@ imul(A, B, C) :-
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  MACRO_proceed;'),
     inline('}').
-idiv(A, B, C) :-
+'__idiv__'(A, B, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
@@ -339,7 +511,7 @@ idiv(A, B, C) :-
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  MACRO_proceed;'),
     inline('}').
-imod(A1, B1, C) :-
+'__imod__'(A1, B1, C) :-
     inline('{'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),

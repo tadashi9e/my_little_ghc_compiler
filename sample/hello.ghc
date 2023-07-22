@@ -1,0 +1,10 @@
+% -*- coding:utf-8-unix; mode:prolog -*-
+% write hello message to './hello.txt'
+main([_|Ss]) :-
+    outstream([write('Hello ') | OStream]),
+    writes(Ss, OStream).
+
+writes([], OStream) :- OStream = [nl].
+writes([S|Ss], OStream) :-
+    OStream = [write(S), write(' ') | OStream2],
+    writes(Ss, OStream2).
