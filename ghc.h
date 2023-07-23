@@ -10,12 +10,14 @@
 #include <atomic>
 #include <cassert>
 #include <deque>
+#include <functional>
 #include <iomanip>
 #include <iostream>
 #include <list>
 #include <set>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <memory>
 #include <mutex>
@@ -321,20 +323,8 @@ class Scheduler {
     head.store(tagptr<TAG_REF>(a2));
     return ptr_of<A>(a[1].load());
   }
-  void push_vm(std::shared_ptr<VM> vm) {
-    queue_.push_back(vm);
-  }
-  std::shared_ptr<VM> pop_vm() {
-    if (queue_.empty()) {
-      return NULL;
-    }
-    std::shared_ptr<VM> vm = queue_.front();
-    queue_.pop_front();
-    return vm;
-  }
 
  private:
-  std::deque<std::shared_ptr<VM> > queue_;
   A head;
 };
 
@@ -394,6 +384,8 @@ std::string upper(const char* s) {
                  [](unsigned char c) { return std::toupper(c); });
   return str;
 }
+
+class Program;
 
 struct VM : std::enable_shared_from_this<VM> {
   using ptr = std::shared_ptr<VM>;
@@ -496,6 +488,31 @@ struct VM : std::enable_shared_from_this<VM> {
       std::cerr << " " << p << " heap[" << std::setw(3) << h << "] : "
                 << to_str(p->load()) << std::endl;
       ++p;
+    }
+  }
+  void run(void (&module)(VM::ptr, Program*), Program* prog) {
+    for (;;) {
+      A* goal = Scheduler::getInstance().dequeue_list();
+      if (!goal) {
+        break;
+      }
+      Q g = goal[2].load();
+      const int arity = atom_arity_of(g);
+      in[0] = g;
+      for (int i = 1; i <= arity; ++i) {
+        in[i] = deref(goal[2 + i].load());
+      }
+      Context& context = contexts.back();
+      context.pc_continue = -1;
+      context.pc_on_error = -1;
+      pc = value_of<int>(goal[1]);
+      failed = false;
+      try {
+        module(shared_from_this(), prog);
+      } catch (const std::runtime_error& ex) {
+        std::cerr << ex.what() << std::endl;
+        dump();
+      }
     }
   }
   void create_new_window(size_t n) {
