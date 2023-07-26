@@ -1,3 +1,4 @@
+% -*- coding:utf-8-unix; mode:prolog -*-
 test_otherwise :- test_otherwise_aux(X), X = 1.
 test_otherwise_aux(X) :- X = 0 | writeln('test failed').
 otherwise.
@@ -41,6 +42,31 @@ test_wait_var :- wait_var(X), write_var(X).
 wait_var(X) :- wait(X) | writeln(X).
 write_var(X) :- X = 'fire'.
 
+test_atom_concat :-
+    test_atom_concat_1,
+    test_atom_concat_2,
+    test_atom_concat_3.
+
+test_atom_concat_1 :-
+    atom_concat(abc, def, ABCDEF),
+    write('abc + def = '), write('['), write(ABCDEF), writeln(']').
+test_atom_concat_2 :-
+    atom_concat(abc, DEF, abcdef),
+    write('abc + ['), write(DEF), writeln('] = abcdef').
+test_atom_concat_3 :-
+    atom_concat(ABC, def, abcdef),
+    write('['), write(ABC), writeln('] + def = abcdef').
+
+test_atom_chars :-
+    test_atom_chars1,
+    test_atom_chars2.
+test_atom_chars1 :-
+    atom_chars(abcdefg, Cs),
+    write('abcdefg -> '), writeln(Cs).
+test_atom_chars2 :-
+    atom_chars(ABCDEFG, [a,b,c,d,e,f,g]),
+    write(ABCDEFG), write(' <- '), writeln([a,b,c,d,e,f,g]).
+
 do_test(X) :- write(X) -> writeln(': ') -> time(X).
 
 main(_) :-
@@ -57,5 +83,8 @@ main(_) :-
     do_test(test_check_list),
     do_test(test_check_nil),
     do_test(test_check_structure),
-    do_test(test_wait_var)
-    -> writeln(done).
+    do_test(test_wait_var),
+    do_test(test_atom_concat),
+    do_test(test_atom_chars)
+    -> inference_count(Infer),
+       write('total_inferences='), writeln(Infer).

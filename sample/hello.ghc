@@ -2,6 +2,7 @@
 % write hello message to './hello.txt'
 main([_|Ss]) :-
     outstream([write('Hello ') | OStream]),
+    dump_to_dot('dump/hello.dot'),
     writes(Ss, OStream).
 
 writes([], OStream) :- OStream = [nl].

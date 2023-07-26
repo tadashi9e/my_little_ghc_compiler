@@ -64,6 +64,89 @@ time(Goal) :-
     inline('  MACRO_proceed;'),
     inline('}').
 
+atom_concat(A, B, C) :- atom(A), atom(B) | '__atom_concat_1__'(A, B, C).
+atom_concat(A, B, C) :- atom(A), atom(C) | '__atom_concat_2__'(A, B, C).
+atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
+
+'__atom_concat_1__'(A, B, C) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  const std::string s1 = atom_str_of(q1);'),
+    inline('  const std::string s2 = atom_str_of(q2);'),
+    inline('  const std::string s = s1 + s2;'),
+    inline('  const Q c = to_atom(s.c_str(), 0);'),
+    inline('  vm->unify(c, vm->in[3]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+'__atom_concat_2__'(A, B, C) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q3 = vm->in[3];'),
+    inline('  const std::string s1 = atom_str_of(q1);'),
+    inline('  const std::string s3 = atom_str_of(q3);'),
+    inline('  if (s1.length() > s3.length()) {'),
+    inline('    vm->fail();'),
+    inline('    continue;'),
+    inline('  }'),
+    inline('  const size_t i = s1.length();'),
+    inline('  if (s3.substr(0, i) != s1) {'),
+    inline('    vm->fail();'),
+    inline('    continue;'),
+    inline('  }'),
+    inline('  const std::string s2 = s3.substr(i);'),
+    inline('  const Q c = to_atom(s2.c_str(), 0);'),
+    inline('  vm->unify(c, vm->in[2]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+'__atom_concat_3__'(A, B, C) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  const Q q3 = vm->in[3];'),
+    inline('  const std::string s2 = atom_str_of(q2);'),
+    inline('  const std::string s3 = atom_str_of(q3);'),
+    inline('  if (s2.length() > s3.length()) {'),
+    inline('    vm->fail();'),
+    inline('    continue;'),
+    inline('  }'),
+    inline('  const size_t i = s2.length();'),
+    inline('  if (s3.substr(i) != s2) {'),
+    inline('    vm->fail();'),
+    inline('    continue;'),
+    inline('  }'),
+    inline('  const std::string s1 = s3.substr(0, i);'),
+    inline('  const Q c = to_atom(s1.c_str(), 0);'),
+    inline('  vm->unify(c, vm->in[1]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+atom_chars(A, Cs) :- atom(A) | '__atom_to_chars__'(A, Cs).
+atom_chars(A, [C|Cs]) :- atom_chars(A, Cs, C).
+'__atom_to_chars__'(A, Cs) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const std::string s = atom_str_of(q);'),
+    inline('  const size_t h = vm->heap_publishing(s.length() * 2);'),
+    inline('  for (size_t i = 0; i < s.length(); ++i) {'),
+    inline('    vm->heap[h + i * 2].store(to_atom(std::string(1, s.at(i)).c_str(), 0));'),
+    inline('    vm->heap[h + i * 2 + 1].store('),
+    inline('      (i < s.length() - 1)'),
+    inline('      ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])'),
+    inline('      : tagptr<TAG_NIL, Q>(0));'),
+    inline('  }'),
+    inline('  vm->heap_published(s.length() * 2);'),
+    inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+atom_chars(A, [], Ac) :- A = Ac.
+atom_chars(A, [C|Cs], Ac) :-
+    atom_concat(Ac, C, Ac2),
+    atom_chars(A, Cs, Ac2).
+
 atom_number(A, N) :- atom(A) | '__atom_to_number__'(A, N).
 atom_number(A, N) :- integer(N) | '__number_to_atom__'(A, N).
 
@@ -522,4 +605,21 @@ otherwise.
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  MACRO_proceed;'),
     inline('}').
-    
+
+inference_count(Count) :- '__inference_count__'(Count).
+'__inference_count__'(Count) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  vm->unify(tagvalue<TAG_INT>(vm->inferences), vm->in[1]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+dump_to_dot(File) :- atom(File) | '__dump_to_dot__'(File).
+'__dump_to_dot__'(File) :-
+    inline('{'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const std::string s = atom_str_of(q);'),
+    inline('  MACRO_activate;'),
+    inline('  vm->dump_to_dot(s);'),
+    inline('  MACRO_proceed;'),
+    inline('}').

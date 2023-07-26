@@ -12,7 +12,8 @@ main([_, X, Y, Z]) :-
     atom_number(X, Xi),
     atom_number(Y, Yi),
     atom_number(Z, Zi),
-    time(tarai(Xi, Yi, Zi, Ri))
+    time(tarai(Xi, Yi, Zi, Ri)),
+    dump_to_dot('dump/tarai.dot')
     -> writeln(Ri).
 otherwise.
 main([Prog|_]) :-
