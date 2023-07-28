@@ -130,41 +130,39 @@ translate(Ctx, Codes, Ts) :-
     translate(Ctx, Codes, Ts, 0).
 translate(_, [], [], _).
 translate(Ctx, Codes, Ts, Lno) :-
-    ( Codes = [Code |Codes2], Lno1 is Lno + 1,
-      ( translate1(Ctx, Code, TCode), Ts = [line(Lno, TCode) |Ts2]
-      ; translate2(Ctx, Code, TCode, Lno), Ts = [TCode |Ts2] )
+    ( Codes = [Code |Codes2],
+      ( translate1(Ctx, Code, TCode), Lno1 = Lno, Ts = [TCode |Ts2]
+      ; translate2(Ctx, Code, TCode, Lno, Lno1), Ts = [TCode |Ts2] )
     ; Codes = [ call(F / N) |Codes1]
       -> Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ),
          ( Codes1 = [ Label1 | Codes2], Label1 =.. [label|_]
-           -> ( get(Ctx, Label1, L1) ; put(Ctx, Label1, L1) ),
-            L1 is Lno + 1,
-            Lno1 = L1,
-            Ts = [line(Lno, call(L, L1, F / N)),
-                  label(Lno1, return_from_call(F / N)) | Ts2]
+           -> ( get(Ctx, Label1, Lno1) ; put(Ctx, Label1, Lno1) ),
+              Lno1 is Lno + 1,
+              Ts = [call(L, Lno1, F / N),
+                    label(Lno1, return_from_call(F / N)) | Ts2]
          ; Codes2 = Codes1,
            Lno1 is Lno + 1,
-           Ts = [line(Lno, call(L, Lno1, F / N)),
+           Ts = [call(L, Lno1, F / N),
                  label(Lno1, return_from_call(F / N)) | Ts2])
     ; Codes = [ spawn(F / N) |Codes1]
       -> Label = label(F / N), ( get(Ctx, Label, L) ; put(Ctx, Label, L) ),
          ( Codes1 = [ Label1 | Codes2], Label1 =.. [label|_]
-           -> ( get(Ctx, Label1, L1) ; put(Ctx, Label1, L1) ),
-            L1 is Lno + 1,
-            Lno1 = L1,
-            Ts = [line(Lno, spawn(L, L1, F / N)),
-                  label(Lno1, return_from_spawn(F / N)) | Ts2]
+           -> ( get(Ctx, Label1, Lno1) ; put(Ctx, Label1, Lno1) ),
+              Lno1 is Lno + 1,
+              Ts = [spawn(L, Lno1, F / N),
+                    label(Lno1, return_from_spawn(F / N)) | Ts2]
          ; Codes2 = Codes1,
            Lno1 is Lno + 1,
-           Ts = [line(Lno, spawn(L, Lno1, F / N)),
+           Ts = [spawn(L, Lno1, F / N),
                  label(Lno1, return_from_spawn(F / N)) | Ts2])
     ),
     always_success(translate(Ctx, Codes2, Ts2, Lno1)).
 
-translate2(Ctx, label(Label), label(Lno1, Label), Lno) :-
+translate2(Ctx, label(Label), label(Lno1, Label), Lno, Lno1) :-
     !,
     Lno1 is Lno + 1,
     ( get(Ctx, label(Label), L) -> L = Lno1 ; put(Ctx, label(Label), Lno1) ).
-translate2(_, inline(Inline), inline(Inline), _).
+translate2(_, inline(Inline), inline(Inline), Lno, Lno).
 translate1(Ctx, goal(G / N), goal(L, atom(AtomID))) :-
     !,
     ( get(Ctx, label(G / N), L) ; put(Ctx, label(G / N), L) ),
@@ -248,6 +246,9 @@ translate1(_, unify_variable(Vn), unify_variable(V)) :- to_reg(Vn, V).
 translate1(_, read_value(Vn), read_value(V)) :- to_reg(Vn, V).
 translate1(_, write_value(Vn), write_value(V)) :- to_reg(Vn, V).
 translate1(_, unify_value(Vn), unify_value(V)) :- to_reg(Vn, V).
+translate1(_, read_void, read_void).
+translate1(_, write_void, write_void).
+translate1(_, unify_void, unify_void).
 translate1(Ctx, read_constant(C), read_constant(Cc)) :-
     always_success(to_constant(Ctx, C, Cc)).
 translate1(Ctx, write_constant(C), write_constant(Cc)) :-
@@ -284,27 +285,27 @@ dump([label(Lno, Label)|Ts], OStream) :-
 dump([inline(Inline)|Ts], OStream) :-
     format(OStream, '~w~n', [Inline]),
     always_success(dump(Ts, OStream)).
-dump([line(Lno, Code)|Ts], OStream) :-
+dump([Code|Ts], OStream) :-
     ( Code = goal(L, G / N) ->
       to_cstring(G, S), Code2 = goal(L, atom(S, N)),
-      format(OStream, '      /* ~d */  MACRO_~w;~n', [Lno, Code2])
+      format(OStream, '      MACRO_~w;~n', [Code2])
     ; Code = call(L, Link, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]) ; true ),
       Code2 = call(L, Link),
-      format(OStream, '      /* ~d */  MACRO_~w;  // call(~w)~n',
-             [Lno, Code2, Fun])
+      format(OStream, '      MACRO_~w;  // call(~w)~n',
+             [Code2, Fun])
     ; Code = spawn(L, Link, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]); true),
       Code2 = spawn(L, Link),
-      format(OStream, '      /* ~d */  MACRO_~w;  // spawn(~w)~n',
-             [Lno, Code2, Fun])
+      format(OStream, '      MACRO_~w;  // spawn(~w)~n',
+             [Code2, Fun])
     ; Code = execute(L, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]); true),
       Fun = _ / Arity,
       Code2 = execute(L, Arity),
-      format(OStream, '      /* ~d */  MACRO_~w;  // execute(~w)~n',
-             [Lno, Code2, Fun])
-    ; format(OStream, '      /* ~d */  MACRO_~w;~n', [Lno, Code]) ),
+      format(OStream, '      MACRO_~w;  // execute(~w)~n',
+             [Code2, Fun])
+    ; format(OStream, '      MACRO_~w;~n', [Code]) ),
     always_success(dump(Ts, OStream)).
 
 append_atom(Ctx, Atom, AtomID) :-

@@ -1,5 +1,6 @@
 #ifndef GHC_H_
 #define GHC_H_
+#include <condition_variable>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -104,35 +105,6 @@ Q deref(Q q) {
 }
 
 struct VM;
-
-class SuspensionRecord {
- public:
-  using ptr = std::shared_ptr<SuspensionRecord>;
-  std::shared_ptr<VM> vm;
-};
-
-class SuspensionList {
- public:
-  using ptr = std::shared_ptr<SuspensionList>;
-
- private:
-  mutable std::mutex mutex_;
-  std::list<SuspensionRecord::ptr> list_;
-};
-
-class SuspensionMap {
- public:
-  static SuspensionMap& getInstance();
-
- private:
-  mutable std::mutex mutex_;
-  std::unordered_map<Q, SuspensionList::ptr> map_;
-};
-
-SuspensionMap& SuspensionMap::getInstance() {
-  static SuspensionMap instance_;
-  return instance_;
-}
 
 class SymbolDictionary {
  public:
@@ -308,15 +280,19 @@ class Heap {
 
 class Scheduler {
  public:
+  std::mutex mutex_;
   static Scheduler& getInstance();
-  Scheduler() {
-    head.store(tagptr<TAG_REF>(&head));
-  }
   void enqueue_list(A* list) {
     head.store(tagptr<TAG_REF>(list));
     list->store(tagptr<TAG_REF>(&head));
+    cond_.notify_one();
+  }
+  void wait_for_enqueue() {
+    std::unique_lock<std::mutex> lock(mutex_);
+    cond_.wait(lock);
   }
   A* dequeue_list() {
+    std::unique_lock<std::mutex> lock(mutex_);
     Q h = head.load();
     A* a = ptr_of<A>(h);
     Q h2 = a->load();
@@ -329,7 +305,11 @@ class Scheduler {
   }
 
  private:
+  std::condition_variable cond_;
   A head;
+  Scheduler() {
+    head.store(tagptr<TAG_REF>(&head));
+  }
 };
 
 Scheduler& Scheduler::getInstance() {
@@ -1044,6 +1024,7 @@ struct VM : std::enable_shared_from_this<VM> {
     log_info(this, "dequeued goal " << to_str(g));
   }
   void wake(Q q) {
+    std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
     A* lst = ptr_of<A>(q) + 1;
     Scheduler::getInstance().enqueue_list(lst);
   }
@@ -1084,6 +1065,7 @@ struct VM : std::enable_shared_from_this<VM> {
       }
       if (tag2 == TAG_SUS && tag1 != TAG_SUS) {
         A* p2 = ptr_of<A>(q2);
+        std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
         // p2[0] = q2 <--- q2
         // p2[1]: 次の待ち要素へのリンク
         // p2[2]: ゴールレコードへのポインタ
@@ -1100,6 +1082,7 @@ struct VM : std::enable_shared_from_this<VM> {
       }
       if (tag1 == TAG_SUS && tag2 != TAG_SUS) {
         A* p1 = ptr_of<A>(q1);
+        std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
         // p1[0] = q1 <--- q1
         // p1[1]: 次の待ち要素へのリンク
         // p1[2]: ゴールレコードへのポインタ
@@ -1119,10 +1102,15 @@ struct VM : std::enable_shared_from_this<VM> {
         A* p2 = ptr_of<A>(q2);
         A* lst1 = p1 + 1;
         A* lst2 = p2 + 1;
+        std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
         Q qq1 = lst1->load();
         Q qq2 = lst2->load();
-        lst1->compare_exchange_strong(qq1,qq2);
-        lst2->compare_exchange_strong(qq2,qq1);
+        if (!lst1->compare_exchange_strong(qq1,qq2) ||
+            !lst2->compare_exchange_strong(qq2,qq1)) {
+          q1 = p1->load();
+          q2 = p2->load();
+          continue;
+        }
         log_info(this,
                  std::setw(5) << pc << "        " << space()
                  << "unify: " << to_str(q1) << " splice " << to_str(q2));
@@ -1551,6 +1539,12 @@ class RuntimeError: public std::runtime_error {
     p->store(tagptr<TAG_STR>(&vm->heap[h]));                      \
     vm->heap_published(1 + arity);                                \
   }
+#define MACRO_write_void                        \
+  {                                             \
+    const Q q = vm->pop();                      \
+    A* p = ptr_of<A>(q);                        \
+    p->store(q);                                \
+  }
 
 #define MACRO_get_variable(Vn, Ai)                        \
   log_trace(vm, vm->pc                                    \
@@ -1850,6 +1844,8 @@ class RuntimeError: public std::runtime_error {
       continue;                                                       \
     }                                                                 \
   }
+#define MACRO_unify_void                        \
+  vm->pop()
 
 #define MACRO_check_variable(Vn, Ai)                 \
   log_trace(vm, vm->pc << ": check_variable(" << Vn  \
@@ -2037,6 +2033,8 @@ class RuntimeError: public std::runtime_error {
   }
 #define MACRO_read_structure(Fn)                    \
   throw std::runtime_error("fix me: read_structure")
+#define MACRO_read_void                         \
+  vm->pop();
 
 class Program {
  public:

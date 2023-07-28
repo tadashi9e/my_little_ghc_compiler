@@ -40,32 +40,42 @@ report_error(P) :-
 % SourceFiles からすべての述語定義を読み取り、GHC ソースコードとして
 % 解釈した結果をWAM 風中間コードとして WamFile に書き込む。
 ghc_to_wam(SourceFiles, WamFile) :-
-    ghc_load_all_terms(SourceFiles, Source)
-    -> ghc_compile(Source, WamFile).
+    create(VarKvs),
+    ghc_load_all_terms(SourceFiles, Source, VarKvs)
+    -> ghc_compile(Source, WamFile, VarKvs).
 
 %% ghc_load_all_terms(+SourceFiles, -Source)
 % 与えられたファイル SourceFiles からすべての項を出現順に読み取り、
 % GHC ソースコード Source として返す。
-ghc_load_all_terms([], []) :- !.
-ghc_load_all_terms([SourceFile|SourceFiles], Source) :-
+ghc_load_all_terms([], [], _) :- !.
+ghc_load_all_terms([SourceFile|SourceFiles], Source, VarKvs) :-
     open(SourceFile, read, Stream, [encoding(utf8)]),
-    ghc_read_all_terms(Stream, Ss),
+    ghc_read_all_terms(Stream, Ss, VarKvs),
     close(Stream),
     append(Ss, Ss2, Source),
-    ghc_load_all_terms(SourceFiles, Ss2).
-ghc_read_all_terms(Stream, Source) :-
-    read_term(Stream, Term, []),
+    ghc_load_all_terms(SourceFiles, Ss2, VarKvs).
+ghc_read_all_terms(Stream, Source, VarKvs) :-
+    read_term(Stream, Term,
+              [variable_names(Vars), singletons(Singletons)]),
     ( Term = end_of_file -> Source = []
     ; Source = [Term|Source2],
-      ghc_read_all_terms(Stream, Source2)).
+      ( get(VarKvs, vars, Vars0),
+        append(Vars0, Vars, Vars2),
+        put(VarKvs, vars, Vars2)
+      ; put(VarKvs, vars, Vars) ),
+      ( get(VarKvs, singletons, Singletons0),
+        append(Singletons0, Singletons, Singletons2),
+        put(VarKvs, singletons, Singletons2)
+      ; put(VarKvs, singletons, Singletons) ),
+      ghc_read_all_terms(Stream, Source2, VarKvs)).
 
 %% ghc_compile(+Source, +WamFile)
 % GHC ソースコード Source を WAM 風中間コードにコンパイルして
 % OFile に書き込む。
-ghc_compile(Source, WamFile) :-
+ghc_compile(Source, WamFile, VarKvs) :-
     ghc_collect_goals(Source, Goals),
     open(WamFile, write, OStream, [create([write]), encoding(utf8)]),
-    always_success(ghc_compile_goals(Goals, Source, OStream)),
+    always_success(ghc_compile_goals(Goals, Source, OStream, VarKvs)),
     close(OStream).
 
 %% ghc_collect_goals(+Source, -Goals)
@@ -119,10 +129,12 @@ find_goal_source(Goal,
 %% ghc_compile_goals(+Goals, +Source, +OStreeam)
 % ゴールリスト Goals にある順序に従って、GHC ソースコード Source を
 % WAM 風中間コードにコンパイルして OStream に出力する。
-ghc_compile_goals([], _, _) :- !.
-ghc_compile_goals([Goal|Goals], Source, OStream) :-
+ghc_compile_goals([], _, _, _) :- !.
+ghc_compile_goals([Goal|Goals], Source, OStream, VarKvs) :-
     find_goal_source(Goal, Source, GoalSource),
     create(Ctx),
+    get(VarKvs, vars, Vars), put(Ctx, vars, Vars),
+    get(VarKvs, singletons, Singletons), put(Ctx, singletons, Singletons),
     write_goal_entry_point(Ctx, Goal),
     put(Ctx, goal, Goal),
     always_success(
@@ -134,7 +146,7 @@ ghc_compile_goals([Goal|Goals], Source, OStream) :-
     MaxReg is MaxReg_x + MaxReg_out + 1,
     get(Ctx, max_reg, MaxReg),
     flush_source(Ctx, OStream),
-    always_success(ghc_compile_goals(Goals, Source, OStream)).
+    always_success(ghc_compile_goals(Goals, Source, OStream, VarKvs)).
 
 %% write_goal_entry_point(?Ctx, +Goal)
 % Ctx に ghc_source の値として格納しているコンパイルコードに
@@ -270,7 +282,8 @@ ghc_compile_guard1(Ctx, Guard) :-
 ghc_out(Ctx, reg(out, Nreg), X) :-
     UnifyOperations = [ write_variable, write_value,
                         write_constant, write_nil,
-                        write_list, write_structure ],
+                        write_list, write_structure,
+                        write_void ],
     ( var(X) ->
       ( get(Ctx, X, reg(R, N))
         ->
@@ -303,7 +316,8 @@ ghc_out(Ctx, reg(out, Nreg), X) :-
 ghc_set(Ctx, reg(Reg, Nreg), X) :-
     UnifyOperations = [ write_variable, write_value,
                         write_constant, write_nil,
-                        write_list, write_structure ],
+                        write_list, write_structure,
+                        write_void ],
     ( get(Ctx, X, reg(Reg, Nreg))
       ->
       Op =.. [set_value, reg(Reg, Nreg)],
@@ -340,9 +354,13 @@ ghc_set(Ctx, reg(Reg, Nreg), X) :-
 ghc_unify(Ctx, Arg, UnifyOperations) :-
     UnifyOperations = [ UnifyVariable, UnifyValue,
                         UnifyConstant, UnifyNil,
-                        UnifyList, UnifyStructure ],
+                        UnifyList, UnifyStructure,
+                        UnifyVoid ],
     ( var(Arg) ->
-      ( get(Ctx, Arg, reg(Reg, Nreg))
+      ( is_singleton(Ctx, Arg)
+        ->
+        write_source(Ctx, UnifyVoid)
+      ; get(Ctx, Arg, reg(Reg, Nreg))
         ->
         Op =.. [UnifyValue, reg(Reg, Nreg)],
         write_source(Ctx, Op)
@@ -383,7 +401,8 @@ ghc_get_check(Ctx, reg(Reg, Nreg), X) :-
               check_list, check_structure ],
             [ read_variable, read_value,
               read_constant, read_nil,
-              read_list, read_structure ]).
+              read_list, read_structure,
+              read_void ]).
 %% ghc_get(?Ctx, +Register, +X)
 % get 系命令およびそれに続く unify 系命令列を生成する。
 ghc_get(Ctx, reg(Reg, Nreg), X) :-
@@ -393,7 +412,8 @@ ghc_get(Ctx, reg(Reg, Nreg), X) :-
               get_list, get_structure ],
             [ unify_variable, unify_value,
               unify_constant, unify_nil,
-              unify_list, unify_structure ]).
+              unify_list, unify_structure,
+              unify_void ]).
 
 ghc_get(Ctx, reg(Reg, Nreg), X,
         [ GetVariable, GetValue,
@@ -453,11 +473,11 @@ ghc_call_args(Ctx, [Arg|Args], N) :-
 % '->' が含まれない場合、あるいは '->' の後ろの部分は並列実行(par)する。
 % 但し、並列実行の最後は末尾呼び出し最適化としてジャンプ(tail)に置き換える。
 ghc_compile_goal_body(Ctx, (_|Body)) :- !,
-    %write_source(Ctx, comment(body(Body))),
+    write_source(Ctx, comment(body(Body))),
     always_success(ghc_flatten_goal_body(Ctx, par, Body, FlatBody)),
     ghc_compile_goal_list(Ctx, FlatBody).
 ghc_compile_goal_body(Ctx, Body) :-
-    %write_source(Ctx, comment(body(Body))),
+    write_source(Ctx, comment(body(Body))),
     always_success(ghc_flatten_goal_body(Ctx, par, Body, FlatBody)),
     ghc_compile_goal_list(Ctx, FlatBody).
 %% ghc_flatten_goal_body(?Ctx, SeqPar, Body, FlatBody)
@@ -641,11 +661,14 @@ write_source(Ctx, Msg) :-
 % このとき、ある程度見やすく整形する。
 flush_source(Ctx, OStream) :-
     get(Ctx, ghc_source, Source),
-    dump(Source, OStream).
-dump([], _) :- !.
-dump([S|Ss], OStream) :-
+    dump(Ctx, Source, OStream).
+dump(_, [], _) :- !.
+dump(Ctx, [S|Ss], OStream) :-
     ( S =.. [label|_] -> print(OStream, S)
-    ; S = comment(C) -> indent(2, OStream), format(OStream, '% ~w', [C])
+    ; S = comment(C) ->
+      get(Ctx, vars, Vars),
+      translate_var_names(Vars, C, C2),
+      indent(2, OStream), format(OStream, '% ~w', [C2])
     ; ( S =.. [set_variable|_] ; S =.. [set_value|_]
       ; S =.. [set_constant|_] ; S =.. [set_nil|_]
       ; S =.. [set_list|_] ; S =.. [set_structure|_]
@@ -672,9 +695,31 @@ dump([S|Ss], OStream) :-
       ->  indent(6, OStream), print(OStream, S)
     ; indent(2, OStream), print(OStream, S)),
     writeln(OStream, '.'),
-    dump(Ss, OStream).
+    dump(Ctx, Ss, OStream).
 %% indent(+N, +OStream)
 % N 個の空白を OStream に出力する。
 indent(N, OStream) :-
     ( N =< 0 -> true
     ; write(OStream, ' '), N1 is N - 1, indent(N1, OStream) ).
+is_singleton1([], _) :- !.
+is_singleton1([_=Var|Vars], Arg) :-
+    ( Var == Arg -> false
+    ; is_singleton1(Vars, Arg) ).
+is_singleton(Ctx, Arg) :-
+    get(Ctx, vars, Vars),
+    is_singleton1(Vars, Arg).
+
+translate_var_name1([], C, C) :- !.
+translate_var_name1([Name=Var|Vars], C, C2) :-
+    ( C == Var -> C2 = Name
+    ; translate_var_name1(Vars, C, C2) ).
+translate_var_names(Ctx, C, C2) :-
+    var(C) -> translate_var_name1(Ctx, C, C2).
+translate_var_names(_, [], []).
+translate_var_names(Vars, [A|B], [A2|B2]) :-
+    translate_var_names(Vars, A, A2),
+    translate_var_names(Vars, B, B2).
+translate_var_names(Vars, C, C2) :-
+    C =.. [F|Args],
+    translate_var_names(Vars, Args, Args2),
+    C2 =.. [F|Args2].
