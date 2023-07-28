@@ -34,7 +34,7 @@ sample/tarai.gir: $(GHC_TO_GIR) $(BUILTIN_GHC) sample/tarai.ghc
 	$(GHC_TO_GIR) $(BUILTIN_GHC) sample/tarai.ghc -o sample/tarai.gir
 
 sample/primes: sample/primes.cc ghc.h
-	g++ --std=c++11 -Wall -g -I. sample/primes.cc -o sample/primes
+	g++ --std=c++11 -Wall -g -O3 -I. sample/primes.cc -o sample/primes
 sample/primes.cc: $(GIR_TO_CC) sample/primes.gir
 	$(GIR_TO_CC) sample/primes.gir -o sample/primes.cc
 sample/primes.gir: $(GHC_TO_GIR) $(BUILTIN_GHC) sample/primes.ghc

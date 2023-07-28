@@ -61,11 +61,26 @@ test_atom_chars :-
     test_atom_chars1,
     test_atom_chars2.
 test_atom_chars1 :-
-    atom_chars(abcdefg, Cs),
-    write('abcdefg -> '), writeln(Cs).
+    A = 'abcdefgあいうえお漢字',
+    atom_chars(A, Cs),
+    write(A), write(' -> '), writeln(Cs).
 test_atom_chars2 :-
-    atom_chars(ABCDEFG, [a,b,c,d,e,f,g]),
-    write(ABCDEFG), write(' <- '), writeln([a,b,c,d,e,f,g]).
+    Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字],
+    atom_chars(A, Cs),
+    write(A), write(' <- '), writeln(Cs).
+
+test_atom_codes :-
+    test_atom_codes1,
+    test_atom_codes2.
+test_atom_codes1 :-
+    A = 'abcdefgあいうえお漢字',
+    atom_codes(A, Cs),
+    write(A), write(' -> '), writeln(Cs).
+test_atom_codes2 :-
+    Cs = [97,98,99,100,101,102,103,227,129,130,
+          227,129,132,227,129,134,227,129,136,227,129,138,230,188,162,229,173,151],
+    atom_codes(A, Cs),
+    write(A), write(' <- '), writeln(Cs).
 
 do_test(X) :- write(X) -> writeln(': ') -> time(X).
 
@@ -85,6 +100,7 @@ main(_) :-
     do_test(test_check_structure),
     do_test(test_wait_var),
     do_test(test_atom_concat),
-    do_test(test_atom_chars)
+    do_test(test_atom_chars),
+    do_test(test_atom_codes)
     -> inference_count(Infer),
        write('total_inferences='), writeln(Infer).

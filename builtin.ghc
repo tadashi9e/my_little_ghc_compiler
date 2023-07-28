@@ -123,29 +123,72 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
     inline('  MACRO_proceed;'),
     inline('}').
 
-atom_chars(A, Cs) :- atom(A) | '__atom_to_chars__'(A, Cs).
-atom_chars(A, [C|Cs]) :- atom_chars(A, Cs, C).
-'__atom_to_chars__'(A, Cs) :-
+atom_codes(A, Cs) :- atom(A) | '__atom_to_codes__'(A, Cs).
+atom_codes(A, [C|Cs]) :- '__codes_to_atom__'(A, [C|Cs], '').
+'__atom_to_codes__'(A, Cs) :-
     inline('{'),
     inline('  MACRO_activate;'),
     inline('  const Q q = vm->in[1];'),
     inline('  const std::string s = atom_str_of(q);'),
     inline('  const size_t h = vm->heap_publishing(s.length() * 2);'),
     inline('  for (size_t i = 0; i < s.length(); ++i) {'),
-    inline('    vm->heap[h + i * 2].store(to_atom(std::string(1, s.at(i)).c_str(), 0));'),
+    inline('    const unsigned char c = s.at(i);'),
+    inline('    vm->heap[h + i * 2].store(tagvalue<TAG_INT>(c));'),
     inline('    vm->heap[h + i * 2 + 1].store('),
-    inline('      (i < s.length() - 1)'),
-    inline('      ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])'),
-    inline('      : tagptr<TAG_NIL, Q>(0));'),
+    inline('            (i < s.length() - 1)'),
+    inline('            ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])'),
+    inline('            : tagptr<TAG_NIL, Q>(0));'),
     inline('  }'),
     inline('  vm->heap_published(s.length() * 2);'),
     inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
     inline('  MACRO_proceed;'),
     inline('}').
-atom_chars(A, [], Ac) :- A = Ac.
-atom_chars(A, [C|Cs], Ac) :-
+'__codes_to_atom__'(A, [], Ac) :- A = Ac.
+'__codes_to_atom__'(A, [C|Cs], Ac) :-
+    integer(C) |
+    '__atom_code_concat__'(Ac, C, Ac2),
+    '__codes_to_atom__'(A, Cs, Ac2).
+'__atom_code_concat__'(A, C, A2) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  std::string s = atom_str_of(q1);'),
+    inline('  const unsigned char c = value_of<char>(q2);'),
+    inline('  s += c;'),
+    inline('  vm->unify(to_atom(s.c_str(), 0), vm->in[3]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+atom_chars(A, Cs) :- atom(A) | '__atom_to_chars__'(A, Cs).
+atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
+'__atom_to_chars__'(A, Cs) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  const Q q = vm->in[1];'),
+    inline('  const std::string s = atom_str_of(q);'),
+    inline('  const size_t h = vm->heap_publishing(s.length() * 2);'),
+    inline('  for (size_t i = 0, j = 0; j < s.length(); ++i) {'),
+    inline('    const char c = s.at(j);'),
+    inline('    const size_t n = ((c & 0xf8) == 0xf0 ? 4 :'),
+    inline('                      (c & 0xf0) == 0xe0 ? 3 :'),
+    inline('                      (c & 0xe0) == 0xc0 ? 2 : 1);'),
+    inline('    const std::string s1 = ('),
+    inline('            (j + n < s.length()) ? s.substr(j, n) : s.substr(j));'),
+    inline('    j += n;'),
+    inline('    vm->heap[h + i * 2].store(to_atom(s1.c_str(), 0));'),
+    inline('    vm->heap[h + i * 2 + 1].store('),
+    inline('            (j < s.length() - 1)'),
+    inline('            ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])'),
+    inline('            : tagptr<TAG_NIL, Q>(0));'),
+    inline('  }'),
+    inline('  vm->heap_published(s.length() * 2);'),
+    inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+'__chars_to_atom__'(A, [], Ac) :- A = Ac.
+'__chars_to_atom__'(A, [C|Cs], Ac) :-
     atom_concat(Ac, C, Ac2),
-    atom_chars(A, Cs, Ac2).
+    '__chars_to_atom__'(A, Cs, Ac2).
 
 atom_number(A, N) :- atom(A) | '__atom_to_number__'(A, N).
 atom_number(A, N) :- integer(N) | '__number_to_atom__'(A, N).
