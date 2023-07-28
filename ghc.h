@@ -640,9 +640,7 @@ struct VM : std::enable_shared_from_this<VM> {
   bool is_log_info() const {
     return log_level <= INFO;
   }
-  /*
-   * dot ファイルにダンプする。
-   */
+  // for built-in dump_to_dot/1
   void dump_to_dot(const std::string& dotfile) const {
     DotFile dot;
     std::ofstream st;
@@ -699,6 +697,37 @@ struct VM : std::enable_shared_from_this<VM> {
       default:
         break;
       }
+    }
+    dot.dump_nodes(st);
+    dot.dump_edges(st);
+    st << "}" << std::endl;
+    st.close();
+  }
+  // for built-in dump_to_dot/2
+  void dump_to_dot(const std::string& dotfile, Q q) const {
+    DotFile dot;
+    dot.add_edge_from(q);
+    std::ofstream st;
+    st.open(dotfile);
+    st << "digraph GHC {" << std::endl;
+    st << "var [ shape = record, label = \"{" << esc(to_str(q)) << "}\" ];"
+       << std::endl;
+    const TAG_T tag = tag_of(q);
+    switch (tag) {
+    case TAG_REF:  // fall through
+    case TAG_LIST:  // fall through
+    case TAG_STR:  // fall through
+    case TAG_SUS:  // fall through
+    case TAG_OBJ:
+      {
+        A* a = ptr_of<A>(q);
+        if (a != NULL) {
+          st << "var -> " << dot.getPortName(a) << std::endl;
+        }
+      }
+      break;
+    default:
+      break;
     }
     dot.dump_nodes(st);
     dot.dump_edges(st);

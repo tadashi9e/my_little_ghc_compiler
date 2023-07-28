@@ -666,3 +666,14 @@ dump_to_dot(File) :- atom(File) | '__dump_to_dot__'(File).
     inline('  vm->dump_to_dot(s);'),
     inline('  MACRO_proceed;'),
     inline('}').
+
+dump_to_dot(File, Var) :- atom(File) | '__dump_to_dot__'(File, Var).
+'__dump_to_dot__'(File, Var) :-
+    inline('{'),
+    inline('  const Q q1 = vm->in[1];'),
+    inline('  const Q q2 = vm->in[2];'),
+    inline('  const std::string s = atom_str_of(q1);'),
+    inline('  MACRO_activate;'),
+    inline('  vm->dump_to_dot(s, q2);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
