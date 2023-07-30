@@ -676,6 +676,30 @@ otherwise.
     inline('  MACRO_proceed;'),
     inline('}').
 
+append([], Ys, Zs) :- Zs = Ys.
+append([X|Xs], Ys, [X|Zs]) :- append(Xs, Ys, Zs).
+append([X|Xs], Ys, Zs) :- Zs = [X|Zs2], append(Xs, Ys, Zs2).
+append(Xs, Ys, Zs) :-
+    var(Xs) |
+    reverse(Ys, Yr), reverse(Zs, Zr), append(Yr, Xr, Zr), reverse(Xr, Xs).
+
+reverse(Xs, Ys) :- var(Ys) | '__reverse__'(Xs, Ys, []).
+reverse(Xs, Ys) :- var(Xs) | '__reverse__'(Ys, Xs, []).
+'__reverse__'([], Ys, As) :- Ys = As.
+'__reverse__'([E|Xs], Ys, As) :- As2 = [E | As], '__reverse__'(Xs, Ys, As2).
+
+nth0(N, Ls, E) :- var(E) | '__nth0__'(N, Ls, E).
+nth0(N, Ls, E) :- var(N) | '__nth0_rev__'(N, Ls, E, 0).
+'__nth0__'(0, [Y|_], E) :- E = Y.
+otherwise.
+'__nth0__'(N, [_|Ys], E) :- N1 := N - 1, '__nth0__'(N1, Ys, E).
+'__nth0_rev__'(N, [E|_], E, Ac) :- N = Ac.
+otherwise.
+'__nth0_rev__'(N, [_|Ls], E, Ac) :-
+    Ac1 := Ac + 1, '__nth0_rev__'(N, Ls, E, Ac1).
+nth1(N, Ls, E) :- var(E) | N1 := N - 1, '__nth0__'(N1, Ls, E).
+nth1(N, Ls, E) :- var(N) | '__nth0_rev__'(N1, Ls, E, 0), N := N1 + 1.
+
 inference_count(Count) :- '__inference_count__'(Count).
 '__inference_count__'(Count) :-
     inline('{'),

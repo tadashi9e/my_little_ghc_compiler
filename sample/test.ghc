@@ -85,6 +85,67 @@ test_atom_codes2 :-
     atom_codes(A, Cs),
     write(A), write(' <- '), writeln(Cs).
 
+test_append :-
+    test_append1,
+    test_append2,
+    test_append3.
+test_append1 :-
+    Xs = [a, b, c, d, e, f, g],
+    Ys = [あ,い,う,え,お,漢,字,☺,🍺],
+    append(Xs, Ys, Zs),
+    write(Xs), write(+), write(Ys), write('=['), write(Zs), writeln(']').
+test_append2 :-
+    Xs = [a, b, c, d, e, f, g],
+    Zs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
+    append(Xs, Ys, Zs),
+    write(Xs), write(+), write('['), write(Ys), write(']='), writeln(Zs).
+test_append3 :-
+    Ys = [あ,い,う,え,お,漢,字,☺,🍺],
+    Zs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
+    append(Xs, Ys, Zs),
+    write('['), write(Xs), write(']+'), write(Ys), write(=), writeln(Zs).
+
+test_reverse :-
+    Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
+    reverse(Cs, Rs),
+    writeln(Rs).
+test_nth0 :-
+    test_nth0_,
+    test_nth0_rev_.
+test_nth0_ :-
+    Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
+    nth0(0, Cs, E0), write(' 0: ['), write(E0),
+    nth0(1, Cs, E1), write('] 1: ['), write(E1),
+    nth0(2, Cs, E2), write('] 2: ['), write(E2),
+    nth0(3, Cs, E3), write('] 3: ['), write(E3),
+    nth0(4, Cs, E4), write('] 4: ['), write(E4),
+    nth0(5, Cs, E5), write('] 5: ['), write(E5), writeln(']').
+test_nth0_rev_ :-
+    Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
+    nth0(N0, Cs, a), write(' ['), write(N0), write(']: a'),
+    nth0(N1, Cs, b), write(' ['), write(N1), write(']: b'),
+    nth0(N2, Cs, c), write(' ['), write(N2), write(']: c'),
+    nth0(N3, Cs, d), write(' ['), write(N3), write(']: d'),
+    nth0(N4, Cs, e), write(' ['), write(N4), write(']: e'),
+    nth0(N5, Cs, f), write(' ['), write(N5), writeln(']: f').
+test_nth1 :-
+    test_nth1_,
+    test_nth1_rev_.
+test_nth1_ :-
+    Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
+    nth1(1, Cs, E1), write(' 1: ['), write(E1),
+    nth1(2, Cs, E2), write('] 2: ['), write(E2),
+    nth1(3, Cs, E3), write('] 3: ['), write(E3),
+    nth1(4, Cs, E4), write('] 4: ['), write(E4),
+    nth1(5, Cs, E5), write('] 5: ['), write(E5), writeln(']').
+test_nth1_rev_ :-
+    Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
+    nth1(N1, Cs, a), write(' ['), write(N1), write(']: a'),
+    nth1(N2, Cs, b), write(' ['), write(N2), write(']: b'),
+    nth1(N3, Cs, c), write(' ['), write(N3), write(']: c'),
+    nth1(N4, Cs, d), write(' ['), write(N4), write(']: d'),
+    nth1(N5, Cs, e), write(' ['), write(N5), writeln(']: e').
+
 do_test(X) :- write(X) -> writeln(': ') -> time(X).
 
 main(_) :-
@@ -104,6 +165,10 @@ main(_) :-
     do_test(test_wait_var),
     do_test(test_atom_concat),
     do_test(test_atom_chars),
-    do_test(test_atom_codes)
+    do_test(test_atom_codes),
+    do_test(test_append),
+    do_test(test_reverse),
+    do_test(test_nth0),
+    do_test(test_nth1)
     -> inference_count(Infer),
        write('total_inferences='), writeln(Infer).
