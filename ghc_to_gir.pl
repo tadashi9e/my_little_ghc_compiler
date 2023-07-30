@@ -235,10 +235,16 @@ ghc_compile_otherwise(Ctx, Label, goal(G, N), PredNo, [Head]) :-
 ghc_compile_head_args(Ctx, Head) :-
     write_source(Ctx, comment(head(Head))),
     Head =.. [_|Args],
+    ghc_setup_head_args(Ctx, Args, 1),
     ghc_compile_head_args(Ctx, Args, 1).
+% 予め引数を既知の変数として登録しておく
+ghc_setup_head_args(_, [], _).
+ghc_setup_head_args(Ctx, [Arg|Args], N) :-
+    ( var(Arg) -> put(Ctx, Arg, reg(in, N)); true ),
+    N1 is N + 1,
+    ghc_setup_head_args(Ctx, Args, N1).
 ghc_compile_head_args(_, [], _) :- !.
 ghc_compile_head_args(Ctx, [Arg|Args], N) :-
-    ( var(Arg) -> put(Ctx, Arg, reg(in, N)) ; true),
     ghc_compile_head_arg(Ctx, Arg, N),
     N1 is N + 1,
     ghc_compile_head_args(Ctx, Args, N1).
@@ -686,12 +692,15 @@ dump(Ctx, [S|Ss], OStream) :-
     ; ( S =.. [write_variable|_] ; S =.. [write_value|_]
       ; S =.. [write_constant|_] ; S =.. [write_nil|_]
       ; S =.. [write_list|_] ; S =.. [write_structure|_]
+      ; S =.. [write_void|_]
       ; S =.. [unify_variable|_] ; S =.. [unify_value|_]
       ; S =.. [unify_constant|_] ; S =.. [unify_nil|_]
       ; S =.. [unify_list|_] ; S =.. [unify_structure|_]
+      ; S =.. [unify_void|_]
       ; S =.. [read_variable|_] ; S =.. [read_value|_]
       ; S =.. [read_constant|_] ; S =.. [read_nil|_]
-      ; S =.. [read_list|_] ; S =.. [read_structure|_] )
+      ; S =.. [read_list|_] ; S =.. [read_structure|_]
+      ; S =.. [read_void|_])
       ->  indent(6, OStream), print(OStream, S)
     ; indent(2, OStream), print(OStream, S)),
     writeln(OStream, '.'),
