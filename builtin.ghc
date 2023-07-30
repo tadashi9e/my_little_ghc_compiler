@@ -3,6 +3,11 @@
 % builtin predicates
 % ----------------------------------------------------------------------
 
+fail :-
+    inline('{'),
+    inline('    MACRO_fail;'),
+    inline('}').
+
 call(Goal) :- '__call__'(Goal).
 
 '__call__'(Goal) :-
@@ -167,7 +172,8 @@ atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
     inline('  const Q q = vm->in[1];'),
     inline('  const std::string s = atom_str_of(q);'),
     inline('  const size_t h = vm->heap_publishing(s.length() * 2);'),
-    inline('  for (size_t i = 0, j = 0; j < s.length(); ++i) {'),
+    inline('  size_t i = 0;'),
+    inline('  for (size_t j = 0; j < s.length(); ++i) {'),
     inline('    const int c0 = s.at(j) & 0xff;'),
     inline('    int n = 1;'),
     inline('    if (c0 < 0x80) {'),
@@ -202,7 +208,7 @@ atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
     inline('            ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])'),
     inline('            : tagptr<TAG_NIL, Q>(0));'),
     inline('  }'),
-    inline('  vm->heap_published(s.length() * 2);'),
+    inline('  vm->heap_published(i * 2);'),
     inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
     inline('  MACRO_proceed;'),
     inline('}').
