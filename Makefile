@@ -3,7 +3,7 @@ GHC_TO_GIR = ./ghc_to_gir.pl
 GIR_TO_CC = ./gir_to_cc.pl
 BUILTIN_GHC = ./builtin.ghc
 
-all:: sample/hello sample/test sample/tarai sample/primes
+all:: sample/hello sample/test sample/tarai sample/primes sample/hanoi sample/queen
 
 sample/hello: sample/hello.cc ghc.h
 	g++ --std=c++11 -Wall -g -I. sample/hello.cc -o sample/hello
@@ -39,3 +39,17 @@ sample/primes.cc: $(GIR_TO_CC) sample/primes.gir
 	$(GIR_TO_CC) sample/primes.gir -o sample/primes.cc
 sample/primes.gir: $(GHC_TO_GIR) $(BUILTIN_GHC) sample/primes.ghc
 	$(GHC_TO_GIR) $(BUILTIN_GHC) sample/primes.ghc -o sample/primes.gir
+
+sample/hanoi: sample/hanoi.cc ghc.h
+	g++ --std=c++11 -Wall -g -O3 -I. sample/hanoi.cc -o sample/hanoi
+sample/hanoi.cc: $(GIR_TO_CC) sample/hanoi.gir
+	$(GIR_TO_CC) sample/hanoi.gir -o sample/hanoi.cc
+sample/hanoi.gir: $(GHC_TO_GIR) $(BUILTIN_GHC) sample/hanoi.ghc
+	$(GHC_TO_GIR) $(BUILTIN_GHC) sample/hanoi.ghc -o sample/hanoi.gir
+
+sample/queen: sample/queen.cc ghc.h
+	g++ --std=c++11 -Wall -g -O3 -I. sample/queen.cc -o sample/queen
+sample/queen.cc: $(GIR_TO_CC) sample/queen.gir
+	$(GIR_TO_CC) sample/queen.gir -o sample/queen.cc
+sample/queen.gir: $(GHC_TO_GIR) $(BUILTIN_GHC) sample/queen.ghc
+	$(GHC_TO_GIR) $(BUILTIN_GHC) sample/queen.ghc -o sample/queen.gir

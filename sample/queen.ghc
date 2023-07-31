@@ -1,0 +1,48 @@
+% -*- coding:utf-8-unix; mode:prolog -*-
+
+% Come from:
+% https://github.com/tadashi9e/KLIC/blob/master/klic-3.011/test/kkqueen.kl1
+
+main([_,Arg]) :-
+    atom_number(Arg, N),
+    time(go(N, X)),
+    outstream(Os), report_results(Os-[], X).
+otherwise.
+main([Prog,_]) :-
+    outstream([write('usage: '), write(Prog), writeln(' <N>')]).
+
+report_results(Os-Os2, X) :-
+    report_results(Os-Os2, X, 1).
+report_results(Os-Os2, [X|Xs], N) :-
+    report1(Os-Os1, X, N),
+    N1 := N + 1,
+    report_results(Os1-Os2, Xs, N1).
+report1(Os-Os2, X, N) :- Os = [write(N), write(':'), writeln(X) |Os2].
+
+go(N, X) :-  
+    gen(N, L),
+    queen(L, [], [], X, []).
+
+queen([],    [],    L, I,  O) :- I = [L|O].
+queen([],    [_|_], _, I,  O) :- I = O.
+queen([P|U], C,     L, I0, I2) :-
+    check(L, P, 1, U, C, L, I0, I1),
+    queen(U, [P|C], L, I1, I2).
+check([], T, _D,  U, C, B, I, O) :-
+    concat(U, C, N),
+    queen(N, [], [T|B], I, O).
+check([P|R], T, D, U,C, B, I, O):- 
+    T =\= P+D,
+    T =\= P-D |
+    D1 := D+1,
+    check(R, T, D1, U,C, B, I, O).
+check([P|_R],T, D,_U,_C,_B,I, O):-
+    T =:= P+D | I=O.
+check([P|_R],T, D,_U,_C,_B,I, O):-
+    T =:= P-D | I=O.
+
+concat([], Y, Z) :- Z = Y.
+concat([W|X], Y, WZ) :- WZ = [W|Z], concat(X, Y, Z).
+
+gen(N, X) :- N > 0 | X = [N|Xs], M := N-1, gen(M,Xs).
+gen(N, X) :- N =:= 0 | X = [].

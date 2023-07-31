@@ -1,0 +1,30 @@
+% -*- mode: prolog; coding:utf-8 -*-
+
+% Come from:
+% https://github.com/tadashi9e/KLIC/blob/master/klic-3.011/test/hanoi.kl1
+
+main([_,Arg]) :-
+    atom_number(Arg, N),
+    time(go(N, X)),
+    outstream(Os), report_results(Os-[], X).
+otherwise.
+main([Prog,_]) :-
+    outstream([write('usage: '), write(Prog), writeln(' <N>')]).
+
+report_results(Os-Os2, X) :-
+    report_results(Os-Os2, X, 1).
+report_results(Os-Os2, [X|Xs], N) :-
+    report1(Os-Os1, X, N),
+    N1 := N + 1,
+    report_results(Os1-Os2, Xs, N1).
+report1(Os-Os2, X, N) :- Os = [write(N), write(':'), writeln(X) |Os2].
+
+go(N, X) :-
+        move(N, left, center, right, X, []).
+
+move(0, _, _, _, O1, O2) :- true | O1 = O2.
+move(N, A, B, C, O1, O4) :-
+    N > 0 |
+    M := N-1,
+    move(M, A, C, B, O1, [m(A,B)|O3]),
+    move(M, C, B, A, O3, O4).
