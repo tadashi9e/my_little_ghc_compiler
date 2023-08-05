@@ -40,28 +40,33 @@ call(Goal) :- '__call__'(Goal).
     inline('}').
 
 time(Goal) :-
-    '__time_pre__'(Start, Inferences),
+    '__time_pre__'(Start, InferenceCount, ResumeCount),
     call(Goal)
-    -> '__time_post__'(Start, Inferences).
+    -> '__time_post__'(Start, InferenceCount, ResumeCount).
 
-'__time_pre__'(Start, Inferences) :-
+'__time_pre__'(Start, InferenceCount, ResumeCount) :-
     inline('{'),
     inline('  MACRO_activate;'),
     inline('  const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(istart), reg::in(1));'),
-    inline('  MACRO_get_constant(tagvalue<TAG_INT>(vm->inferences), reg::in(2));'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(vm->inference_count), reg::in(2));'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(vm->resume_count), reg::in(3));'),
     inline('  MACRO_proceed;'),
     inline('}').
 
 
-'__time_post__'(Start, Inferences) :-
+'__time_post__'(Start, InferenceCount, ResumeCount) :-
     inline('{'),
     inline('  MACRO_activate;'),
     inline('  const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
     inline('  const int64_t istart ='),
     inline('          value_of<int64_t>(vm->in[1]);'),
     inline('  const int64_t inferences ='),
-    inline('          vm->inferences - value_of<int64_t>(vm->in[2]);'),
+    inline('          vm->inference_count - value_of<int64_t>(vm->in[2]);'),
+%    inline('  const int64_t resumes ='),
+%    inline('          vm->resume_count - value_of<int64_t>(vm->in[3]);'),
+%    inline('  std::cout << "% " << inferences << " inferences("'),
+%    inline('            << resumes << " times resumed), "'),
     inline('  const double seconds = (iend - istart) / 1000000.0;'),
     inline('  std::cout << "% " << inferences << " inferences, "'),
     inline('            << seconds << " CPU seconds ("'),
@@ -704,7 +709,15 @@ inference_count(Count) :- '__inference_count__'(Count).
 '__inference_count__'(Count) :-
     inline('{'),
     inline('  MACRO_activate;'),
-    inline('  vm->unify(tagvalue<TAG_INT>(vm->inferences), vm->in[1]);'),
+    inline('  vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1]);'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+resume_count(Count) :- '__resume_count__'(Count).
+'__resume_count__'(Count) :-
+    inline('{'),
+    inline('  MACRO_activate;'),
+    inline('  vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1]);'),
     inline('  MACRO_proceed;'),
     inline('}').
 

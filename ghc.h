@@ -278,13 +278,58 @@ class Heap {
   std::shared_ptr<std::array<A, HEAP_SIZE> > heap_;
 };
 
+std::string goal_str_of(const Q* goal) {
+  const int arity = atom_arity_of(goal[0]);
+  std::stringstream ss;
+  ss << atom_str_of(goal[0]);
+  if (arity > 0) {
+    ss << "(";
+    for (int i = 1; i <= arity; ++i) {
+      if (i != 1) {
+        ss << ", ";
+      }
+      ss << to_str(deref(goal[i]));
+    }
+    ss << ")";
+  }
+  return ss.str();
+}
+std::string goal_str_of(A* goal) {
+  const int arity = atom_arity_of(goal[0].load());
+  std::stringstream ss;
+  ss << atom_str_of(goal[0].load());
+  if (arity > 0) {
+    ss << "(";
+    for (int i = 1; i <= arity; ++i) {
+      if (i != 1) {
+        ss << ", ";
+      }
+      ss << to_str(goal[i].load());
+    }
+    ss << ")";
+  }
+  return ss.str();
+}
+
 class Scheduler {
  public:
   std::mutex mutex_;
   static Scheduler& getInstance();
+  void dump_list(const char* title) {
+    Q h = head.load();
+    A* a = ptr_of<A>(h);
+    int i = 0;
+    while (a != &head) {
+      A* goal = ptr_of<A>(a[1].load());
+      std::cerr << i << ": " << goal_str_of(goal + 2) << std::endl;
+      const Q h2 = a->load();
+      a = ptr_of<A>(h2);
+    }
+  }
   void enqueue_list(A* list) {
+    const Q h = head.load();
     head.store(tagptr<TAG_REF>(list));
-    list->store(tagptr<TAG_REF>(&head));
+    list->store(h);
     cond_.notify_one();
   }
   void wait_for_enqueue() {
@@ -301,7 +346,8 @@ class Scheduler {
       return NULL;
     }
     head.store(tagptr<TAG_REF>(a2));
-    return ptr_of<A>(a[1].load());
+    A* goal = ptr_of<A>(a[1].load());
+    return goal;
   }
 
  private:
@@ -317,15 +363,21 @@ Scheduler& Scheduler::getInstance() {
   return scheduler_;
 }
 
+enum exec_status {
+  ST_ACTIVE = 0,
+  ST_IN_GUARD = 1,
+  ST_SUBGOAL_IN_GUARD = 2,
+};
+
 struct Context {
   Context()
-    : in_guard(1),
+    : status(ST_IN_GUARD),
       in_offset(0),
       pc_continue(-1),
       pc_on_error(-1),
       push_pos(0) {
   }
-  int in_guard;
+  int status;
   size_t in_offset;
   int pc_goal;  // ゴール開始プログラム位置
   int pc_continue;
@@ -606,7 +658,8 @@ class Program;
 struct VM : std::enable_shared_from_this<VM> {
   using ptr = std::shared_ptr<VM>;
   LOG_LEVEL log_level;
-  int64_t inferences;
+  int64_t inference_count;
+  int64_t resume_count;
   bool failed;
   int pc;
   std::vector<Q> reg;
@@ -618,7 +671,7 @@ struct VM : std::enable_shared_from_this<VM> {
   std::set<Q> wait_list;
   Heap heap;
   size_t published;
-  VM() : inferences(0), failed(false),
+  VM() : inference_count(0), resume_count(0), failed(false),
          required(0), published(0) {
     const std::string llstr = upper(getenv(ENV_GHC_LOGLEVEL));
     log_level = ((llstr == "TRACE") ? TRACE :
@@ -653,8 +706,8 @@ struct VM : std::enable_shared_from_this<VM> {
         st << "|";
       }
       st << "<" << i << "> " <<
-        ((context.in_guard == 0) ? "active" :
-         (context.in_guard == 1) ? "passive" : "Passive");
+        ((context.status == ST_ACTIVE) ? "active" :
+         (context.status == ST_IN_GUARD) ? "passive" : "Passive");
     }
     st << "}\" ];" << std::endl;
     for (size_t i = 0; i < contexts.size(); ++i) {
@@ -753,25 +806,17 @@ struct VM : std::enable_shared_from_this<VM> {
     std::cerr << "[depth] continue : on_error : (reg) Goal" << std::endl;
     int depth = 0;
     for (const Context& context : contexts) {
-      const Q* in0 = &reg[context.in_offset];
-      Q goal = *in0;
-      const int arity = atom_arity_of(goal);
       std::stringstream ss;
       std::cerr << "[" << std::setw(3) << depth << "] "
                 << context.pc_continue
                 << " : " << context.pc_on_error
-                << " : (guard " << context.in_guard
+                << " : (status "
+                << ((context.status == ST_ACTIVE) ? "active" :
+                    (context.status == ST_IN_GUARD) ? "passive" :
+                    "Passive")
                 << ") : (in " << context.in_offset << ")"
-                << atom_str_of(goal) << "/" << arity
-                << "(";
+                << goal_str_of(&reg[context.in_offset]) << std::endl;
       ++depth;
-      for (int i = 1; i <= arity; ++i) {
-        if (i != 1) {
-          std::cerr << ",";
-        }
-        std::cerr << to_str(in0[i]);
-      }
-      std::cerr << ")" << std::endl;
     }
   }
   void dump_register(int index) const {
@@ -806,6 +851,7 @@ struct VM : std::enable_shared_from_this<VM> {
       if (!goal) {
         break;
       }
+      ++resume_count;
       Q g = goal[2].load();
       const int arity = atom_arity_of(g);
       in[0] = g;
@@ -840,8 +886,9 @@ struct VM : std::enable_shared_from_this<VM> {
   }
   void switch_next_window(int target, int return_pc) {
     contexts.back().pc_continue = return_pc;
-    int in_guard = contexts.back().in_guard;
-    next_context.in_guard = (in_guard != 0) ? 2 : 1;
+    const int status = contexts.back().status;
+    next_context.status =
+      (status != ST_ACTIVE) ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;
     next_context.pc_continue = target;
     next_context.pc_on_error = -1;
     in = out;
@@ -884,9 +931,9 @@ struct VM : std::enable_shared_from_this<VM> {
     published += sz;
   }
   void activate() {
-    if (contexts.back().in_guard != 2) {
+    if (contexts.back().status != ST_SUBGOAL_IN_GUARD) {
       wait_list.clear();
-      contexts.back().in_guard = 0;
+      contexts.back().status = ST_ACTIVE;
       contexts.back().pc_on_error = -3;
     } else {
       contexts.back().pc_on_error = -1;
@@ -904,10 +951,10 @@ struct VM : std::enable_shared_from_this<VM> {
   std::string space() {
     std::string s;
     for (const Context& context : contexts) {
-      switch (context.in_guard) {
-      case 0: s += '='; break;
-      case 1: s += '?'; break;
-      case 2: s += '+'; break;
+      switch (context.status) {
+      case ST_ACTIVE: s += '='; break;
+      case ST_IN_GUARD: s += '?'; break;
+      case ST_SUBGOAL_IN_GUARD: s += '+'; break;
       default:
         s += '*';
       }
@@ -932,7 +979,7 @@ struct VM : std::enable_shared_from_this<VM> {
         break;
       }
     }
-    if ((pc < 0) && (contexts.back().in_guard == 1)) {
+    if ((pc < 0) && (contexts.back().status == ST_IN_GUARD)) {
       bool retry_this_goal = false;
       if (!wait_list.empty()) {
         const int arity = atom_arity_of(in[0]);
@@ -951,7 +998,9 @@ struct VM : std::enable_shared_from_this<VM> {
           log_info(this,
                    std::setw(5) << contexts.back().pc_goal
                    << "        " << space()
-                   << "+ wait: " << to_str(q));
+                   << "+ suspend: " << to_str(q)
+                   << " goal:"
+                   << goal_str_of(&reg[contexts.back().in_offset]));
           const TAG_T tag = tag_of(q);
           if (tag == TAG_REF) {
             const size_t h = heap_publishing(3);
@@ -1031,6 +1080,7 @@ struct VM : std::enable_shared_from_this<VM> {
       log_info(this, "no queued goals");
       return;
     }
+    ++resume_count;
     Q g = goal[2].load();
     const int arity = atom_arity_of(g);
     in[0] = g;
@@ -1201,22 +1251,13 @@ class RuntimeError: public std::runtime_error {
 };
 
 #define MACRO_goal(pc, goal)                                     \
-  ++vm->inferences;                                              \
+  ++vm->inference_count;                                         \
   vm->contexts.back().pc_goal = pc;                              \
   vm->in[0] = (goal);                                            \
   if (vm->is_log_info()) {                                       \
-    std::stringstream ss;                                        \
-    ss << std::setw(5) << pc << ": GOAL: "                       \
-       << vm->space()                                            \
-       << atom_str_of(goal) << "(";                              \
-    for (int i = 1; i <= atom_arity_of(goal); ++i) {             \
-      if (i != 1) {                                              \
-        ss << ",";                                               \
-      }                                                          \
-      ss << to_str(deref(vm->in[i]));                            \
-    }                                                            \
-    ss << ")";                                                   \
-    log_info(vm, ss.str());                                      \
+    log_info(vm, std::setw(5) << pc << ": GOAL: "                \
+             << vm->space()                                      \
+             << goal_str_of(vm->in));                            \
     if (vm->is_log_trace()) {                                    \
       vm->dump();                                                \
     }                                                            \
@@ -1232,7 +1273,7 @@ class RuntimeError: public std::runtime_error {
   {                                                   \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);       \
     const TAG_T t = tag_of(q);                        \
-    if (t == TAG_REF) {                               \
+    if (t == TAG_REF || t == TAG_SUS) {               \
       vm->add_wait_list(q);                           \
       vm->fail();                                     \
       continue;                                       \
@@ -1245,7 +1286,7 @@ class RuntimeError: public std::runtime_error {
   {                                               \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);   \
     const TAG_T t = tag_of(q);                    \
-    if (t == TAG_REF) {                           \
+    if (t == TAG_REF || t == TAG_SUS) {           \
       vm->add_wait_list(q);                       \
       vm->fail();                                 \
       continue;                                   \
@@ -1266,6 +1307,7 @@ class RuntimeError: public std::runtime_error {
   if (!vm->wait_list.empty()) {              \
     vm->contexts.back().pc_on_error = -2;    \
     vm->fail();                              \
+    continue;                                \
   }
 
 // call 呼び出しに備えて次レジスタウィンドウをセットアップする。
@@ -1309,8 +1351,9 @@ class RuntimeError: public std::runtime_error {
   }                                                         \
   vm->pc = (jump_to);                                       \
   vm->contexts.back().pc_continue = -1;                     \
-  vm->contexts.back().in_guard =                            \
-    (vm->contexts.back().in_guard != 0) ? 2 : 1;            \
+  vm->contexts.back().status =                              \
+    (vm->contexts.back().status != ST_ACTIVE)               \
+    ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;                    \
   continue
 
 #define MACRO_link(jump_to)                     \
@@ -1777,7 +1820,7 @@ class RuntimeError: public std::runtime_error {
     do {                                                  \
       Q q = deref(vm->pop());                             \
       const TAG_T tag = tag_of(q);                        \
-      if (tag == TAG_REF) {                               \
+      if (tag == TAG_REF || tag == TAG_SUS) {             \
         A* p = ptr_of<A>(q);                              \
         if (vm->is_log_trace()) {                         \
           vm->dump_heap(p, 1);                            \
@@ -1825,7 +1868,7 @@ class RuntimeError: public std::runtime_error {
     do {                                                              \
       Q q = deref(vm->pop());                                         \
       const TAG_T tag = tag_of(q);                                    \
-      if (tag == TAG_REF) {                                           \
+      if (tag == TAG_REF || tag == TAG_SUS) {                         \
         A* p = ptr_of<A>(q);                                          \
         if (vm->is_log_trace()) {                                     \
           vm->dump_heap(p, 1);                                        \
@@ -1896,7 +1939,7 @@ class RuntimeError: public std::runtime_error {
   {                                                         \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);             \
     const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF) {                                     \
+    if (t == TAG_REF || t == TAG_SUS) {                     \
       vm->add_wait_list(q);                                 \
       vm->fail();                                           \
       continue;                                             \
@@ -1912,7 +1955,7 @@ class RuntimeError: public std::runtime_error {
   {                                                         \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);             \
     const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF) {                                     \
+    if (t == TAG_REF || t == TAG_SUS) {                     \
       vm->add_wait_list(q);                                 \
       vm->fail();                                           \
       continue;                                             \
@@ -1931,7 +1974,7 @@ class RuntimeError: public std::runtime_error {
   {                                               \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);   \
     const TAG_T t = tag_of(q);                    \
-    if (t == TAG_REF) {                           \
+    if (t == TAG_REF || t == TAG_SUS) {           \
       vm->add_wait_list(q);                       \
       vm->fail();                                 \
       continue;                                   \
@@ -1958,7 +2001,7 @@ class RuntimeError: public std::runtime_error {
   {                                                        \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);            \
     const TAG_T t = tag_of(q);                             \
-    if (t == TAG_REF) {                                    \
+    if (t == TAG_REF || t == TAG_SUS) {                    \
       vm->add_wait_list(q);                                \
       vm->fail();                                          \
       continue;                                            \
@@ -1997,7 +2040,7 @@ class RuntimeError: public std::runtime_error {
   {                                                         \
     Q q = deref(vm->pop());                                 \
     const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF) {                                     \
+    if (t == TAG_REF || t == TAG_SUS) {                     \
       vm->add_wait_list(q);                                 \
       vm->fail();                                           \
       continue;                                             \
@@ -2014,7 +2057,7 @@ class RuntimeError: public std::runtime_error {
   {                                                         \
     Q q = deref(vm->pop());                                 \
     const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF) {                                     \
+    if (t == TAG_REF || t == TAG_SUS) {                     \
       vm->add_wait_list(q);                                 \
       vm->fail();                                           \
       continue;                                             \
@@ -2029,7 +2072,7 @@ class RuntimeError: public std::runtime_error {
     Q q = deref(vm->pop());                                 \
     log_trace(vm, vm->pc << ": read_nil" << to_str(q));     \
     const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF) {                                     \
+    if (t == TAG_REF || t == TAG_SUS) {                     \
       vm->add_wait_list(q);                                 \
       vm->fail();                                           \
       continue;                                             \
@@ -2044,7 +2087,7 @@ class RuntimeError: public std::runtime_error {
     Q q = deref(vm->pop());                                   \
     log_trace(vm, vm->pc << ": read_list: " << to_str(q));    \
     const TAG_T t = tag_of(q);                                \
-    if (t == TAG_REF) {                                       \
+    if (t == TAG_REF || t == TAG_SUS) {                       \
       vm->add_wait_list(q);                                   \
       vm->fail();                                             \
       continue;                                               \

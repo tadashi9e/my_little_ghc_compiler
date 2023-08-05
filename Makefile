@@ -3,7 +3,7 @@ GHC_TO_GIR = ./ghc_to_gir.pl
 GIR_TO_CC = ./gir_to_cc.pl
 BUILTIN_GHC = ./builtin.ghc
 
-all:: sample/hello sample/test sample/tarai sample/primes sample/hanoi sample/queen
+all:: sample/hello sample/test sample/tarai sample/tarai_reordered sample/primes sample/hanoi sample/queen
 
 sample/hello: sample/hello.cc ghc.h
 	g++ --std=c++11 -Wall -g -I. sample/hello.cc -o sample/hello
@@ -32,6 +32,13 @@ sample/tarai.cc: $(GIR_TO_CC) sample/tarai.gir
 	$(GIR_TO_CC) sample/tarai.gir -o sample/tarai.cc
 sample/tarai.gir: $(GHC_TO_GIR) $(BUILTIN_GHC) sample/tarai.ghc
 	$(GHC_TO_GIR) $(BUILTIN_GHC) sample/tarai.ghc -o sample/tarai.gir
+
+sample/tarai_reordered: sample/tarai_reordered.cc ghc.h
+	g++ --std=c++11 -Wall -g -O3 -I. sample/tarai_reordered.cc -o sample/tarai_reordered
+sample/tarai_reordered.cc: $(GIR_TO_CC) sample/tarai_reordered.gir
+	$(GIR_TO_CC) sample/tarai_reordered.gir -o sample/tarai_reordered.cc
+sample/tarai_reordered.gir: $(GHC_TO_GIR) $(BUILTIN_GHC) sample/tarai_reordered.ghc
+	$(GHC_TO_GIR) $(BUILTIN_GHC) sample/tarai_reordered.ghc -o sample/tarai_reordered.gir
 
 sample/primes: sample/primes.cc ghc.h
 	g++ --std=c++11 -Wall -g -O3 -I. sample/primes.cc -o sample/primes

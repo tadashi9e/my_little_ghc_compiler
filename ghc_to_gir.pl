@@ -479,11 +479,11 @@ ghc_call_args(Ctx, [Arg|Args], N) :-
 % '->' が含まれない場合、あるいは '->' の後ろの部分は並列実行(par)する。
 % 但し、並列実行の最後は末尾呼び出し最適化としてジャンプ(tail)に置き換える。
 ghc_compile_goal_body(Ctx, (_|Body)) :- !,
-    write_source(Ctx, comment(body(Body))),
+    % write_source(Ctx, comment(body(Body))),
     always_success(ghc_flatten_goal_body(Ctx, par, Body, FlatBody)),
     ghc_compile_goal_list(Ctx, FlatBody).
 ghc_compile_goal_body(Ctx, Body) :-
-    write_source(Ctx, comment(body(Body))),
+    % write_source(Ctx, comment(body(Body))),
     always_success(ghc_flatten_goal_body(Ctx, par, Body, FlatBody)),
     ghc_compile_goal_list(Ctx, FlatBody).
 %% ghc_flatten_goal_body(?Ctx, SeqPar, Body, FlatBody)
