@@ -48,6 +48,59 @@ This is my personal hobby project.
 - Translators lack error detection and error reporting.
 - Garbage collections not implemented yet.
 
+## Samples
+
+`make` compiles these sample codes.
+
+### sample/hello.ghc
+
+Usage: `hello [args]`
+
+Description: Prints "Hello" followed by all arguments.
+
+Example:
+
+```shell
+$ ./hello world
+Hello world 
+```
+
+### sample/hanoi.ghc
+
+Usage: `hanoi <N>`
+
+Description: Solves the Towers of Hanoi puzzle for N disks.
+
+### sample/primes.ghc
+
+usage: `primes <N>`
+
+Description: Displays prime numbers up to N.
+
+### sample/queen.ghc
+
+Usage: `queen <N>`
+
+Description: Display all solutions of N-queens problem.
+
+### sample/tarai.ghc
+
+Usage: `tarai <X> <Y> <Z>`
+
+Description: Benchmark for the `tarai` function. More information: [Tak_(function)](https://en.wikipedia.org/wiki/Tak_(function)).
+
+### sample/tarai_reordered.ghc
+
+usage: tarai_reordered <X> <Y> <Z>
+
+Description: Same as sample/tarai.ghc, but with many suspend/resume due to predicate call order contrary to evaluation order.
+
+### sample/test.ghc
+
+Usage: `test`
+
+Description: Contains miscellaneous test codes, primarily for experimentation purposes.
+
 ## In Future...
 
 - Add indexing operations to GIR such as 'switch-on-xxx' in WAM.
