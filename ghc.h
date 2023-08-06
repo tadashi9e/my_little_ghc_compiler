@@ -91,7 +91,7 @@ VALUE* ptr_of(Q q) {
 Q deref(Q q) {
   for (;;) {
     const TAG_T tag = tag_of(q);
-    if (tag != TAG_REF) {
+    if (tag != TAG_REF && tag != TAG_SUS) {
       break;
     }
     A* a = ptr_of<A>(q);
@@ -327,9 +327,10 @@ class Scheduler {
     }
   }
   void enqueue_list(A* list) {
-    const Q h = head.load();
-    head.store(tagptr<TAG_REF>(list));
-    list->store(h);
+    const Q h0 = head.load();
+    const Q h1 = list->load();
+    head.store(h1);
+    list->store(h0);
     cond_.notify_one();
   }
   void wait_for_enqueue() {
@@ -868,6 +869,7 @@ struct VM : std::enable_shared_from_this<VM> {
       } catch (const std::runtime_error& ex) {
         std::cerr << ex.what() << std::endl;
         dump();
+        // dump_to_dot("dump/runtime_error.dot");
       }
     }
   }

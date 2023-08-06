@@ -16,8 +16,9 @@ main([_, X, Y, Z]) :-
     atom_number(X, Xi),
     atom_number(Y, Yi),
     atom_number(Z, Zi),
-    time(tarai(Xi, Yi, Zi, Ri)),
-    report(Ri).
+    report(Ri),
+    wait_time(Ri),
+    tarai(Xi, Yi, Zi, Ri).
 otherwise.
 main([Prog|_]) :-
     outstream([write('usage: '), write(Prog), write(' X Y Z'), nl]).

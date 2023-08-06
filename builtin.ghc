@@ -44,6 +44,14 @@ time(Goal) :-
     call(Goal)
     -> '__time_post__'(Start, InferenceCount, ResumeCount).
 
+wait_time(Var) :-
+    '__time_pre__'(Start, InferenceCount, ResumeCount),
+    '__wait_time__'(Var, Start, InferenceCount, ResumeCount).
+'__wait_time__'(Var, Start, InferenceCount, ResumeCount) :-
+    wait(Var) |
+    '__time_post__'(Start, InferenceCount, ResumeCount).
+    
+
 '__time_pre__'(Start, InferenceCount, ResumeCount) :-
     inline('{'),
     inline('  MACRO_activate;'),
@@ -63,12 +71,11 @@ time(Goal) :-
     inline('          value_of<int64_t>(vm->in[1]);'),
     inline('  const int64_t inferences ='),
     inline('          vm->inference_count - value_of<int64_t>(vm->in[2]);'),
-%    inline('  const int64_t resumes ='),
-%    inline('          vm->resume_count - value_of<int64_t>(vm->in[3]);'),
-%    inline('  std::cout << "% " << inferences << " inferences("'),
-%    inline('            << resumes << " times resumed), "'),
+    inline('  const int64_t resumes ='),
+    inline('          vm->resume_count - value_of<int64_t>(vm->in[3]);'),
     inline('  const double seconds = (iend - istart) / 1000000.0;'),
-    inline('  std::cout << "% " << inferences << " inferences, "'),
+    inline('  std::cout << "% " << inferences << " inferences("'),
+    inline('            << resumes << " times resumed), "'),
     inline('            << seconds << " CPU seconds ("'),
     inline('            << std::fixed << (inferences / seconds) << " Lips)" << std::endl;'),
     inline('  MACRO_proceed;'),
