@@ -241,6 +241,7 @@ class HeapList {
     heaps_.push_back(r);
     return r;
   }
+
  private:
   std::vector<RawHeap> heaps_;
 };
@@ -275,7 +276,7 @@ class Heap {
   }
 
  private:
-  std::shared_ptr<std::array<A, HEAP_SIZE> > heap_;
+  HeapList::RawHeap heap_;
 };
 
 std::string goal_str_of(const Q* goal) {

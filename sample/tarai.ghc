@@ -8,13 +8,18 @@ tarai(X, Y, Z, R) :- true |
     Z_1 := Z - 1, tarai(Z_1, X, Y, R_Z),
     tarai(R_X, R_Y, R_Z, R).
 
+report(Ri) :-
+    wait(Ri) |
+    outstream([writeln(Ri)]).
+
 main([_, X, Y, Z]) :-
     atom_number(X, Xi),
     atom_number(Y, Yi),
     atom_number(Z, Zi),
-    time(tarai(Xi, Yi, Zi, Ri)),
-    dump_to_dot('dump/tarai.dot')
-    -> writeln(Ri).
+    report(Ri),
+    wait_time(Ri),
+    tarai(Xi, Yi, Zi, Ri),
+    dump_to_dot('dump/tarai.dot').
 otherwise.
 main([Prog|_]) :-
     outstream([write('usage: '), write(Prog), write(' X Y Z'), nl]).
