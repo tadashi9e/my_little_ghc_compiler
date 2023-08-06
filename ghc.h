@@ -1,6 +1,5 @@
 #ifndef GHC_H_
 #define GHC_H_
-#include <condition_variable>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -8,7 +7,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <algorithm>
+#include <array>
 #include <atomic>
+#include <condition_variable>
 #include <cassert>
 #include <deque>
 #include <functional>
@@ -18,14 +19,14 @@
 #include <list>
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 #include <sstream>
 #include <stack>
 #include <string>
 #include <thread>
 #include <unordered_map>
-#include <memory>
-#include <mutex>
+#include <utility>
 #include <vector>
 
 const char ENV_GHC_LOGLEVEL[] = "GHC_LOGLEVEL";
@@ -236,7 +237,7 @@ class HeapList {
   RawHeap allocate() {
     RawHeap r = std::make_shared<std::array<A, HEAP_SIZE> >();
     for (size_t i = 0; i < HEAP_SIZE; ++i) {
-      std::atomic_init(&(*r)[i], static_cast<Q>(0));
+      std::atomic_init(&((*r)[i]), static_cast<Q>(0));
     }
     heaps_.push_back(r);
     return r;
@@ -456,7 +457,7 @@ class PortGroupSet {
       }
       group->add(iter->second);
     }
-    for (int i = 0;i < group->n; ++i) {
+    for (int i = 0; i < group->n; ++i) {
       map_[group->a + i] = group;
     }
     return b;
@@ -588,7 +589,7 @@ class DotFile {
     }
   }
   void dump_edges(std::ofstream& st) {
-    for (const std::pair<A*,A*>& edge : edges) {
+    for (const std::pair<A*, A*>& edge : edges) {
       if (edge.first == edge.second) {
         st << getPortName(edge.first) << ":e -> "
            << getPortName(edge.second) << ":e" <<std::endl;
@@ -714,7 +715,8 @@ struct VM : std::enable_shared_from_this<VM> {
     st << "}\" ];" << std::endl;
     for (size_t i = 0; i < contexts.size(); ++i) {
       const Context& context = contexts[i];
-      st << "contexts:" << i << ":e -> registers:" << context.in_offset << ":w;" << std::endl;
+      st << "contexts:" << i
+         << ":e -> registers:" << context.in_offset << ":w;" << std::endl;
     }
     size_t reg_max = contexts.back().in_offset;
     if (tag_of(reg[reg_max]) == TAG_ATOM) {
@@ -1187,8 +1189,8 @@ struct VM : std::enable_shared_from_this<VM> {
         std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
         Q qq1 = lst1->load();
         Q qq2 = lst2->load();
-        if (!lst1->compare_exchange_strong(qq1,qq2) ||
-            !lst2->compare_exchange_strong(qq2,qq1)) {
+        if (!lst1->compare_exchange_strong(qq1, qq2) ||
+            !lst2->compare_exchange_strong(qq2, qq1)) {
           q1 = p1->load();
           q2 = p2->load();
           continue;
@@ -1496,7 +1498,7 @@ class RuntimeError: public std::runtime_error {
   if (vm->is_log_trace()) {                      \
     vm->dump_register_out(Oi);                   \
   }                                              \
-  
+
 #define MACRO_out_list(Oi)                       \
   log_trace(vm, vm->pc                           \
             << ": out_list(" << Oi << ")");      \
@@ -1952,7 +1954,7 @@ class RuntimeError: public std::runtime_error {
       continue;                                             \
     }                                                       \
   }
-  
+
 #define MACRO_check_nil(Ai)                                 \
   log_trace(vm, vm->pc << ": check_nil(" << Ai << ")");     \
   {                                                         \
