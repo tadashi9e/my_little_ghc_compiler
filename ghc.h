@@ -96,7 +96,7 @@ Q deref(Q q) {
       break;
     }
     A* a = ptr_of<A>(q);
-    Q q2 = a->load();
+    const Q q2 = a->load();
     if (q == q2) {
       break;
     }
@@ -652,6 +652,26 @@ class DotFile {
           add_edge_from(&goal[2 + i]);
         }
       }
+      // リストを辿って表示
+      A* lst = &a[1];
+      int link_max = 0;  // for safety
+      for (A* p = ptr_of<A>(lst->load()); p != lst;
+           p = ptr_of<A>(p->load())) {
+        if (link_max > 10) {
+          break;
+        }
+        ++link_max;
+        portGroupSet.add_group(p, 2);
+        add_edge_from(&p[0]);
+        add_edge_from(&p[1]);
+        A* goal = ptr_of<A>(p[1].load());
+        const int arity = atom_arity_of(goal[2].load());
+        if (portGroupSet.add_group(goal, 2 + arity + 1)) {
+          for (int i = 1; i <= arity; ++i) {
+            add_edge_from(&goal[2 + i]);
+          }
+        }
+      }
     }
   }
 };
@@ -1113,13 +1133,9 @@ struct VM : std::enable_shared_from_this<VM> {
     Scheduler::getInstance().enqueue_list(lst);
   }
   bool unify(Q q1, Q q2) {
-    log_trace(this, "  unify(" << to_str(q1) << "," << to_str(q2) << ")");
     q2 = deref(q2);
     q1 = deref(q1);
     if (q1 == q2) {
-      log_info(this,
-               std::setw(5) << pc << "        " << space()
-               << "unify: " << to_str(q1) << " == " << to_str(q2));
       return true;
     }
     do {
@@ -1130,9 +1146,6 @@ struct VM : std::enable_shared_from_this<VM> {
           q2 = p2->load();
           continue;
         }
-        log_info(this,
-                 std::setw(5) << pc << "        " << space()
-                 << "unify: " << to_str(q2) << " <-- " << to_str(q1));
         return true;
       }
       TAG_T tag1 = tag_of(q1);
@@ -1142,9 +1155,6 @@ struct VM : std::enable_shared_from_this<VM> {
           q1 = p1->load();
           continue;
         }
-        log_info(this,
-                 std::setw(5) << pc << "        " << space()
-                 << "unify: " << to_str(q1) << " <-- " << to_str(q2));
         return true;
       }
       if (tag2 == TAG_SUS && tag1 != TAG_SUS) {
@@ -1158,10 +1168,6 @@ struct VM : std::enable_shared_from_this<VM> {
           continue;
         }
         Scheduler::getInstance().enqueue_list(p2 + 1);
-        log_info(this,
-                 std::setw(5) << pc << "        " << space()
-                 << "unify: enqueue " << to_str(q2)
-                 << " (bound " << to_str(q1) << ")");
         return true;
       }
       if (tag1 == TAG_SUS && tag2 != TAG_SUS) {
@@ -1175,35 +1181,31 @@ struct VM : std::enable_shared_from_this<VM> {
           continue;
         }
         Scheduler::getInstance().enqueue_list(p1 + 1);
-        log_info(this,
-                 std::setw(5) << pc << "        " << space()
-                 << "unify: enqueue " << to_str(q1)
-                 << " (bound " << to_str(q2) << ")");
         return true;
       }
       if (tag1 == TAG_SUS && tag2 == TAG_SUS) {
+        std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
+        // check again in lock
+        q1 = deref(q1);
+        q2 = deref(q2);
+        if (tag_of(q1) != TAG_SUS ||
+            tag_of(q2) != TAG_SUS) {
+          continue;
+        }
+        // splice list
         A* p1 = ptr_of<A>(q1);
         A* p2 = ptr_of<A>(q2);
         A* lst1 = p1 + 1;
         A* lst2 = p2 + 1;
-        std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
-        Q qq1 = lst1->load();
-        Q qq2 = lst2->load();
-        if (!lst1->compare_exchange_strong(qq1, qq2) ||
-            !lst2->compare_exchange_strong(qq2, qq1)) {
-          q1 = p1->load();
-          q2 = p2->load();
-          continue;
-        }
-        log_info(this,
-                 std::setw(5) << pc << "        " << space()
-                 << "unify: " << to_str(q1) << " splice " << to_str(q2));
+        const Q qq1 = lst1->load();
+        const Q qq2 = lst2->load();
+        lst1->store(qq2);
+        lst2->store(qq1);
+        // one references another
+        p1->store(tagptr<TAG_REF>(p2));
         return true;
       }
       if (tag1 != tag2) {
-        log_info(this,
-                 std::setw(5) << pc << "        " << space()
-                 << "unify: " << to_str(q1) << " != " << to_str(q2));
         return false;
       }
       switch (tag1) {
@@ -1211,31 +1213,21 @@ struct VM : std::enable_shared_from_this<VM> {
         {
           A* p1 = ptr_of<A>(q1);
           A* p2 = ptr_of<A>(q2);
-          bool is_ok = unify(p1[0].load(), p2[0].load())
+          const bool is_ok = unify(p1[0].load(), p2[0].load())
             && unify(p1[1].load(), p2[1].load());
-          log_info(this,
-                   std::setw(5) << pc << "        " << space()
-                   << "unify: " << to_str(q1)
-                   << (is_ok ? "==" : " != ") << to_str(q2));
           return is_ok;
         }
       case TAG_STR:
         {
           A* p1 = ptr_of<A>(q1);
           A* p2 = ptr_of<A>(q2);
-          Q f1 = p1[0].load();
-          Q f2 = p2[0].load();
+          const Q f1 = p1[0].load();
+          const Q f2 = p2[0].load();
           if (f1 != f2) {
-            log_info(this,
-                     std::setw(5) << pc << "        " << space()
-                     << "unify: " << to_str(q1) << " != " << to_str(q2));
             return false;
           }
           for (int i = 1; i <= atom_arity_of(f1); ++i) {
             if (!unify(p1[i].load(), p2[i].load())) {
-              log_info(this,
-                       std::setw(5) << pc << "        " << space()
-                       << "unify: " << to_str(q1) << " != " << to_str(q2));
               return false;
             }
           }
@@ -1991,10 +1983,6 @@ class RuntimeError: public std::runtime_error {
     A* p = ptr_of<A>(q);                          \
     vm->push((p + 1)->load());                    \
     vm->push((p + 0)->load());                    \
-    if (vm->is_log_trace()) {                     \
-      vm->dump_register(Ai);                      \
-      vm->dump_heap(p, 2);                        \
-    }                                             \
   }
 
 #define MACRO_check_structure(Fn, Ai)                      \
@@ -2035,9 +2023,6 @@ class RuntimeError: public std::runtime_error {
     Q q = deref(vm->pop());                                   \
     log_trace(vm, vm->pc << ": read_variable(" << Vn << ")"); \
     vm->in[Vn] = q;                                           \
-  }                                                           \
-  if (vm->is_log_trace()) {                                   \
-    vm->dump_register(Vn);                                    \
   }
 
 #define MACRO_read_value(Vn)                                \

@@ -146,6 +146,16 @@ test_nth1_rev_ :-
     nth1(N4, Cs, d), write(' ['), write(N4), write(']: d'),
     nth1(N5, Cs, e), write(' ['), write(N5), writeln(']: e').
 
+test_splice_suspension :-
+    test_splice_suspension1(X1),
+    test_splice_suspension1(X2),
+    test_splice_suspension1(X3),
+    X1 = X2,
+    X2 = X3,
+    dump_to_dot('dump/splice.dot'),
+    X1 = 'test_splice_suspension'.
+test_splice_suspension1(X) :- wait(X) | writeln(X).
+
 do_test(X) :- write(X) -> writeln(': ') -> time(X).
 
 main(_) :-
@@ -169,6 +179,7 @@ main(_) :-
     do_test(test_append),
     do_test(test_reverse),
     do_test(test_nth0),
-    do_test(test_nth1)
+    do_test(test_nth1),
+    do_test(test_splice_suspension)
     -> inference_count(Infer),
        write('total_inferences='), writeln(Infer).

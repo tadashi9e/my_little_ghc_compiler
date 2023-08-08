@@ -223,10 +223,13 @@ Q atom(220);  // test_nth1 / 0
 Q atom(221);  // test_nth1_ / 0
 Q atom(222);  //  1: [ / 0
 Q atom(223);  // test_nth1_rev_ / 0
-Q atom(224);  // do_test / 1
-Q atom(225);  // :  / 0
-Q atom(226);  // main / 1
-Q atom(227);  // total_inferences= / 0
+Q atom(224);  // test_splice_suspension / 0
+Q atom(225);  // dump/splice.dot / 0
+Q atom(226);  // test_splice_suspension1 / 1
+Q atom(227);  // do_test / 1
+Q atom(228);  // :  / 0
+Q atom(229);  // main / 1
+Q atom(230);  // total_inferences= / 0
 void module(VM::ptr vm, Program* prog) {
   for (;;) {
     switch (vm->pc) {
@@ -3830,119 +3833,157 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_tail(12);
       MACRO_out_constant(atom(218),reg::out(1));
       MACRO_execute(100,1);  // execute(writeln/1)
-    case 431:  // do_test/1
+    case 431:  // test_splice_suspension/0
       MACRO_goal(431,atom(224));
+      MACRO_requires(7);
+      MACRO_try_guard_else_suspend;
+      MACRO_activate;
+      MACRO_par(2);
+      MACRO_out_variable(reg::x(1),reg::out(1));
+      MACRO_spawn(436,432);  // spawn(test_splice_suspension1/1)
+    case 432:  // return_from_spawn(test_splice_suspension1/1)
+      MACRO_par(4);
+      MACRO_out_variable(reg::x(3),reg::out(1));
+      MACRO_spawn(436,433);  // spawn(test_splice_suspension1/1)
+    case 433:  // return_from_spawn(test_splice_suspension1/1)
+      MACRO_par(6);
+      MACRO_out_variable(reg::x(5),reg::out(1));
+      MACRO_spawn(436,434);  // spawn(test_splice_suspension1/1)
+    case 434:  // return_from_spawn(test_splice_suspension1/1)
+      MACRO_get_value(reg::x(3),reg::x(1));
+      MACRO_get_value(reg::x(5),reg::x(3));
+      MACRO_par(6);
+      MACRO_out_constant(atom(225),reg::out(1));
+      MACRO_spawn(248,435);  // spawn(dump_to_dot/1)
+    case 435:  // return_from_spawn(dump_to_dot/1)
+      MACRO_get_constant(atom(224),reg::x(1));
+      MACRO_proceed;
+    case 436:  // test_splice_suspension1/1
+      MACRO_goal(436,atom(226));
+      MACRO_requires(3);
+      MACRO_try_guard_else_suspend;
+      MACRO_wait(1);
+      MACRO_activate;
+      MACRO_tail(3);
+      MACRO_out_value(reg::in(1),reg::out(1));
+      MACRO_execute(100,1);  // execute(writeln/1)
+    case 437:  // do_test/1
+      MACRO_goal(437,atom(227));
       MACRO_requires(3);
       MACRO_try_guard_else_suspend;
       MACRO_activate;
       MACRO_seq(3);
       MACRO_out_value(reg::in(1),reg::out(1));
-      MACRO_call(108,432);  // call(write/1)
-    case 432:  // return_from_call(write/1)
+      MACRO_call(108,438);  // call(write/1)
+    case 438:  // return_from_call(write/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(225),reg::out(1));
-      MACRO_call(100,433);  // call(writeln/1)
-    case 433:  // return_from_call(writeln/1)
+      MACRO_out_constant(atom(228),reg::out(1));
+      MACRO_call(100,439);  // call(writeln/1)
+    case 439:  // return_from_call(writeln/1)
       MACRO_tail(3);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_execute(4,1);  // execute(time/1)
-    case 434:  // main/1
-      MACRO_goal(434,atom(226));
+    case 440:  // main/1
+      MACRO_goal(440,atom(229));
       MACRO_requires(4);
       MACRO_try_guard_else_suspend;
       MACRO_activate;
       MACRO_seq(3);
       MACRO_out_constant(atom(117),reg::out(1));
-      MACRO_call(431,435);  // call(do_test/1)
-    case 435:  // return_from_call(do_test/1)
-      MACRO_seq(3);
-      MACRO_out_constant(atom(121),reg::out(1));
-      MACRO_call(431,436);  // call(do_test/1)
-    case 436:  // return_from_call(do_test/1)
-      MACRO_seq(3);
-      MACRO_out_constant(atom(122),reg::out(1));
-      MACRO_call(431,437);  // call(do_test/1)
-    case 437:  // return_from_call(do_test/1)
-      MACRO_seq(3);
-      MACRO_out_constant(atom(124),reg::out(1));
-      MACRO_call(431,438);  // call(do_test/1)
-    case 438:  // return_from_call(do_test/1)
-      MACRO_seq(3);
-      MACRO_out_constant(atom(125),reg::out(1));
-      MACRO_call(431,439);  // call(do_test/1)
-    case 439:  // return_from_call(do_test/1)
-      MACRO_seq(3);
-      MACRO_out_constant(atom(130),reg::out(1));
-      MACRO_call(431,440);  // call(do_test/1)
-    case 440:  // return_from_call(do_test/1)
-      MACRO_seq(3);
-      MACRO_out_constant(atom(131),reg::out(1));
-      MACRO_call(431,441);  // call(do_test/1)
+      MACRO_call(437,441);  // call(do_test/1)
     case 441:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(132),reg::out(1));
-      MACRO_call(431,442);  // call(do_test/1)
+      MACRO_out_constant(atom(121),reg::out(1));
+      MACRO_call(437,442);  // call(do_test/1)
     case 442:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(133),reg::out(1));
-      MACRO_call(431,443);  // call(do_test/1)
+      MACRO_out_constant(atom(122),reg::out(1));
+      MACRO_call(437,443);  // call(do_test/1)
     case 443:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(134),reg::out(1));
-      MACRO_call(431,444);  // call(do_test/1)
+      MACRO_out_constant(atom(124),reg::out(1));
+      MACRO_call(437,444);  // call(do_test/1)
     case 444:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(139),reg::out(1));
-      MACRO_call(431,445);  // call(do_test/1)
+      MACRO_out_constant(atom(125),reg::out(1));
+      MACRO_call(437,445);  // call(do_test/1)
     case 445:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(147),reg::out(1));
-      MACRO_call(431,446);  // call(do_test/1)
+      MACRO_out_constant(atom(130),reg::out(1));
+      MACRO_call(437,446);  // call(do_test/1)
     case 446:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(151),reg::out(1));
-      MACRO_call(431,447);  // call(do_test/1)
+      MACRO_out_constant(atom(131),reg::out(1));
+      MACRO_call(437,447);  // call(do_test/1)
     case 447:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(156),reg::out(1));
-      MACRO_call(431,448);  // call(do_test/1)
+      MACRO_out_constant(atom(132),reg::out(1));
+      MACRO_call(437,448);  // call(do_test/1)
     case 448:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(160),reg::out(1));
-      MACRO_call(431,449);  // call(do_test/1)
+      MACRO_out_constant(atom(133),reg::out(1));
+      MACRO_call(437,449);  // call(do_test/1)
     case 449:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(171),reg::out(1));
-      MACRO_call(431,450);  // call(do_test/1)
+      MACRO_out_constant(atom(134),reg::out(1));
+      MACRO_call(437,450);  // call(do_test/1)
     case 450:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(191),reg::out(1));
-      MACRO_call(431,451);  // call(do_test/1)
+      MACRO_out_constant(atom(139),reg::out(1));
+      MACRO_call(437,451);  // call(do_test/1)
     case 451:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(194),reg::out(1));
-      MACRO_call(431,452);  // call(do_test/1)
+      MACRO_out_constant(atom(147),reg::out(1));
+      MACRO_call(437,452);  // call(do_test/1)
     case 452:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(203),reg::out(1));
-      MACRO_call(431,453);  // call(do_test/1)
+      MACRO_out_constant(atom(151),reg::out(1));
+      MACRO_call(437,453);  // call(do_test/1)
     case 453:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(204),reg::out(1));
-      MACRO_call(431,454);  // call(do_test/1)
+      MACRO_out_constant(atom(156),reg::out(1));
+      MACRO_call(437,454);  // call(do_test/1)
     case 454:  // return_from_call(do_test/1)
       MACRO_seq(3);
-      MACRO_out_constant(atom(220),reg::out(1));
-      MACRO_call(431,455);  // call(do_test/1)
+      MACRO_out_constant(atom(160),reg::out(1));
+      MACRO_call(437,455);  // call(do_test/1)
     case 455:  // return_from_call(do_test/1)
+      MACRO_seq(3);
+      MACRO_out_constant(atom(171),reg::out(1));
+      MACRO_call(437,456);  // call(do_test/1)
+    case 456:  // return_from_call(do_test/1)
+      MACRO_seq(3);
+      MACRO_out_constant(atom(191),reg::out(1));
+      MACRO_call(437,457);  // call(do_test/1)
+    case 457:  // return_from_call(do_test/1)
+      MACRO_seq(3);
+      MACRO_out_constant(atom(194),reg::out(1));
+      MACRO_call(437,458);  // call(do_test/1)
+    case 458:  // return_from_call(do_test/1)
+      MACRO_seq(3);
+      MACRO_out_constant(atom(203),reg::out(1));
+      MACRO_call(437,459);  // call(do_test/1)
+    case 459:  // return_from_call(do_test/1)
+      MACRO_seq(3);
+      MACRO_out_constant(atom(204),reg::out(1));
+      MACRO_call(437,460);  // call(do_test/1)
+    case 460:  // return_from_call(do_test/1)
+      MACRO_seq(3);
+      MACRO_out_constant(atom(220),reg::out(1));
+      MACRO_call(437,461);  // call(do_test/1)
+    case 461:  // return_from_call(do_test/1)
+      MACRO_seq(3);
+      MACRO_out_constant(atom(224),reg::out(1));
+      MACRO_call(437,462);  // call(do_test/1)
+    case 462:  // return_from_call(do_test/1)
       MACRO_par(3);
       MACRO_out_variable(reg::x(2),reg::out(1));
-      MACRO_spawn(244,456);  // spawn(inference_count/1)
-    case 456:  // return_from_spawn(inference_count/1)
+      MACRO_spawn(244,463);  // spawn(inference_count/1)
+    case 463:  // return_from_spawn(inference_count/1)
       MACRO_par(3);
-      MACRO_out_constant(atom(227),reg::out(1));
-      MACRO_spawn(108,457);  // spawn(write/1)
-    case 457:  // return_from_spawn(write/1)
+      MACRO_out_constant(atom(230),reg::out(1));
+      MACRO_spawn(108,464);  // spawn(write/1)
+    case 464:  // return_from_spawn(write/1)
       MACRO_tail(3);
       MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_execute(100,1);  // execute(writeln/1)
@@ -4176,10 +4217,13 @@ void setup(Program* prog) {
   atom(221) = to_atom("test_nth1_", 0);
   atom(222) = to_atom(" 1: [", 0);
   atom(223) = to_atom("test_nth1_rev_", 0);
-  atom(224) = to_atom("do_test", 1);
-  atom(225) = to_atom(": ", 0);
-  atom(226) = to_atom("main", 1);
-  atom(227) = to_atom("total_inferences=", 0);
+  atom(224) = to_atom("test_splice_suspension", 0);
+  atom(225) = to_atom("dump/splice.dot", 0);
+  atom(226) = to_atom("test_splice_suspension1", 1);
+  atom(227) = to_atom("do_test", 1);
+  atom(228) = to_atom(": ", 0);
+  atom(229) = to_atom("main", 1);
+  atom(230) = to_atom("total_inferences=", 0);
   // setup entry points
   prog->add_entry_point(atom(1), 1);  // fail / 0
   prog->add_entry_point(atom(2), 2);  // call / 1
@@ -4309,8 +4353,10 @@ void setup(Program* prog) {
   prog->add_entry_point(atom(220), 393);  // test_nth1 / 0
   prog->add_entry_point(atom(221), 395);  // test_nth1_ / 0
   prog->add_entry_point(atom(223), 411);  // test_nth1_rev_ / 0
-  prog->add_entry_point(atom(224), 431);  // do_test / 1
-  prog->add_entry_point(atom(226), 434);  // main / 1
+  prog->add_entry_point(atom(224), 431);  // test_splice_suspension / 0
+  prog->add_entry_point(atom(226), 436);  // test_splice_suspension1 / 1
+  prog->add_entry_point(atom(227), 437);  // do_test / 1
+  prog->add_entry_point(atom(229), 440);  // main / 1
 }
 int
 main(int argc, char* argv[]) {

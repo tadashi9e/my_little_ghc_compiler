@@ -4057,6 +4057,48 @@ label(test_nth1_rev_/0).
   tail(12).
     out_constant(']: e',reg(out,1)).
     execute(writeln/1).
+label(test_splice_suspension/0).
+  goal(test_splice_suspension/0).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_splice_suspension).
+  % guard(true).
+  activate.
+  % body(test_splice_suspension1(X1)).
+  par(2).
+    out_variable(reg(x,1),reg(out,1)).
+    spawn(test_splice_suspension1/1).
+  % body(test_splice_suspension1(X2)).
+  par(4).
+    out_variable(reg(x,3),reg(out,1)).
+    spawn(test_splice_suspension1/1).
+  % body(test_splice_suspension1(X3)).
+  par(6).
+    out_variable(reg(x,5),reg(out,1)).
+    spawn(test_splice_suspension1/1).
+  % body(X1=X2).
+    get_value(reg(x,3),reg(x,1)).
+  % body(X2=X3).
+    get_value(reg(x,5),reg(x,3)).
+  % body(dump_to_dot(dump/splice.dot)).
+  par(6).
+    out_constant('dump/splice.dot',reg(out,1)).
+    spawn(dump_to_dot/1).
+  % body(X1=test_splice_suspension).
+    get_constant(test_splice_suspension,reg(x,1)).
+  proceed.
+label(test_splice_suspension1/1).
+  goal(test_splice_suspension1/1).
+  requires(3).
+  try_guard_else_suspend.
+  % head(test_splice_suspension1(X)).
+  % guard(wait(X)).
+  wait(1).
+  activate.
+  % body(writeln(X)).
+  tail(3).
+    out_value(reg(in,1),reg(out,1)).
+    execute(writeln/1).
 label(do_test/1).
   goal(do_test/1).
   requires(3).
@@ -4080,7 +4122,7 @@ label(main/1).
   goal(main/1).
   requires(4).
   try_guard_else_suspend.
-  % head(main(_455184)).
+  % head(main(_462218)).
   % guard(true).
   activate.
   % body(do_test(test_otherwise)).
@@ -4166,6 +4208,10 @@ label(main/1).
   % body(do_test(test_nth1)).
   seq(3).
     out_constant(test_nth1,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_splice_suspension)).
+  seq(3).
+    out_constant(test_splice_suspension,reg(out,1)).
     call(do_test/1).
   % body(inference_count(Infer)).
   par(3).
