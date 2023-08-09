@@ -1667,7 +1667,15 @@ class RuntimeError: public std::runtime_error {
       Q q = deref(vm->in[Ai]);                            \
       vm->in[Ai] = q;                                     \
       const TAG_T tag = tag_of(q);                        \
-      if (tag == TAG_REF || tag == TAG_SUS) {             \
+      if (tag == TAG_LIST) {                              \
+        A* p = ptr_of<A>(q);                              \
+        vm->push((p + 1)->load());                        \
+        vm->push((p + 0)->load());                        \
+        if (vm->is_log_trace()) {                         \
+          vm->dump_register(Ai);                          \
+          vm->dump_heap(p, 2);                            \
+        }                                                 \
+      } else if (tag == TAG_REF || tag == TAG_SUS) {      \
         A* p = ptr_of<A>(q);                              \
         const size_t h = vm->heap_publishing(2);          \
         Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);         \
@@ -1688,14 +1696,6 @@ class RuntimeError: public std::runtime_error {
         if (vm->is_log_trace()) {                         \
           vm->dump_register(Ai);                          \
           vm->dump_heap(h, 2);                            \
-        }                                                 \
-      } else if (tag == TAG_LIST) {                       \
-        A* p = ptr_of<A>(q);                              \
-        vm->push((p + 1)->load());                        \
-        vm->push((p + 0)->load());                        \
-        if (vm->is_log_trace()) {                         \
-          vm->dump_register(Ai);                          \
-          vm->dump_heap(p, 2);                            \
         }                                                 \
       } else {                                            \
         if (vm->is_log_trace()) {                         \
@@ -1718,7 +1718,21 @@ class RuntimeError: public std::runtime_error {
       Q q = deref(vm->in[Ai]);                                  \
       vm->in[Ai] = q;                                           \
       const TAG_T tag = tag_of(q);                              \
-      if (tag == TAG_REF || tag == TAG_SUS) {                   \
+      if (tag == TAG_STR) {                                     \
+        A* p = ptr_of<A>(q);                                    \
+        if (p[0].load() != Fn) {                                \
+          failed = true;                                        \
+          break;                                                \
+        }                                                       \
+        const int arity = atom_arity_of(Fn);                    \
+        for (int i = arity; i > 0; --i) {                       \
+          vm->push(p[i].load());                                \
+        }                                                       \
+        if (vm->is_log_trace()) {                               \
+          vm->dump_register(Ai);                                \
+          vm->dump_heap(p, 1 + arity);                          \
+        }                                                       \
+      } else if (tag == TAG_REF || tag == TAG_SUS) {            \
         A* p = ptr_of<A>(q);                                    \
         const int arity = atom_arity_of(Fn);                    \
         const size_t h = vm->heap_publishing(1 + arity);        \
@@ -1741,26 +1755,11 @@ class RuntimeError: public std::runtime_error {
           vm->dump_register(Ai);                                \
           vm->dump_heap(h, 1 + arity);                          \
         }                                                       \
-      } else if (tag == TAG_STR) {                              \
-        A* p = ptr_of<A>(q);                                    \
-        if (p[0].load() != Fn) {                                \
-          failed = true;                                        \
-          vm->fail();                                           \
-          break;                                                \
-        }                                                       \
-        const int arity = atom_arity_of(Fn);                    \
-        for (int i = arity; i > 0; --i) {                       \
-          vm->push(p[i].load());                                \
-        }                                                       \
-        if (vm->is_log_trace()) {                               \
-          vm->dump_register(Ai);                                \
-          vm->dump_heap(p, 1 + arity);                          \
-        }                                                       \
       } else {                                                  \
         if (vm->is_log_trace()) {                               \
           vm->dump_register(Ai);                                \
         }                                                       \
-        vm->fail();                                             \
+        failed = true;                                          \
         continue;                                               \
       }                                                         \
     } while (0);                                                \
@@ -1773,7 +1772,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_unify_variable(Vn)                             \
   log_trace(vm, vm->pc << ": unify_variable(" << Vn << ")"); \
   {                                                          \
-    Q q = deref(vm->pop());                                  \
+    const Q q = deref(vm->pop());                            \
     vm->in[Vn] = q;                                          \
     if (vm->is_log_trace()) {                                \
       vm->dump_register(Vn);                                 \
@@ -1782,7 +1781,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_unify_value(Vn)                             \
   log_trace(vm, vm->pc << ": unify_value(" << Vn << ")"); \
   {                                                       \
-    Q q = vm->pop();                                      \
+    const Q q = vm->pop();                                \
     if (!vm->unify(q, vm->in[Vn])) {                      \
       vm->fail();                                         \
       continue;                                           \
@@ -1795,7 +1794,7 @@ class RuntimeError: public std::runtime_error {
   log_trace(vm, vm->pc << ": unify_constant("             \
             << to_str(C) << ")");                         \
   {                                                       \
-    Q q = vm->pop();                                      \
+    const Q q = vm->pop();                                \
     if (!vm->unify(C, q)) {                               \
       vm->fail();                                         \
       continue;                                           \
@@ -1804,7 +1803,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_unify_nil                                   \
   log_trace(vm, vm->pc << ": unify_nil" << ")");          \
   {                                                       \
-    Q q = deref(vm->pop());                               \
+    const Q q = deref(vm->pop());                         \
     if (!vm->unify(tagptr<TAG_NIL, Q>(0), q)) {           \
       vm->fail();                                         \
       continue;                                           \
@@ -1817,7 +1816,14 @@ class RuntimeError: public std::runtime_error {
     do {                                                  \
       Q q = deref(vm->pop());                             \
       const TAG_T tag = tag_of(q);                        \
-      if (tag == TAG_REF || tag == TAG_SUS) {             \
+      if (tag == TAG_LIST) {                              \
+        A* p = ptr_of<A>(q);                              \
+        vm->push((p + 1)->load());                        \
+        vm->push((p + 0)->load());                        \
+        if (vm->is_log_trace()) {                         \
+          vm->dump_heap(p, 2);                            \
+        }                                                 \
+      } else if (tag == TAG_REF || tag == TAG_SUS) {      \
         A* p = ptr_of<A>(q);                              \
         if (vm->is_log_trace()) {                         \
           vm->dump_heap(p, 1);                            \
@@ -1838,13 +1844,6 @@ class RuntimeError: public std::runtime_error {
         vm->push(cdr);                                    \
         vm->push(car);                                    \
         vm->heap_published(2);                            \
-      } else if (tag == TAG_LIST) {                       \
-        A* p = ptr_of<A>(q);                              \
-        vm->push((p + 1)->load());                        \
-        vm->push((p + 0)->load());                        \
-        if (vm->is_log_trace()) {                         \
-          vm->dump_heap(p, 2);                            \
-        }                                                 \
       } else {                                            \
         failed = true;                                    \
         break;                                            \
@@ -1865,7 +1864,20 @@ class RuntimeError: public std::runtime_error {
     do {                                                              \
       Q q = deref(vm->pop());                                         \
       const TAG_T tag = tag_of(q);                                    \
-      if (tag == TAG_REF || tag == TAG_SUS) {                         \
+      if (tag == TAG_STR) {                                           \
+        A* p = ptr_of<A>(q);                                          \
+        if (p->load() != Fn) {                                        \
+          failed = true;                                              \
+          break;                                                      \
+        }                                                             \
+        const int arity = atom_arity_of(Fn);                          \
+        for (int i = arity; i > 0; --i) {                             \
+          vm->push(p[i].load());                                      \
+        }                                                             \
+        if (vm->is_log_trace()) {                                     \
+          vm->dump_heap(p, arity + 1);                                \
+        }                                                             \
+      } else if (tag == TAG_REF || tag == TAG_SUS) {                  \
         A* p = ptr_of<A>(q);                                          \
         if (vm->is_log_trace()) {                                     \
           vm->dump_heap(p, 1);                                        \
@@ -1889,19 +1901,6 @@ class RuntimeError: public std::runtime_error {
         if (vm->is_log_trace()) {                                     \
           vm->dump_heap(p, 1);                                        \
           vm->dump_heap(h, arity + 1);                                \
-        }                                                             \
-      } else if (tag == TAG_STR) {                                    \
-        A* p = ptr_of<A>(q);                                          \
-        if (p->load() != Fn) {                                        \
-          failed = true;                                              \
-          break;                                                      \
-        }                                                             \
-        const int arity = atom_arity_of(Fn);                          \
-        for (int i = arity; i > 0; --i) {                             \
-          vm->push(p[i].load());                                      \
-        }                                                             \
-        if (vm->is_log_trace()) {                                     \
-          vm->dump_heap(p, arity + 1);                                \
         }                                                             \
       } else {                                                        \
         failed = true;                                                \
@@ -1935,13 +1934,11 @@ class RuntimeError: public std::runtime_error {
             << "," << Ai << ")");                           \
   {                                                         \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);             \
-    const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF || t == TAG_SUS) {                     \
-      vm->add_wait_list(q);                                 \
-      vm->fail();                                           \
-      continue;                                             \
-    }                                                       \
     if (q != C) {                                           \
+      const TAG_T t = tag_of(q);                            \
+      if (t == TAG_REF || t == TAG_SUS) {                   \
+        vm->add_wait_list(q);                               \
+      }                                                     \
       vm->fail();                                           \
       continue;                                             \
     }                                                       \
@@ -1952,12 +1949,10 @@ class RuntimeError: public std::runtime_error {
   {                                                         \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);             \
     const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF || t == TAG_SUS) {                     \
-      vm->add_wait_list(q);                                 \
-      vm->fail();                                           \
-      continue;                                             \
-    }                                                       \
     if (t != TAG_NIL) {                                     \
+      if (t == TAG_REF || t == TAG_SUS) {                   \
+        vm->add_wait_list(q);                               \
+      }                                                     \
       vm->fail();                                           \
       continue;                                             \
     }                                                       \
@@ -1971,12 +1966,10 @@ class RuntimeError: public std::runtime_error {
   {                                               \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);   \
     const TAG_T t = tag_of(q);                    \
-    if (t == TAG_REF || t == TAG_SUS) {           \
-      vm->add_wait_list(q);                       \
-      vm->fail();                                 \
-      continue;                                   \
-    }                                             \
     if (t != TAG_LIST) {                          \
+      if (t == TAG_REF || t == TAG_SUS) {         \
+        vm->add_wait_list(q);                     \
+      }                                           \
       vm->fail();                                 \
       continue;                                   \
     }                                             \
@@ -1994,12 +1987,10 @@ class RuntimeError: public std::runtime_error {
   {                                                        \
     const Q q = vm->in[Ai] = deref(vm->in[Ai]);            \
     const TAG_T t = tag_of(q);                             \
-    if (t == TAG_REF || t == TAG_SUS) {                    \
-      vm->add_wait_list(q);                                \
-      vm->fail();                                          \
-      continue;                                            \
-    }                                                      \
     if (t != TAG_STR) {                                    \
+      if (t == TAG_REF || t == TAG_SUS) {                  \
+        vm->add_wait_list(q);                              \
+      }                                                    \
       vm->fail();                                          \
       continue;                                            \
     }                                                      \
@@ -2020,7 +2011,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_read_variable(Vn)                               \
   {                                                           \
-    Q q = deref(vm->pop());                                   \
+    const Q q = deref(vm->pop());                             \
     log_trace(vm, vm->pc << ": read_variable(" << Vn << ")"); \
     vm->in[Vn] = q;                                           \
   }
@@ -2028,15 +2019,13 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_read_value(Vn)                                \
   log_trace(vm, vm->pc << ": read_value(" << Vn << ")");    \
   {                                                         \
-    Q q = deref(vm->pop());                                 \
-    const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF || t == TAG_SUS) {                     \
-      vm->add_wait_list(q);                                 \
-      vm->fail();                                           \
-      continue;                                             \
-    }                                                       \
-    Q q2 = deref(vm->in[Vn]);                               \
+    const Q q = deref(vm->pop());                           \
+    const Q q2 = deref(vm->in[Vn]);                         \
     if (q != q2) {                                          \
+      const TAG_T t = tag_of(q);                            \
+      if (t == TAG_REF || t == TAG_SUS) {                   \
+        vm->add_wait_list(q);                               \
+      }                                                     \
       vm->fail();                                           \
       continue;                                             \
     }                                                       \
@@ -2045,44 +2034,38 @@ class RuntimeError: public std::runtime_error {
   log_trace(vm, vm->pc << ": read_constant("                \
             << to_str(C) << ")");                           \
   {                                                         \
-    Q q = deref(vm->pop());                                 \
-    const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF || t == TAG_SUS) {                     \
-      vm->add_wait_list(q);                                 \
-      vm->fail();                                           \
-      continue;                                             \
-    }                                                       \
+    const Q q = deref(vm->pop());                           \
     if (q != C) {                                           \
+      const TAG_T t = tag_of(q);                            \
+      if (t == TAG_REF || t == TAG_SUS) {                   \
+        vm->add_wait_list(q);                               \
+      }                                                     \
       vm->fail();                                           \
       continue;                                             \
     }                                                       \
   }
 #define MACRO_read_nil                                      \
   {                                                         \
-    Q q = deref(vm->pop());                                 \
+    const Q q = deref(vm->pop());                           \
     log_trace(vm, vm->pc << ": read_nil" << to_str(q));     \
     const TAG_T t = tag_of(q);                              \
-    if (t == TAG_REF || t == TAG_SUS) {                     \
-      vm->add_wait_list(q);                                 \
-      vm->fail();                                           \
-      continue;                                             \
-    }                                                       \
     if (t != TAG_NIL) {                                     \
+      if (t == TAG_REF || t == TAG_SUS) {                   \
+        vm->add_wait_list(q);                               \
+      }                                                     \
       vm->fail();                                           \
       continue;                                             \
     }                                                       \
   }
 #define MACRO_read_list                                       \
   {                                                           \
-    Q q = deref(vm->pop());                                   \
+    const Q q = deref(vm->pop());                             \
     log_trace(vm, vm->pc << ": read_list: " << to_str(q));    \
     const TAG_T t = tag_of(q);                                \
-    if (t == TAG_REF || t == TAG_SUS) {                       \
-      vm->add_wait_list(q);                                   \
-      vm->fail();                                             \
-      continue;                                               \
-    }                                                         \
     if (t != TAG_LIST) {                                      \
+      if (t == TAG_REF || t == TAG_SUS) {                     \
+        vm->add_wait_list(q);                                 \
+      }                                                       \
       vm->fail();                                             \
       continue;                                               \
     }                                                         \
