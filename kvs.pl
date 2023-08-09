@@ -1,4 +1,4 @@
-:- module(kvs, [create/1, put/3, get/3, remove/2, keys/2]).
+:- module(kvs, [create/1, put/3, get/3, remove/2, keys/2, gc/2]).
 
 %% create(-KVS)
 % Key-Value-Store を作成する（未完成リストを作成する）

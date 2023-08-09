@@ -555,30 +555,108 @@ assign_registers(Ctx, N) :-
     always_success(assign_registers_x(Ctx, Source, N, _)),
     N1 is N + 1,
     always_success(assign_registers_out(Ctx, N1)).
-assign_registers_x(_, [], Vn, Vn) :- !.
-assign_registers_x(Ctx, [S|Ss], N, Vn) :-
-    ( var(S)
-    -> always_success(assign_registers_x(Ctx, Ss, N, Vn))
-    ;
-    S = reg(x, NReg)
-    -> ( var(NReg) -> NReg is N + 1, N1 is NReg + 1,
-                      always_success(assign_registers_x(Ctx, Ss, N1, Vn))
-       ; NReg > N -> N1 is NReg + 1,
-                     always_success(assign_registers_x(Ctx, Ss, N1, Vn))
-       ; always_success(assign_registers_x(Ctx, Ss, N, Vn)) )
-    ; S =.. [label|_]
-    -> always_success(assign_registers_x(Ctx, Ss, N, Vn))
-    ; S =.. [_|Args]
-      ->
-      always_success(assign_registers_x(Ctx, Args, N, N1)),
-      always_success(assign_registers_x(Ctx, Ss, N1, Vn))
-    ; always_success(assign_registers_x(Ctx, Ss, N, Vn)) ).
 
-assign_registers_x(_, [], N, N) :- !.
-assign_registers_x(Ctx, [K|Ks], N, N2) :-
-    ( var(K), N1 is N + 1, get(Ctx, K, reg(x, N1))
-      -> remove(Ctx, K), assign_registers_x(Ctx, Ks, N1, N2)
-    ; assign_registers_x(Ctx, Ks, N, N2)).
+assign_registers_x(Ctx, Source, Vn, Vn2) :-
+    always_success(correct_x_vars(Ctx, Source, VarsKvs)),
+    always_success(assign_vars(VarsKvs, Vn, Vn2)).
+
+correct_x_vars(Ctx, Source, VarsKvs) :-
+    create(VarsKvs),
+    correct_x_vars(Ctx, Source, 0, VarsKvs).
+correct_x_vars(_, [], _, _) :- !.
+correct_x_vars(Ctx, [S|Ss], N, Vars) :-
+    N1 is N + 1,
+    ( var(S) -> correct_x_vars(Ctx, Ss, N1, Vars) 
+    ; correct_x_vars_in_term(Ctx, S, N1, Vars),
+      correct_x_vars(Ctx, Ss, N1, Vars) ).
+correct_x_vars_in_term(_, S, _, _) :-
+    var(S), !.
+correct_x_vars_in_term(_, reg(x, NReg), N, Vars) :- !,
+    ( get(Vars, NReg, (Start, _)) ->
+      put(Vars, NReg, (Start, N))
+    ; put(Vars, NReg, (N, N)) ) .
+correct_x_vars_in_term(_, [], _, _) :- !.
+correct_x_vars_in_term(Ctx, [S|Ss], N, Vars) :- !,
+    correct_x_vars_in_term(Ctx, S, N, Vars),
+    correct_x_vars_in_term(Ctx, Ss, N, Vars).
+correct_x_vars_in_term(Ctx, S, N, Vars) :-
+    S =.. [_|Args], !,
+    correct_x_vars_in_term(Ctx, Args, N, Vars).
+
+assign_vars(VarsKvs, Vn, Vn2) :-
+    gc(VarsKvs, VarsKvs1),
+    kvs_to_list(VarsKvs1, VarsList0),
+    always_success(sort_vars_list(VarsList0, VarsList1)),
+    always_success(assign_vars_list(VarsList1, Vn, Vn2)).
+
+kvs_to_list(kvs(VarsKvs), VarsList) :-
+    copy_list(VarsKvs, VarsList).
+copy_list(V, []) :- var(V), !.
+copy_list([H|T], [H|T2]) :-
+    copy_list(T, T2).
+
+sort_vars_list(Ls, Sorted) :-
+    sort_vars_list(Ls, Sorted, []).
+sort_vars_list([], Ac, Ac).
+sort_vars_list([H|T], Sorted, Ac) :-
+    insert_var_list(H, Ac, Ac2),
+    sort_vars_list(T, Sorted, Ac2).
+insert_var_list(X, [Y|T], [Y|T2]) :-
+    X = _- put((Xs,Xe)),
+    Y = _- put((Ys,Ye)),
+    Xl is Xe - Xs,
+    Yl is Ye - Ys,
+    Xl =< Yl,
+    insert_var_list(X, T, T2).
+insert_var_list(X, [Y|T], [X,Y|T]) :-
+    X = _- put((Xs,Xe)),
+    Y = _- put((Ys,Ye)),
+    Xl is Xe - Xs,
+    Yl is Ye - Ys,
+    Xl > Yl.
+insert_var_list(X, [], [X]).
+
+assign_vars_list(VarsList, Vn, Vn2) :-
+    always_success(assign_vars_list(VarsList, VarsList, Vn, Vn2, Vn)).
+assign_vars_list([], _, _, Vmax, Vmax) :- !.
+assign_vars_list([Var|Vs], AllVars, Vmin, Vmax, Ac) :-
+    always_success(assign_single_var(Var, AllVars, Vmin, Vn)),
+    max(Vn, Ac, Ac2),
+    always_success(assign_vars_list(Vs, AllVars, Vn, Vmax, Ac2)).
+
+assign_single_var(Var, AllVars, Vmin, Vmax) :-
+    Var = V-put((_,_)),
+    ( var(V) ->
+      always_success(find_overwrap(Var, AllVars, Overwrap)),
+      always_success(assign_non_overwrap(Var, Overwrap, Vmin)),
+      Var = Vmax-put((_,_))
+    ; Vmin = Vmax ).
+    
+not_assignable([O|Overwrap], Vn) :-
+    ( O == Vn -> true
+    ; not_assignable(Overwrap, Vn) ).
+assign_non_overwrap(Var, Overwrap, Vn) :-
+    Vn1 is Vn + 1, 
+    ( not_assignable(Vn, Overwrap) ->
+      assign_non_overwrap(Var, Overwrap, Vn1)
+    ; Var = Vn1-put((_,_)) ).
+
+find_overwrap(Var, AllVars, Overwrap) :-
+    find_overwrap(Var, AllVars, Overwrap, []).
+find_overwrap(_-put((_,_)), [], Ac, Ac) :- !.
+find_overwrap(Var, [Var2|Vars], Overwrap, Ac) :-
+    Var = _-put((S,E)),
+    Var2 = V2-put((S2,E2)),
+    ( integer(V2), overwrap(S, E, S2, E2) ->
+      find_overwrap(Var, Vars, Overwrap, [V2|Ac])
+    ; find_overwrap(Var, Vars, Overwrap, Ac) ).
+overwrap(S, E, S2, _) :- S =< S2, S2 =< E.
+overwrap(S, E, _, E2) :- S =< E2, E2 =< E.
+overwrap(S, _, S2, E2) :- S2 =< S, S =< E2.
+overwrap(_, E, S2, E2) :- S2 =< E, E =< E2.
+max(I, J, J) :- I =< J, !.
+max(I, _, I).
+
 % out レジスタ位置を割り当てる。
 % call 実行までに使用しているレジスタを除外したうえで
 % 最も低い位置の未使用レジスタ位置を out レジスタ位置とする。
