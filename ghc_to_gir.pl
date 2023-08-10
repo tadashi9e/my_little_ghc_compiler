@@ -190,7 +190,7 @@ ghc_compile_goal_pred(Ctx, Label, goal(G, N), PredNo, [(Head :- Body)|GoalSource
     always_success(ghc_compile_guard(Ctx, Body)),
     write_source(Ctx, activate),
     always_success(ghc_compile_goal_body(Ctx, Body)),
-    always_success(assign_registers(Ctx, N)),
+    always_success(allocate_registers(Ctx, N)),
     PredNo1 is PredNo + 1,
     always_success(ghc_compile_goal_pred(Ctx, NextLabel, goal(G, N), PredNo1, GoalSource)).
 ghc_compile_goal_pred(Ctx, Label, goal(G, N), PredNo, [Head|GoalSource]) :-
@@ -204,7 +204,7 @@ ghc_compile_goal_pred(Ctx, Label, goal(G, N), PredNo, [Head|GoalSource]) :-
     always_success(ghc_compile_head_args(Ctx, Head)),
     write_source(Ctx, activate),
     write_source(Ctx, proceed),
-    always_success(assign_registers(Ctx, N)),
+    always_success(allocate_registers(Ctx, N)),
     PredNo1 is PredNo + 1,
     always_success(ghc_compile_goal_pred(Ctx, NextLabel, goal(G, N), PredNo1, GoalSource)).
 
@@ -217,7 +217,7 @@ ghc_compile_otherwise(Ctx, Label, goal(G, N), PredNo, [(Head :- Body)]) :-
     always_success(ghc_compile_guard(Ctx, Body)),
     write_source(Ctx, activate),
     always_success(ghc_compile_goal_body(Ctx, Body)),
-    always_success(assign_registers(Ctx, N)).
+    always_success(allocate_registers(Ctx, N)).
 ghc_compile_otherwise(Ctx, Label, goal(G, N), PredNo, [Head]) :-
     functor(Head, _, _),
     !,
@@ -227,7 +227,7 @@ ghc_compile_otherwise(Ctx, Label, goal(G, N), PredNo, [Head]) :-
     always_success(ghc_compile_head_args(Ctx, Head)),
     write_source(Ctx, activate),
     write_source(Ctx, proceed),
-    always_success(assign_registers(Ctx, N)).
+    always_success(allocate_registers(Ctx, N)).
 
 %% ghc_compile_head_args(?Ctx, +Head)
 % GHC ソースコードのヘッド部 Head に対応する WAM 風中間コードを生成し、
@@ -547,18 +547,18 @@ ghc_compile_tail_call(Ctx, Goal) :-
     ; ghc_compile_call(Ctx, tail, Goal)
     ; fail).
 
-%% assign_registers(?Ctx, +N)
+%% allocate_registers(?Ctx, +N)
 % 変数をレジスタスタック上の位置に割り付ける。
 % 割り付けに使用しなかった領域は seq-call / tail-call 用に用いる。
-assign_registers(Ctx, N) :-
+allocate_registers(Ctx, N) :-
     get(Ctx, ghc_source, Source),
-    always_success(assign_registers_x(Ctx, Source, N, _)),
+    always_success(allocate_registers_x(Ctx, Source, N, _)),
     N1 is N + 1,
-    always_success(assign_registers_out(Ctx, N1)).
+    always_success(allocate_registers_out(Ctx, N1)).
 
-assign_registers_x(Ctx, Source, Vn, Vn2) :-
+allocate_registers_x(Ctx, Source, Vn, Vn2) :-
     always_success(correct_x_vars(Ctx, Source, VarsKvs)),
-    always_success(assign_vars(VarsKvs, Vn, Vn2)).
+    always_success(allocate_vars(VarsKvs, Vn, Vn2)).
 
 correct_x_vars(Ctx, Source, VarsKvs) :-
     create(VarsKvs),
@@ -583,7 +583,7 @@ correct_x_vars_in_term(Ctx, S, N, Vars) :-
     S =.. [_|Args], !,
     correct_x_vars_in_term(Ctx, Args, N, Vars).
 
-assign_vars(VarsKvs, Vn, Vn2) :-
+allocate_vars(VarsKvs, Vn, Vn2) :-
     gc(VarsKvs, VarsKvs1),
     kvs_to_list(VarsKvs1, VarsList0),
     always_success(sort_vars_list(VarsList0, VarsList1)),
@@ -622,7 +622,7 @@ assign_vars_list([], _, _, Vmax, Vmax) :- !.
 assign_vars_list([Var|Vs], AllVars, Vmin, Vmax, Ac) :-
     always_success(assign_single_var(Var, AllVars, Vmin, Vn)),
     max(Vn, Ac, Ac2),
-    always_success(assign_vars_list(Vs, AllVars, Vn, Vmax, Ac2)).
+    always_success(assign_vars_list(Vs, AllVars, Vmin, Vmax, Ac2)).
 
 assign_single_var(Var, AllVars, Vmin, Vmax) :-
     Var = V-put((_,_)),
@@ -632,12 +632,12 @@ assign_single_var(Var, AllVars, Vmin, Vmax) :-
       Var = Vmax-put((_,_))
     ; Vmin = Vmax ).
     
-not_assignable([O|Overwrap], Vn) :-
+not_assignable([O-_|Overwrap], Vn) :-
     ( O == Vn -> true
     ; not_assignable(Overwrap, Vn) ).
 assign_non_overwrap(Var, Overwrap, Vn) :-
     Vn1 is Vn + 1, 
-    ( not_assignable(Vn, Overwrap) ->
+    ( not_assignable(Overwrap, Vn1) ->
       assign_non_overwrap(Var, Overwrap, Vn1)
     ; Var = Vn1-put((_,_)) ).
 
@@ -648,7 +648,7 @@ find_overwrap(Var, [Var2|Vars], Overwrap, Ac) :-
     Var = _-put((S,E)),
     Var2 = V2-put((S2,E2)),
     ( integer(V2), overwrap(S, E, S2, E2) ->
-      find_overwrap(Var, Vars, Overwrap, [V2|Ac])
+      find_overwrap(Var, Vars, Overwrap, [Var2|Ac])
     ; find_overwrap(Var, Vars, Overwrap, Ac) ).
 overwrap(S, E, S2, _) :- S =< S2, S2 =< E.
 overwrap(S, E, _, E2) :- S =< E2, E2 =< E.
@@ -660,26 +660,26 @@ max(I, _, I).
 % out レジスタ位置を割り当てる。
 % call 実行までに使用しているレジスタを除外したうえで
 % 最も低い位置の未使用レジスタ位置を out レジスタ位置とする。
-assign_registers_out(Ctx, N) :-
+allocate_registers_out(Ctx, N) :-
     get(Ctx, ghc_source, Source),
-    assign_registers_out(Ctx, Source, N, _).
-assign_registers_out(_, [], Vn, Vn) :- !.
-assign_registers_out(Ctx, [S|Ss], N, Vn) :-
+    allocate_registers_out(Ctx, Source, N, _).
+allocate_registers_out(_, [], Vn, Vn) :- !.
+allocate_registers_out(Ctx, [S|Ss], N, Vn) :-
     ( S = seq(Out)
       ->
-      always_success(assign_registers_out(Ctx, Ss, N, Out))
+      always_success(allocate_registers_out(Ctx, Ss, N, Out))
     ; S = par(Out)
       ->
-      always_success(assign_registers_out(Ctx, Ss, N, Out))
+      always_success(allocate_registers_out(Ctx, Ss, N, Out))
     ; S = tail(Out)
       ->
-      always_success(assign_registers_out(Ctx, Ss, N, Out))
+      always_success(allocate_registers_out(Ctx, Ss, N, Out))
     ; ( S =.. [call|_] ; S =.. [spawn|_] ; S =.. [execute|_] )
       ->
       Vn is N + 1,
-      always_success(assign_registers_out(Ctx, Ss, N, _))
+      always_success(allocate_registers_out(Ctx, Ss, N, _))
     ; always_success(find_used_registers(Ctx, S, x, N, N1)),
-      always_success(assign_registers_out(Ctx, Ss, N1, Vn) )).
+      always_success(allocate_registers_out(Ctx, Ss, N1, Vn) )).
     
 %% max_register_index(+Ctx, +Type, -Max)
 % 現在のコンパイルコード（ゴール単位の断片）で使用している最大レジスタ位置を
