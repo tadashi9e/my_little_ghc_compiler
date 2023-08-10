@@ -1669,8 +1669,8 @@ class RuntimeError: public std::runtime_error {
       const TAG_T tag = tag_of(q);                        \
       if (tag == TAG_LIST) {                              \
         A* p = ptr_of<A>(q);                              \
-        vm->push((p + 1)->load());                        \
-        vm->push((p + 0)->load());                        \
+        vm->push(p[1].load());                            \
+        vm->push(p[0].load());                            \
         if (vm->is_log_trace()) {                         \
           vm->dump_register(Ai);                          \
           vm->dump_heap(p, 2);                            \
@@ -1818,8 +1818,8 @@ class RuntimeError: public std::runtime_error {
       const TAG_T tag = tag_of(q);                        \
       if (tag == TAG_LIST) {                              \
         A* p = ptr_of<A>(q);                              \
-        vm->push((p + 1)->load());                        \
-        vm->push((p + 0)->load());                        \
+        vm->push(p[1].load());                            \
+        vm->push(p[0].load());                            \
         if (vm->is_log_trace()) {                         \
           vm->dump_heap(p, 2);                            \
         }                                                 \
@@ -1974,8 +1974,8 @@ class RuntimeError: public std::runtime_error {
       continue;                                   \
     }                                             \
     A* p = ptr_of<A>(q);                          \
-    vm->push((p + 1)->load());                    \
-    vm->push((p + 0)->load());                    \
+    vm->push(p[1].load());                        \
+    vm->push(p[0].load());                        \
   }
 
 #define MACRO_check_structure(Fn, Ai)                      \
@@ -2001,7 +2001,7 @@ class RuntimeError: public std::runtime_error {
     }                                                      \
     const int arity = atom_arity_of(Fn);                   \
     for (int i = arity; i > 0; --i) {                      \
-      vm->push((p + i)->load());                           \
+      vm->push(p[i].load());                               \
     }                                                      \
     if (vm->is_log_trace()) {                              \
       vm->dump_register(Ai);                               \
@@ -2070,8 +2070,8 @@ class RuntimeError: public std::runtime_error {
       continue;                                               \
     }                                                         \
     A* p = ptr_of<A>(q);                                      \
-    vm->push((p + 1)->load());                                \
-    vm->push((p + 0)->load());                                \
+    vm->push(p[1].load());                                    \
+    vm->push(p[0].load());                                    \
     if (vm->is_log_trace()) {                                 \
       vm->dump_heap(p, 2);                                    \
     }                                                         \

@@ -515,7 +515,7 @@ void module(VM::ptr vm, Program* prog) {
 }
     case 28:  // __codes_to_atom__/3
       MACRO_goal(28,atom(16));
-      MACRO_requires(10);
+      MACRO_requires(9);
       MACRO_try_guard_else(29);
       MACRO_check_nil(reg::in(2));
       MACRO_activate;
@@ -531,16 +531,16 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_call(149,30);  // call(integer/1)
     case 30:  // return_from_call(integer/1)
       MACRO_activate;
-      MACRO_par(7);
+      MACRO_par(6);
       MACRO_out_value(reg::in(3),reg::out(1));
       MACRO_out_value(reg::x(5),reg::out(2));
-      MACRO_out_variable(reg::x(6),reg::out(3));
+      MACRO_out_variable(reg::x(5),reg::out(3));
       MACRO_spawn(32,31);  // spawn(__atom_code_concat__/3)
     case 31:  // return_from_spawn(__atom_code_concat__/3)
-      MACRO_tail(7);
+      MACRO_tail(6);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_out_value(reg::x(4),reg::out(2));
-      MACRO_out_value(reg::x(6),reg::out(3));
+      MACRO_out_value(reg::x(5),reg::out(3));
       MACRO_execute(28,3);  // execute(__codes_to_atom__/3)
     case 32:  // __atom_code_concat__/3
       MACRO_goal(32,atom(17));
@@ -629,7 +629,7 @@ void module(VM::ptr vm, Program* prog) {
 }
     case 37:  // __chars_to_atom__/3
       MACRO_goal(37,atom(20));
-      MACRO_requires(10);
+      MACRO_requires(9);
       MACRO_try_guard_else(38);
       MACRO_check_nil(reg::in(2));
       MACRO_activate;
@@ -641,16 +641,16 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_read_variable(reg::x(5));
       MACRO_read_variable(reg::x(4));
       MACRO_activate;
-      MACRO_par(7);
+      MACRO_par(6);
       MACRO_out_value(reg::in(3),reg::out(1));
       MACRO_out_value(reg::x(5),reg::out(2));
-      MACRO_out_variable(reg::x(6),reg::out(3));
+      MACRO_out_variable(reg::x(5),reg::out(3));
       MACRO_spawn(12,39);  // spawn(atom_concat/3)
     case 39:  // return_from_spawn(atom_concat/3)
-      MACRO_tail(7);
+      MACRO_tail(6);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_out_value(reg::x(4),reg::out(2));
-      MACRO_out_value(reg::x(6),reg::out(3));
+      MACRO_out_value(reg::x(5),reg::out(3));
       MACRO_execute(37,3);  // execute(__chars_to_atom__/3)
     case 40:  // atom_number/2
       MACRO_goal(40,atom(21));
@@ -2091,7 +2091,7 @@ void module(VM::ptr vm, Program* prog) {
 }
     case 214:  // append/3
       MACRO_goal(214,atom(102));
-      MACRO_requires(10);
+      MACRO_requires(9);
       MACRO_try_guard_else(215);
       MACRO_check_nil(reg::in(1));
       MACRO_activate;
@@ -2100,13 +2100,13 @@ void module(VM::ptr vm, Program* prog) {
     case 215:  // append/3-2
       MACRO_try_guard_else(216);
       MACRO_check_list(reg::in(1));
-      MACRO_read_variable(reg::x(6));
+      MACRO_read_variable(reg::x(5));
       MACRO_read_variable(reg::x(4));
       MACRO_check_list(reg::in(3));
-      MACRO_read_value(reg::x(6));
+      MACRO_read_value(reg::x(5));
       MACRO_read_variable(reg::x(5));
       MACRO_activate;
-      MACRO_tail(7);
+      MACRO_tail(6);
       MACRO_out_value(reg::x(4),reg::out(1));
       MACRO_out_value(reg::in(2),reg::out(2));
       MACRO_out_value(reg::x(5),reg::out(3));
@@ -2119,37 +2119,37 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_activate;
       MACRO_get_list(reg::in(3));
       MACRO_unify_value(reg::x(5));
-      MACRO_unify_variable(reg::x(6));
-      MACRO_tail(7);
+      MACRO_unify_variable(reg::x(5));
+      MACRO_tail(6);
       MACRO_out_value(reg::x(4),reg::out(1));
       MACRO_out_value(reg::in(2),reg::out(2));
-      MACRO_out_value(reg::x(6),reg::out(3));
+      MACRO_out_value(reg::x(5),reg::out(3));
       MACRO_execute(214,3);  // execute(append/3)
     case 217:  // append/3-4
       MACRO_try_guard_else_suspend;
-      MACRO_seq(7);
+      MACRO_seq(6);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_call(151,218);  // call(var/1)
     case 218:  // return_from_call(var/1)
       MACRO_activate;
-      MACRO_par(7);
+      MACRO_par(6);
       MACRO_out_value(reg::in(2),reg::out(1));
       MACRO_out_variable(reg::x(4),reg::out(2));
       MACRO_spawn(222,219);  // spawn(reverse/2)
     case 219:  // return_from_spawn(reverse/2)
-      MACRO_par(7);
+      MACRO_par(6);
       MACRO_out_value(reg::in(3),reg::out(1));
       MACRO_out_variable(reg::x(5),reg::out(2));
       MACRO_spawn(222,220);  // spawn(reverse/2)
     case 220:  // return_from_spawn(reverse/2)
-      MACRO_par(7);
+      MACRO_par(6);
       MACRO_out_value(reg::x(4),reg::out(1));
-      MACRO_out_variable(reg::x(6),reg::out(2));
+      MACRO_out_variable(reg::x(4),reg::out(2));
       MACRO_out_value(reg::x(5),reg::out(3));
       MACRO_spawn(214,221);  // spawn(append/3)
     case 221:  // return_from_spawn(append/3)
-      MACRO_tail(7);
-      MACRO_out_value(reg::x(6),reg::out(1));
+      MACRO_tail(6);
+      MACRO_out_value(reg::x(4),reg::out(1));
       MACRO_out_value(reg::in(1),reg::out(2));
       MACRO_execute(222,2);  // execute(reverse/2)
     case 222:  // reverse/2
@@ -3256,7 +3256,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_execute(100,1);  // execute(writeln/1)
     case 346:  // test_reverse/0
       MACRO_goal(346,atom(203));
-      MACRO_requires(5);
+      MACRO_requires(4);
       MACRO_try_guard_else_suspend;
       MACRO_activate;
       MACRO_set_variable(reg::x(1));
@@ -3293,13 +3293,13 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_unify_list;
       MACRO_unify_constant(atom(189));
       MACRO_unify_nil;
-      MACRO_par(3);
+      MACRO_par(2);
       MACRO_out_value(reg::x(1),reg::out(1));
-      MACRO_out_variable(reg::x(2),reg::out(2));
+      MACRO_out_variable(reg::x(1),reg::out(2));
       MACRO_spawn(222,347);  // spawn(reverse/2)
     case 347:  // return_from_spawn(reverse/2)
-      MACRO_tail(3);
-      MACRO_out_value(reg::x(2),reg::out(1));
+      MACRO_tail(2);
+      MACRO_out_value(reg::x(1),reg::out(1));
       MACRO_execute(100,1);  // execute(writeln/1)
     case 348:  // test_nth0/0
       MACRO_goal(348,atom(204));
@@ -3313,7 +3313,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_execute(369,0);  // execute(test_nth0_rev_/0)
     case 350:  // test_nth0_/0
       MACRO_goal(350,atom(205));
-      MACRO_requires(11);
+      MACRO_requires(6);
       MACRO_try_guard_else_suspend;
       MACRO_activate;
       MACRO_set_variable(reg::x(1));
@@ -3364,82 +3364,82 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,353);  // spawn(write/1)
     case 353:  // return_from_spawn(write/1)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(1),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(3),reg::out(3));
+      MACRO_out_variable(reg::x(2),reg::out(3));
       MACRO_spawn(228,354);  // spawn(nth0/3)
     case 354:  // return_from_spawn(nth0/3)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(atom(207),reg::out(1));
       MACRO_spawn(108,355);  // spawn(write/1)
     case 355:  // return_from_spawn(write/1)
-      MACRO_par(4);
-      MACRO_out_value(reg::x(3),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,356);  // spawn(write/1)
     case 356:  // return_from_spawn(write/1)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(4),reg::out(3));
+      MACRO_out_variable(reg::x(2),reg::out(3));
       MACRO_spawn(228,357);  // spawn(nth0/3)
     case 357:  // return_from_spawn(nth0/3)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(atom(208),reg::out(1));
       MACRO_spawn(108,358);  // spawn(write/1)
     case 358:  // return_from_spawn(write/1)
-      MACRO_par(5);
-      MACRO_out_value(reg::x(4),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,359);  // spawn(write/1)
     case 359:  // return_from_spawn(write/1)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(3),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(5),reg::out(3));
+      MACRO_out_variable(reg::x(2),reg::out(3));
       MACRO_spawn(228,360);  // spawn(nth0/3)
     case 360:  // return_from_spawn(nth0/3)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(atom(209),reg::out(1));
       MACRO_spawn(108,361);  // spawn(write/1)
     case 361:  // return_from_spawn(write/1)
-      MACRO_par(6);
-      MACRO_out_value(reg::x(5),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,362);  // spawn(write/1)
     case 362:  // return_from_spawn(write/1)
-      MACRO_par(7);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(4),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(6),reg::out(3));
+      MACRO_out_variable(reg::x(2),reg::out(3));
       MACRO_spawn(228,363);  // spawn(nth0/3)
     case 363:  // return_from_spawn(nth0/3)
-      MACRO_par(7);
+      MACRO_par(3);
       MACRO_out_constant(atom(210),reg::out(1));
       MACRO_spawn(108,364);  // spawn(write/1)
     case 364:  // return_from_spawn(write/1)
-      MACRO_par(7);
-      MACRO_out_value(reg::x(6),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,365);  // spawn(write/1)
     case 365:  // return_from_spawn(write/1)
-      MACRO_par(8);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(5),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(7),reg::out(3));
+      MACRO_out_variable(reg::x(1),reg::out(3));
       MACRO_spawn(228,366);  // spawn(nth0/3)
     case 366:  // return_from_spawn(nth0/3)
-      MACRO_par(8);
+      MACRO_par(3);
       MACRO_out_constant(atom(211),reg::out(1));
       MACRO_spawn(108,367);  // spawn(write/1)
     case 367:  // return_from_spawn(write/1)
-      MACRO_par(8);
-      MACRO_out_value(reg::x(7),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(1),reg::out(1));
       MACRO_spawn(108,368);  // spawn(write/1)
     case 368:  // return_from_spawn(write/1)
-      MACRO_tail(8);
+      MACRO_tail(3);
       MACRO_out_constant(atom(59),reg::out(1));
       MACRO_execute(100,1);  // execute(writeln/1)
     case 369:  // test_nth0_rev_/0
       MACRO_goal(369,atom(212));
-      MACRO_requires(11);
+      MACRO_requires(6);
       MACRO_try_guard_else_suspend;
       MACRO_activate;
       MACRO_set_variable(reg::x(1));
@@ -3494,93 +3494,93 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_out_constant(atom(214),reg::out(1));
       MACRO_spawn(108,373);  // spawn(write/1)
     case 373:  // return_from_spawn(write/1)
-      MACRO_par(4);
-      MACRO_out_variable(reg::x(3),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(141),reg::out(3));
       MACRO_spawn(228,374);  // spawn(nth0/3)
     case 374:  // return_from_spawn(nth0/3)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,375);  // spawn(write/1)
     case 375:  // return_from_spawn(write/1)
-      MACRO_par(4);
-      MACRO_out_value(reg::x(3),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,376);  // spawn(write/1)
     case 376:  // return_from_spawn(write/1)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(atom(215),reg::out(1));
       MACRO_spawn(108,377);  // spawn(write/1)
     case 377:  // return_from_spawn(write/1)
-      MACRO_par(5);
-      MACRO_out_variable(reg::x(4),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(176),reg::out(3));
       MACRO_spawn(228,378);  // spawn(nth0/3)
     case 378:  // return_from_spawn(nth0/3)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,379);  // spawn(write/1)
     case 379:  // return_from_spawn(write/1)
-      MACRO_par(5);
-      MACRO_out_value(reg::x(4),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,380);  // spawn(write/1)
     case 380:  // return_from_spawn(write/1)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(atom(216),reg::out(1));
       MACRO_spawn(108,381);  // spawn(write/1)
     case 381:  // return_from_spawn(write/1)
-      MACRO_par(6);
-      MACRO_out_variable(reg::x(5),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(177),reg::out(3));
       MACRO_spawn(228,382);  // spawn(nth0/3)
     case 382:  // return_from_spawn(nth0/3)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,383);  // spawn(write/1)
     case 383:  // return_from_spawn(write/1)
-      MACRO_par(6);
-      MACRO_out_value(reg::x(5),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,384);  // spawn(write/1)
     case 384:  // return_from_spawn(write/1)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(atom(217),reg::out(1));
       MACRO_spawn(108,385);  // spawn(write/1)
     case 385:  // return_from_spawn(write/1)
-      MACRO_par(7);
-      MACRO_out_variable(reg::x(6),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(178),reg::out(3));
       MACRO_spawn(228,386);  // spawn(nth0/3)
     case 386:  // return_from_spawn(nth0/3)
-      MACRO_par(7);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,387);  // spawn(write/1)
     case 387:  // return_from_spawn(write/1)
-      MACRO_par(7);
-      MACRO_out_value(reg::x(6),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,388);  // spawn(write/1)
     case 388:  // return_from_spawn(write/1)
-      MACRO_par(7);
+      MACRO_par(3);
       MACRO_out_constant(atom(218),reg::out(1));
       MACRO_spawn(108,389);  // spawn(write/1)
     case 389:  // return_from_spawn(write/1)
-      MACRO_par(8);
-      MACRO_out_variable(reg::x(7),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(179),reg::out(3));
       MACRO_spawn(228,390);  // spawn(nth0/3)
     case 390:  // return_from_spawn(nth0/3)
-      MACRO_par(8);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,391);  // spawn(write/1)
     case 391:  // return_from_spawn(write/1)
-      MACRO_par(8);
-      MACRO_out_value(reg::x(7),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,392);  // spawn(write/1)
     case 392:  // return_from_spawn(write/1)
-      MACRO_tail(8);
+      MACRO_tail(3);
       MACRO_out_constant(atom(219),reg::out(1));
       MACRO_execute(100,1);  // execute(writeln/1)
     case 393:  // test_nth1/0
@@ -3595,7 +3595,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_execute(411,0);  // execute(test_nth1_rev_/0)
     case 395:  // test_nth1_/0
       MACRO_goal(395,atom(221));
-      MACRO_requires(10);
+      MACRO_requires(6);
       MACRO_try_guard_else_suspend;
       MACRO_activate;
       MACRO_set_variable(reg::x(1));
@@ -3646,68 +3646,68 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,398);  // spawn(write/1)
     case 398:  // return_from_spawn(write/1)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(3),reg::out(3));
+      MACRO_out_variable(reg::x(2),reg::out(3));
       MACRO_spawn(238,399);  // spawn(nth1/3)
     case 399:  // return_from_spawn(nth1/3)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(atom(208),reg::out(1));
       MACRO_spawn(108,400);  // spawn(write/1)
     case 400:  // return_from_spawn(write/1)
-      MACRO_par(4);
-      MACRO_out_value(reg::x(3),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,401);  // spawn(write/1)
     case 401:  // return_from_spawn(write/1)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(3),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(4),reg::out(3));
+      MACRO_out_variable(reg::x(2),reg::out(3));
       MACRO_spawn(238,402);  // spawn(nth1/3)
     case 402:  // return_from_spawn(nth1/3)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(atom(209),reg::out(1));
       MACRO_spawn(108,403);  // spawn(write/1)
     case 403:  // return_from_spawn(write/1)
-      MACRO_par(5);
-      MACRO_out_value(reg::x(4),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,404);  // spawn(write/1)
     case 404:  // return_from_spawn(write/1)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(4),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(5),reg::out(3));
+      MACRO_out_variable(reg::x(2),reg::out(3));
       MACRO_spawn(238,405);  // spawn(nth1/3)
     case 405:  // return_from_spawn(nth1/3)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(atom(210),reg::out(1));
       MACRO_spawn(108,406);  // spawn(write/1)
     case 406:  // return_from_spawn(write/1)
-      MACRO_par(6);
-      MACRO_out_value(reg::x(5),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,407);  // spawn(write/1)
     case 407:  // return_from_spawn(write/1)
-      MACRO_par(7);
+      MACRO_par(3);
       MACRO_out_constant(tagvalue<TAG_INT>(5),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
-      MACRO_out_variable(reg::x(6),reg::out(3));
+      MACRO_out_variable(reg::x(1),reg::out(3));
       MACRO_spawn(238,408);  // spawn(nth1/3)
     case 408:  // return_from_spawn(nth1/3)
-      MACRO_par(7);
+      MACRO_par(3);
       MACRO_out_constant(atom(211),reg::out(1));
       MACRO_spawn(108,409);  // spawn(write/1)
     case 409:  // return_from_spawn(write/1)
-      MACRO_par(7);
-      MACRO_out_value(reg::x(6),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(1),reg::out(1));
       MACRO_spawn(108,410);  // spawn(write/1)
     case 410:  // return_from_spawn(write/1)
-      MACRO_tail(7);
+      MACRO_tail(3);
       MACRO_out_constant(atom(59),reg::out(1));
       MACRO_execute(100,1);  // execute(writeln/1)
     case 411:  // test_nth1_rev_/0
       MACRO_goal(411,atom(223));
-      MACRO_requires(10);
+      MACRO_requires(6);
       MACRO_try_guard_else_suspend;
       MACRO_activate;
       MACRO_set_variable(reg::x(1));
@@ -3762,75 +3762,75 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_out_constant(atom(214),reg::out(1));
       MACRO_spawn(108,415);  // spawn(write/1)
     case 415:  // return_from_spawn(write/1)
-      MACRO_par(4);
-      MACRO_out_variable(reg::x(3),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(141),reg::out(3));
       MACRO_spawn(238,416);  // spawn(nth1/3)
     case 416:  // return_from_spawn(nth1/3)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,417);  // spawn(write/1)
     case 417:  // return_from_spawn(write/1)
-      MACRO_par(4);
-      MACRO_out_value(reg::x(3),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,418);  // spawn(write/1)
     case 418:  // return_from_spawn(write/1)
-      MACRO_par(4);
+      MACRO_par(3);
       MACRO_out_constant(atom(215),reg::out(1));
       MACRO_spawn(108,419);  // spawn(write/1)
     case 419:  // return_from_spawn(write/1)
-      MACRO_par(5);
-      MACRO_out_variable(reg::x(4),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(176),reg::out(3));
       MACRO_spawn(238,420);  // spawn(nth1/3)
     case 420:  // return_from_spawn(nth1/3)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,421);  // spawn(write/1)
     case 421:  // return_from_spawn(write/1)
-      MACRO_par(5);
-      MACRO_out_value(reg::x(4),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,422);  // spawn(write/1)
     case 422:  // return_from_spawn(write/1)
-      MACRO_par(5);
+      MACRO_par(3);
       MACRO_out_constant(atom(216),reg::out(1));
       MACRO_spawn(108,423);  // spawn(write/1)
     case 423:  // return_from_spawn(write/1)
-      MACRO_par(6);
-      MACRO_out_variable(reg::x(5),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(177),reg::out(3));
       MACRO_spawn(238,424);  // spawn(nth1/3)
     case 424:  // return_from_spawn(nth1/3)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,425);  // spawn(write/1)
     case 425:  // return_from_spawn(write/1)
-      MACRO_par(6);
-      MACRO_out_value(reg::x(5),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,426);  // spawn(write/1)
     case 426:  // return_from_spawn(write/1)
-      MACRO_par(6);
+      MACRO_par(3);
       MACRO_out_constant(atom(217),reg::out(1));
       MACRO_spawn(108,427);  // spawn(write/1)
     case 427:  // return_from_spawn(write/1)
-      MACRO_par(7);
-      MACRO_out_variable(reg::x(6),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_variable(reg::x(2),reg::out(1));
       MACRO_out_value(reg::x(1),reg::out(2));
       MACRO_out_constant(atom(178),reg::out(3));
       MACRO_spawn(238,428);  // spawn(nth1/3)
     case 428:  // return_from_spawn(nth1/3)
-      MACRO_par(7);
+      MACRO_par(3);
       MACRO_out_constant(atom(213),reg::out(1));
       MACRO_spawn(108,429);  // spawn(write/1)
     case 429:  // return_from_spawn(write/1)
-      MACRO_par(7);
-      MACRO_out_value(reg::x(6),reg::out(1));
+      MACRO_par(3);
+      MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_spawn(108,430);  // spawn(write/1)
     case 430:  // return_from_spawn(write/1)
-      MACRO_tail(7);
+      MACRO_tail(3);
       MACRO_out_constant(atom(218),reg::out(1));
       MACRO_execute(100,1);  // execute(writeln/1)
     case 431:  // test_splice_suspension/0

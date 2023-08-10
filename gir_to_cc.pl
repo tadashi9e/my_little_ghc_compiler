@@ -6,22 +6,22 @@
 %% main(+Argv)
 % メイン述語。wam_to_cc/2 を起動する。
 main(Argv) :-
-    ( opt_parse(Argv, WamFile, CcFile)
+    ( opt_parse(Argv, WamFiles, CcFile)
     ; format('invalid arguments: ~w~n', [Argv]), fail),
-    wam_to_cc(WamFile, CcFile).
+    wam_to_cc(WamFiles, CcFile).
 
 %% opt_parse(+Argv, -WamFile, -CcFile)
 % 与えられたコマンド引数を解釈する。
 % -o に続く引数を CcFile として返す。
 % それ以外を WamFile として返す。
 % -o に続く引数がない、あるいはそれ以外の引数が複数あれば fail。
-opt_parse(Argv, WamFile, CcFile) :-
+opt_parse(Argv, WamFiles, CcFile) :-
     opt_parse_ccfile(Argv - Argv2, CcFile),
-    opt_parse_wamfile(Argv2 - [], WamFile).
+    opt_parse_wamfiles(Argv2 - [], WamFiles).
 opt_parse_ccfile(['-o', CcFile|Argv2] - Argv2, CcFile) :- !.
 opt_parse_ccfile([A|Argv] - [A|Argv2], CcFile) :-
     opt_parse_ccfile(Argv - Argv2, CcFile).
-opt_parse_wamfile([WamFile|Argv] - Argv, WamFile) :- !.
+opt_parse_wamfiles(WamFiles - [], WamFiles) :- !.
 
 %% always_success(+P)
 % P を実行して、失敗したらエラーとしてメッセージを表示する。
@@ -36,21 +36,24 @@ report_error(P) :-
       format('failed to execute: ~w~n', P2)
     ; format('failed to execute: ~w~n', P)).
 
-%% wam_to_cc(+WamFile, +CcFile)
+%% wam_to_cc(+WamFiles, +CcFile)
 % WamFile から中間コードを読み取り、C++ ソースコードに変換して
 % CcFile に書き込む。
-wam_to_cc(WamFile, CcFile) :-
-    wam_load_all_terms(WamFile, Codes),
+wam_to_cc(WamFiles, CcFile) :-
+    wam_load_all_terms(WamFiles, Codes),
     create(Ctx),
     translate(Ctx, Codes, Ts),
     write_translated_cc(Ctx, CcFile, Ts).
 
 %% wam_load_all_terms(+WamFile, -Codes)
 % WamFile から中間コードを読み取り、Codes に返す。
-wam_load_all_terms(WamFile, Codes) :-
+wam_load_all_terms([], []) :- !.
+wam_load_all_terms([WamFile|WamFiles], Codes) :-
     open(WamFile, read, Stream, [encoding(utf8)]),
-    read_all_terms(Stream, Codes),
-    close(Stream).
+    read_all_terms(Stream, Codes1),
+    close(Stream),
+    append(Codes1, Codes2, Codes),
+    wam_load_all_terms(WamFiles, Codes2).
 read_all_terms(Stream, Codes) :-
     read_term(Stream, Code, []),
     ( Code = end_of_file -> Codes = []
