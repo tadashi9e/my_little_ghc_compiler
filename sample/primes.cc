@@ -2515,7 +2515,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_otherwise;
       MACRO_check_list(reg::in(1));
       MACRO_read_variable(reg::x(2));
-      MACRO_read_void;
+      MACRO_read_nil;
       MACRO_activate;
       MACRO_tail(3);
       MACRO_out_list(reg::out(1));

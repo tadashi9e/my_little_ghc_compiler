@@ -8,7 +8,7 @@ main([_,Arg]) :-
     time(go(N, X)),
     outstream(Os), report_results(Os-[], X).
 otherwise.
-main([Prog,_]) :-
+main([Prog]) :-
     outstream([write('usage: '), write(Prog), writeln(' <N>')]).
 
 report_results(Os-Os2, X) :-

@@ -2,7 +2,7 @@ label(main/1).
   goal(main/1).
   requires(6).
   try_guard_else(label(main/1-2)).
-  % head(main([_114,Arg])).
+  % head(main([_4182,Arg])).
     check_list(reg(in,1)).
       read_void.
       read_list.
@@ -34,11 +34,9 @@ label(main/1).
     execute(report_results/2).
 label(main/1-2).
   otherwise.
-  % head(main([Prog,_330])).
+  % head(main([Prog])).
     check_list(reg(in,1)).
       read_variable(reg(x,2)).
-      read_list.
-      read_void.
       read_nil.
   % guard(true).
   activate.
@@ -167,7 +165,7 @@ label(queen/5).
   proceed.
 label(queen/5-2).
   try_guard_else(label(queen/5-3)).
-  % head(queen([],[_1504|_1506],_1514,I,O)).
+  % head(queen([],[_1498|_1500],_1508,I,O)).
     check_nil(reg(in,1)).
     check_list(reg(in,2)).
       read_void.

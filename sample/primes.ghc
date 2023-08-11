@@ -36,5 +36,5 @@ main([_, A]) :-
     time(primes(N, Primes)),
     printstream(Primes).
 otherwise.
-main([Prog|_]) :-
+main([Prog]) :-
     outstream([write('usage: '), write(Prog), write(' <max>'), nl]).

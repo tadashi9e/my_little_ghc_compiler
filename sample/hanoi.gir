@@ -37,11 +37,9 @@ label(main/1).
     execute(go/2).
 label(main/1-2).
   otherwise.
-  % head(main([Prog,_6028])).
+  % head(main([Prog])).
     check_list(reg(in,1)).
       read_variable(reg(x,2)).
-      read_list.
-      read_void.
       read_nil.
   % guard(true).
   activate.
@@ -154,7 +152,7 @@ label(move/6).
   goal(move/6).
   requires(15).
   try_guard_else(label(move/6-2)).
-  % head(move(0,_1256,_1258,_1260,O1,O2)).
+  % head(move(0,_1250,_1252,_1254,O1,O2)).
     check_constant(0,reg(in,1)).
   % guard(true).
   activate.
