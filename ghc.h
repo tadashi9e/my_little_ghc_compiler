@@ -227,8 +227,9 @@ struct out {
 
 }  // namespace reg
 
-#define INITIAL_REG_SIZE 32
-#define HEAP_SIZE 4096
+#define INITIAL_CONTEXTS 256
+#define INITIAL_REG_SIZE 512
+#define HEAP_SIZE (256*1024)
 
 class HeapList {
  public:
@@ -707,6 +708,7 @@ struct VM : std::enable_shared_from_this<VM> {
                  (llstr == "ERROR") ? ERROR :
                  ERROR);
     reg.resize(INITIAL_REG_SIZE);
+    contexts.reserve(INITIAL_CONTEXTS);
     contexts.push_back(Context());
     in = &reg[0];
     out = in;
@@ -904,8 +906,10 @@ struct VM : std::enable_shared_from_this<VM> {
     out = &in[n];
     next_context.in_offset = out - &reg[0];
     while (static_cast<size_t>(out - &reg[0] + 64) > reg.size()) {
+#if 0
       log_trace(this, "extending register size: "
                 << reg.size() << " => " << (reg.size() * 2));
+#endif
       reg.resize(reg.size() * 2);
       in = &reg[contexts.back().in_offset];
       out = &reg[next_context.in_offset];
@@ -937,8 +941,10 @@ struct VM : std::enable_shared_from_this<VM> {
     while (&in[contexts.back().in_offset + n] > &reg.back()) {
       const size_t sz = reg.size();
       reg.resize(sz * 2);
+#if 0
       log_info(this, "resize register: " <<
                sz << " to " << (2 * sz));
+#endif
       in = &reg[contexts.back().in_offset];
       out = in;
     }
@@ -990,19 +996,25 @@ struct VM : std::enable_shared_from_this<VM> {
     return s;
   }
   void fail() {
+#if 0
     log_info(this,
              std::setw(5) << pc << "        " << space()
              << "fail()");
+#endif
     for (;;) {
       pc = contexts.back().pc_on_error;
       contexts.back().pc_on_error = -1;
       if (pc != -1) {
+#if 0
         log_trace(this, "fail: on_error " << pc);
+#endif
         break;
       }
       if (!switch_prev_window()) {
         pc = -1;
+#if 0
         log_trace(this, "fail: no more prev goal: " << pc);
+#endif
         break;
       }
     }
@@ -1019,12 +1031,14 @@ struct VM : std::enable_shared_from_this<VM> {
         }
         heap_published(3 + arity);
         for (Q q : wait_list) {
+#if 0
           log_info(this,
                    std::setw(5) << contexts.back().pc_goal
                    << "        " << space()
                    << "+ suspend: " << to_str(q)
                    << " goal:"
                    << goal_str_of(&reg[contexts.back().in_offset]));
+#endif
           const TAG_T tag = tag_of(q);
           if (tag == TAG_REF) {
             const size_t h = heap_publishing(3);
@@ -1059,7 +1073,9 @@ struct VM : std::enable_shared_from_this<VM> {
       }
       if (retry_this_goal) {
         pc = contexts.back().pc_goal;
+#if 0
         log_trace(this, "fail: retry_this_goal " << pc);
+#endif
         return;
       }
       wait_list.clear();
@@ -1070,12 +1086,16 @@ struct VM : std::enable_shared_from_this<VM> {
       for (;;) {
         if (!switch_prev_window()) {
           pc = -1;
+#if 0
           log_trace(this, "fail: no more prev goal: " << pc);
+#endif
           break;
         }
         pc = contexts.back().pc_continue;
         if (pc != -1) {
+#if 0
           log_trace(this, "fail: on_error " << pc);
+#endif
           break;
         }
       }
@@ -1484,7 +1504,6 @@ class RuntimeError: public std::runtime_error {
     bool failed = false;                                  \
     do {                                                  \
       Q q = deref(vm->in[Ai]);                            \
-      vm->in[Ai] = q;                                     \
       const TAG_T tag = tag_of(q);                        \
       if (tag == TAG_LIST) {                              \
         A* p = ptr_of<A>(q);                              \
@@ -1523,7 +1542,6 @@ class RuntimeError: public std::runtime_error {
     bool failed = false;                                        \
     do {                                                        \
       Q q = deref(vm->in[Ai]);                                  \
-      vm->in[Ai] = q;                                           \
       const TAG_T tag = tag_of(q);                              \
       if (tag == TAG_STR) {                                     \
         A* p = ptr_of<A>(q);                                    \
@@ -1682,7 +1700,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_check_variable(Vn, Ai)                 \
   {                                                  \
-    vm->in[Vn] = vm->in[Ai] = deref(vm->in[Ai]);     \
+    vm->in[Vn] = deref(vm->in[Ai]);                  \
   }
 
 #define MACRO_check_value(Vn, Ai)                    \
@@ -1690,7 +1708,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_check_constant(C, Ai)                         \
   {                                                         \
-    const Q q = vm->in[Ai] = deref(vm->in[Ai]);             \
+    const Q q = deref(vm->in[Ai]);                          \
     if (q != C) {                                           \
       const TAG_T t = tag_of(q);                            \
       if (t == TAG_REF || t == TAG_SUS) {                   \
@@ -1703,7 +1721,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_check_nil(Ai)                                 \
   {                                                         \
-    const Q q = vm->in[Ai] = deref(vm->in[Ai]);             \
+    const Q q = deref(vm->in[Ai]);                          \
     const TAG_T t = tag_of(q);                              \
     if (t != TAG_NIL) {                                     \
       if (t == TAG_REF || t == TAG_SUS) {                   \
@@ -1715,7 +1733,7 @@ class RuntimeError: public std::runtime_error {
   }
 #define MACRO_check_list(Ai)                      \
   {                                               \
-    const Q q = vm->in[Ai] = deref(vm->in[Ai]);   \
+    const Q q = deref(vm->in[Ai]);                \
     const TAG_T t = tag_of(q);                    \
     if (t != TAG_LIST) {                          \
       if (t == TAG_REF || t == TAG_SUS) {         \
@@ -1731,7 +1749,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_check_structure(Fn, Ai)                      \
   {                                                        \
-    const Q q = vm->in[Ai] = deref(vm->in[Ai]);            \
+    const Q q = deref(vm->in[Ai]);                         \
     const TAG_T t = tag_of(q);                             \
     if (t != TAG_STR) {                                    \
       if (t == TAG_REF || t == TAG_SUS) {                  \
