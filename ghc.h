@@ -92,7 +92,7 @@ VALUE* ptr_of(Q q) {
 inline Q deref(Q q) {
   for (;;) {
     const TAG_T tag = tag_of(q);
-    if (tag != TAG_REF && tag != TAG_SUS) {
+    if (tag != TAG_REF) {
       break;
     }
     A* a = ptr_of<A>(q);
@@ -101,6 +101,16 @@ inline Q deref(Q q) {
       break;
     }
     q = q2;
+  }
+  return q;
+}
+// Replace SUS -> SUS link to REF -> SUS link
+// to avoid non-self-referencing SUS link.
+// SUS -> SUS link support make dereference performance degradation.
+inline Q ref_of(Q q) {
+  const TAG_T tag = tag_of(q);
+  if (tag == TAG_SUS) {
+    return tagptr<TAG_REF>(ptr_of<A>(q));
   }
   return q;
 }
@@ -898,7 +908,7 @@ struct VM : std::enable_shared_from_this<VM> {
       } catch (const std::runtime_error& ex) {
         std::cerr << ex.what() << std::endl;
         dump();
-        // dump_to_dot("dump/runtime_error.dot");
+        dump_to_dot("dump/runtime_error.dot");
       }
     }
   }
@@ -1136,19 +1146,20 @@ struct VM : std::enable_shared_from_this<VM> {
       return true;
     }
     do {
+      TAG_T tag1 = tag_of(q1);
       TAG_T tag2 = tag_of(q2);
       if (tag2 == TAG_REF) {
         A* p2 = ptr_of<A>(q2);
-        if (!p2->compare_exchange_strong(q2, q1)) {
+        if (!p2->compare_exchange_strong(q2, ref_of(q1))) {
           q2 = p2->load();
           continue;
         }
         return true;
       }
-      TAG_T tag1 = tag_of(q1);
       if (tag1 == TAG_REF) {
         A* p1 = ptr_of<A>(q1);
-        if (!p1->compare_exchange_strong(q1, q2)) {
+        q2 = ref_of(q2);
+        if (!p1->compare_exchange_strong(q1, ref_of(q2))) {
           q1 = p1->load();
           continue;
         }
@@ -1160,7 +1171,7 @@ struct VM : std::enable_shared_from_this<VM> {
         // p2[0] = q2 <--- q2
         // p2[1]: 次の待ち要素へのリンク
         // p2[2]: ゴールレコードへのポインタ
-        if (!p2->compare_exchange_strong(q2, q1)) {
+        if (!p2->compare_exchange_strong(q2, ref_of(q1))) {
           q2 = p2->load();
           continue;
         }
@@ -1173,7 +1184,7 @@ struct VM : std::enable_shared_from_this<VM> {
         // p1[0] = q1 <--- q1
         // p1[1]: 次の待ち要素へのリンク
         // p1[2]: ゴールレコードへのポインタ
-        if (!p1->compare_exchange_strong(q1, q2)) {
+        if (!p1->compare_exchange_strong(q1, ref_of(q2))) {
           q1 = p1->load();
           continue;
         }
@@ -1255,17 +1266,18 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_fail vm->fail(); continue
 #define MACRO_wait(Ai)                                \
   {                                                   \
-    const Q q = vm->in[Ai] = deref(vm->in[Ai]);       \
+    const Q q = deref(vm->in[Ai]);                    \
     const TAG_T t = tag_of(q);                        \
     if (t == TAG_REF || t == TAG_SUS) {               \
       vm->add_wait_list(q);                           \
       vm->fail();                                     \
       continue;                                       \
     }                                                 \
+    vm->in[Ai] = ref_of(q);                           \
   }
 #define MACRO_wait_for(tag, Ai)                   \
   {                                               \
-    const Q q = vm->in[Ai] = deref(vm->in[Ai]);   \
+    const Q q = deref(vm->in[Ai]);                \
     const TAG_T t = tag_of(q);                    \
     if (t == TAG_REF || t == TAG_SUS) {           \
       vm->add_wait_list(q);                       \
@@ -1275,6 +1287,7 @@ class RuntimeError: public std::runtime_error {
       vm->fail();                                 \
       continue;                                   \
     }                                             \
+    vm->in[Ai] = ref_of(q);                       \
   }
 
 #define MACRO_try_guard_else(jump_to)                                   \
@@ -1347,7 +1360,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_set_value(Vn, Ai)                             \
   {                                                         \
-    const Q q = deref(vm->in[Vn]);                          \
+    const Q q = deref(ref_of(vm->in[Vn]));                  \
     vm->in[Vn] = q;                                         \
     vm->in[Ai] = q;                                         \
   }
@@ -1389,7 +1402,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_out_value(Vn, Oi)                             \
   {                                                         \
-    const Q q = deref(vm->in[Vn]);                          \
+    const Q q = ref_of(deref(ref_of(vm->in[Vn])));          \
     vm->in[Vn] = q;                                         \
     vm->out[Oi] = q;                                        \
   }
@@ -1431,7 +1444,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_write_value(Vn)                       \
   {                                                 \
     const Q q = vm->pop();                          \
-    ptr_of<A>(q)->store(deref(vm->in[Vn]));         \
+    ptr_of<A>(q)->store(ref_of(deref(vm->in[Vn]))); \
   }
 
 #define MACRO_write_constant(C)                           \
@@ -1478,7 +1491,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_get_variable(Vn, Ai)                        \
   {                                                       \
-    const Q q = deref(vm->in[Ai]);                        \
+    const Q q = ref_of(deref(vm->in[Ai]));                \
     vm->in[Ai] = q;                                       \
     vm->in[Vn] = q;                                       \
   }
@@ -1586,7 +1599,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_unify_variable(Vn)                             \
   {                                                          \
     const Q q = deref(vm->pop());                            \
-    vm->in[Vn] = q;                                          \
+    vm->in[Vn] = ref_of(q);                                  \
   }
 #define MACRO_unify_value(Vn)                             \
   {                                                       \
@@ -1700,7 +1713,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_check_variable(Vn, Ai)                 \
   {                                                  \
-    vm->in[Vn] = deref(vm->in[Ai]);                  \
+    vm->in[Vn] = ref_of(deref(vm->in[Ai]));          \
   }
 
 #define MACRO_check_value(Vn, Ai)                    \
@@ -1772,7 +1785,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_read_variable(Vn)                               \
   {                                                           \
     const Q q = deref(vm->pop());                             \
-    vm->in[Vn] = q;                                           \
+    vm->in[Vn] = ref_of(q);                                   \
   }
 
 #define MACRO_read_value(Vn)                                \
