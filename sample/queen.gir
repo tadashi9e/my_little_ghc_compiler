@@ -94,11 +94,9 @@ label(report_results/3).
     spawn(report1/3).
   % body(N1:=N+1).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,3)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,3),reg(out,1)).
+    out_variable(reg(x,7),reg(out,2)).
+    call('__inc__'/2).
   % body(report_results(Os1-Os2,Xs,N1)).
   tail(8).
     out_structure((-)/2,reg(out,1)).
@@ -206,7 +204,7 @@ label(queen/5-3).
     execute(queen/5).
 label(check/8).
   goal(check/8).
-  requires(19).
+  requires(20).
   try_guard_else(label(check/8-2)).
   % head(check([],T,_D,U,C,B,I,O)).
     check_nil(reg(in,1)).
@@ -235,28 +233,32 @@ label(check/8-2).
       read_variable(reg(x,10)).
       read_variable(reg(x,9)).
   % guard((T=\=P+D,T=\=P-D)).
-  seq(11).
+  seq(12).
+    out_value(reg(x,10),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,11),reg(out,3)).
+    call('__add__'/3).
+  seq(12).
     out_value(reg(in,2),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(x,10)).
-      write_value(reg(in,3)).
+    out_value(reg(x,11),reg(out,2)).
     call((=\=)/2).
-  seq(11).
+  seq(12).
+    out_value(reg(x,10),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,10),reg(out,3)).
+    call('__sub__'/3).
+  seq(12).
     out_value(reg(in,2),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(x,10)).
-      write_value(reg(in,3)).
+    out_value(reg(x,10),reg(out,2)).
     call((=\=)/2).
   activate.
   % body(D1:=D+1).
-  par(11).
-    out_variable(reg(x,10),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,3)).
-      write_constant(1).
-    spawn((:=)/2).
+  par(12).
+    out_value(reg(in,3),reg(out,1)).
+    out_variable(reg(x,10),reg(out,2)).
+    call('__inc__'/2).
   % body(check(R,T,D1,U,C,B,I,O)).
-  tail(11).
+  tail(12).
     out_value(reg(x,9),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(x,10),reg(out,3)).
@@ -273,11 +275,14 @@ label(check/8-3).
       read_variable(reg(x,9)).
       read_variable(reg(x,10)).
   % guard(T=:=P+D).
-  seq(11).
+  seq(12).
+    out_value(reg(x,9),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,9),reg(out,3)).
+    call('__add__'/3).
+  seq(12).
     out_value(reg(in,2),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(x,9)).
-      write_value(reg(in,3)).
+    out_value(reg(x,9),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(I=O).
@@ -290,11 +295,14 @@ label(check/8-4).
       read_variable(reg(x,9)).
       read_variable(reg(x,10)).
   % guard(T=:=P-D).
-  seq(11).
+  seq(12).
+    out_value(reg(x,9),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,9),reg(out,3)).
+    call('__sub__'/3).
+  seq(12).
     out_value(reg(in,2),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(x,9)).
-      write_value(reg(in,3)).
+    out_value(reg(x,9),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(I=O).
@@ -346,11 +354,9 @@ label(gen/2).
       unify_variable(reg(x,3)).
   % body(M:=N-1).
   par(5).
-    out_variable(reg(x,4),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(in,1)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,4),reg(out,2)).
+    call('__dec__'/2).
   % body(gen(M,Xs)).
   tail(5).
     out_value(reg(x,4),reg(out,1)).
@@ -361,8 +367,12 @@ label(gen/2-2).
   % head(gen(N,X)).
   % guard(N=:=0).
   seq(5).
-    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,3),reg(out,1)).
     out_constant(0,reg(out,2)).
+    call((:=)/2).
+  seq(5).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(x,3),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(X=[]).

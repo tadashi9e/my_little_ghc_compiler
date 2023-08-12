@@ -26,7 +26,7 @@ label(test_otherwise_aux/1).
     execute(writeln/1).
 label(test_otherwise_aux/1-2).
   otherwise.
-  % head(test_otherwise_aux(_300)).
+  % head(test_otherwise_aux(_346)).
   % guard(true).
   activate.
   % body(writeln(test success)).
@@ -1640,6 +1640,60 @@ label(test_splice_suspension1/1).
   tail(3).
     out_value(reg(in,1),reg(out,1)).
     execute(writeln/1).
+label(test_calc/0).
+  goal(test_calc/0).
+  requires(6).
+  try_guard_else_suspend.
+  % head(test_calc).
+  % guard(true).
+  activate.
+  % body(writeln(xxx0)).
+  par(2).
+    out_constant(xxx0,reg(out,1)).
+    spawn(writeln/1).
+  % body(X2:=X-2).
+  par(3).
+    out_variable(reg(x,1),reg(out,1)).
+    out_constant(2,reg(out,2)).
+    out_variable(reg(x,2),reg(out,3)).
+    call('__sub__'/3).
+  % body(writeln(xxx1)).
+  par(3).
+    out_constant(xxx1,reg(out,1)).
+    spawn(writeln/1).
+  % body(writeln(X2:=X-1)).
+  par(3).
+    out_structure((:=)/2,reg(out,1)).
+      write_value(reg(x,2)).
+      write_structure((-)/2).
+      write_value(reg(x,1)).
+      write_constant(1).
+    spawn(writeln/1).
+  % body(dump_to_dot(dump/calc.dot)).
+  par(3).
+    out_constant('dump/calc.dot',reg(out,1)).
+    spawn(dump_to_dot/1).
+  % body(X1:=X+2).
+  par(3).
+    out_value(reg(x,1),reg(out,1)).
+    out_constant(2,reg(out,2)).
+    out_variable(reg(x,2),reg(out,3)).
+    call('__add__'/3).
+  % body(writeln(X1:=X+1)).
+  par(3).
+    out_structure((:=)/2,reg(out,1)).
+      write_value(reg(x,2)).
+      write_structure((+)/2).
+      write_value(reg(x,1)).
+      write_constant(1).
+    spawn(writeln/1).
+  % body(writeln(xxx)).
+  par(3).
+    out_constant(xxx,reg(out,1)).
+    spawn(writeln/1).
+  % body(X=10).
+    get_constant(10,reg(x,1)).
+  proceed.
 label(do_test/1).
   goal(do_test/1).
   requires(3).
@@ -1663,96 +1717,12 @@ label(main/1).
   goal(main/1).
   requires(4).
   try_guard_else_suspend.
-  % head(main(_12058)).
+  % head(main(_12654)).
   % guard(true).
   activate.
-  % body(do_test(test_otherwise)).
+  % body(do_test(test_calc)).
   seq(3).
-    out_constant(test_otherwise,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_write_var)).
-  seq(3).
-    out_constant(test_write_var,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_write_atom)).
-  seq(3).
-    out_constant(test_write_atom,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_write_list)).
-  seq(3).
-    out_constant(test_write_list,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_write_structure)).
-  seq(3).
-    out_constant(test_write_structure,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_get_structure)).
-  seq(3).
-    out_constant(test_get_structure,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_set_structure)).
-  seq(3).
-    out_constant(test_set_structure,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_get_list)).
-  seq(3).
-    out_constant(test_get_list,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_set_list)).
-  seq(3).
-    out_constant(test_set_list,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_check_constant)).
-  seq(3).
-    out_constant(test_check_constant,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_check_list)).
-  seq(3).
-    out_constant(test_check_list,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_check_nil)).
-  seq(3).
-    out_constant(test_check_nil,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_check_structure)).
-  seq(3).
-    out_constant(test_check_structure,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_wait_var)).
-  seq(3).
-    out_constant(test_wait_var,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_atom_concat)).
-  seq(3).
-    out_constant(test_atom_concat,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_atom_chars)).
-  seq(3).
-    out_constant(test_atom_chars,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_atom_codes)).
-  seq(3).
-    out_constant(test_atom_codes,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_append)).
-  seq(3).
-    out_constant(test_append,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_reverse)).
-  seq(3).
-    out_constant(test_reverse,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_nth0)).
-  seq(3).
-    out_constant(test_nth0,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_nth1)).
-  seq(3).
-    out_constant(test_nth1,reg(out,1)).
-    call(do_test/1).
-  % body(do_test(test_splice_suspension)).
-  seq(3).
-    out_constant(test_splice_suspension,reg(out,1)).
+    out_constant(test_calc,reg(out,1)).
     call(do_test/1).
   % body(inference_count(Infer)).
   par(3).

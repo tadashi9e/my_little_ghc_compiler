@@ -592,13 +592,13 @@ X =\= Y :- X1 := X, Y1 := Y, '__not_equal__'(X1, Y1).
     inline('  MACRO_return;'),
     inline('}').
 
+Y := X :- integer(X) | X = Y.
 C := (A + B) :- '__add__'(A, B, C).
 C := (A - B) :- '__sub__'(A, B, C).
 C := (A * B) :- '__mul__'(A, B, C).
 C := (A / B) :- '__div__'(A, B, C).
 C := (A mod B) :- '__mod__'(A, B, C).
 C := -A :- '__neg__'(A, C).
-Y := X :- integer(X) | X = Y.
 
 '__add__'(A, B, C) :- integer(A), integer(B) | '__iadd__'(A, B, C).
 otherwise.
@@ -685,6 +685,32 @@ otherwise.
     inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);'),
     inline('  const int64_t v = v1 % v2;'),
     inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+
+'__inc__'(A, B) :- integer(A) | '__iinc__'(A, B).
+otherwise.
+'__inc__'(A, B) :- A1 := A, '__iinc__'(A1, B).
+'__dec__'(A, B) :- integer(A) | '__idec__'(A, B).
+otherwise.
+'__dec__'(A, B) :- A1 := A, '__idec__'(A1, B).
+
+'__iinc__'(A, B) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_activate;'),
+    inline('  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);'),
+    inline('  ++v;'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));'),
+    inline('  MACRO_proceed;'),
+    inline('}').
+'__idec__'(A, B) :-
+    inline('{'),
+    inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
+    inline('  MACRO_activate;'),
+    inline('  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);'),
+    inline('  --v;'),
+    inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));'),
     inline('  MACRO_proceed;'),
     inline('}').
 

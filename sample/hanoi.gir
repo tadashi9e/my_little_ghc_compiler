@@ -97,11 +97,9 @@ label(report_results/3).
     spawn(report1/3).
   % body(N1:=N+1).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,3)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,3),reg(out,1)).
+    out_variable(reg(x,7),reg(out,2)).
+    call('__inc__'/2).
   % body(report_results(Os1-Os2,Xs,N1)).
   tail(8).
     out_structure((-)/2,reg(out,1)).
@@ -170,11 +168,9 @@ label(move/6-2).
   activate.
   % body(M:=N-1).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(in,1)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,7),reg(out,2)).
+    call('__dec__'/2).
   % body(move(M,A,C,B,O1,[m(A,B)|O3])).
   par(9).
     out_value(reg(x,7),reg(out,1)).

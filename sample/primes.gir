@@ -29,11 +29,9 @@ label(gen/3).
   activate.
   % body(N1:=N0+1).
   par(5).
-    out_variable(reg(x,4),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,1)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,4),reg(out,2)).
+    call('__inc__'/2).
   % body(Ns0=[N0|Ns1]).
     get_list(reg(in,3)).
       unify_value(reg(in,1)).
@@ -92,18 +90,22 @@ label(sift/2-2).
   proceed.
 label(filter/3).
   goal(filter/3).
-  requires(9).
+  requires(10).
   try_guard_else(label(filter/3-2)).
   % head(filter(P,[X|Xs1],Ys0)).
     check_list(reg(in,2)).
       read_variable(reg(x,5)).
       read_variable(reg(x,4)).
   % guard(X mod P=\=0).
-  seq(6).
+  seq(7).
+    out_variable(reg(x,6),reg(out,1)).
+    out_constant(0,reg(out,2)).
+    call((:=)/2).
+  seq(7).
     out_structure((mod)/2,reg(out,1)).
       write_value(reg(x,5)).
       write_value(reg(in,1)).
-    out_constant(0,reg(out,2)).
+    out_value(reg(x,6),reg(out,2)).
     call((=\=)/2).
   activate.
   % body(Ys0=[X|Ys1]).
@@ -111,7 +113,7 @@ label(filter/3).
       unify_value(reg(x,5)).
       unify_variable(reg(x,5)).
   % body(filter(P,Xs1,Ys1)).
-  tail(6).
+  tail(7).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
@@ -123,15 +125,19 @@ label(filter/3-2).
       read_variable(reg(x,5)).
       read_variable(reg(x,4)).
   % guard(X mod P=:=0).
-  seq(6).
+  seq(7).
+    out_variable(reg(x,6),reg(out,1)).
+    out_constant(0,reg(out,2)).
+    call((:=)/2).
+  seq(7).
     out_structure((mod)/2,reg(out,1)).
       write_value(reg(x,5)).
       write_value(reg(in,1)).
-    out_constant(0,reg(out,2)).
+    out_value(reg(x,6),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(filter(P,Xs1,Ys0)).
-  tail(6).
+  tail(7).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).

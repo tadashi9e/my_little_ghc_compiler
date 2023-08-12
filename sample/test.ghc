@@ -156,30 +156,42 @@ test_splice_suspension :-
     X1 = 'test_splice_suspension'.
 test_splice_suspension1(X) :- wait(X) | writeln(X).
 
+test_calc :-
+    writeln('xxx0'),
+    X2 := X - 2,
+    writeln('xxx1'),
+    writeln(X2 := X - 1),
+    dump_to_dot('dump/calc.dot'),
+    X1 := X + 2,
+    writeln(X1 := X + 1),
+    writeln('xxx'),
+    X = 10.
+
 do_test(X) :- write(X) -> writeln(': ') -> time(X).
 
 main(_) :-
-    do_test(test_otherwise),
-    do_test(test_write_var),
-    do_test(test_write_atom),
-    do_test(test_write_list),
-    do_test(test_write_structure),
-    do_test(test_get_structure),
-    do_test(test_set_structure),
-    do_test(test_get_list),
-    do_test(test_set_list),
-    do_test(test_check_constant),
-    do_test(test_check_list),
-    do_test(test_check_nil),
-    do_test(test_check_structure),
-    do_test(test_wait_var),
-    do_test(test_atom_concat),
-    do_test(test_atom_chars),
-    do_test(test_atom_codes),
-    do_test(test_append),
-    do_test(test_reverse),
-    do_test(test_nth0),
-    do_test(test_nth1),
-    do_test(test_splice_suspension)
+%    do_test(test_otherwise),
+%    do_test(test_write_var),
+%    do_test(test_write_atom),
+%    do_test(test_write_list),
+%    do_test(test_write_structure),
+%    do_test(test_get_structure),
+%    do_test(test_set_structure),
+%    do_test(test_get_list),
+%    do_test(test_set_list),
+%    do_test(test_check_constant),
+%    do_test(test_check_list),
+%    do_test(test_check_nil),
+%    do_test(test_check_structure),
+%    do_test(test_wait_var),
+%    do_test(test_atom_concat),
+%    do_test(test_atom_chars),
+%    do_test(test_atom_codes),
+%    do_test(test_append),
+%    do_test(test_reverse),
+%    do_test(test_nth0),
+%    do_test(test_nth1),
+%    do_test(test_splice_suspension),
+    do_test(test_calc)
     -> inference_count(Infer),
        write('total_inferences='), writeln(Infer).

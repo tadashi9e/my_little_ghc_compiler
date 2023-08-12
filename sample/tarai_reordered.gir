@@ -26,11 +26,9 @@ label(tarai/4-2).
     spawn(tarai/4).
   % body(X_1:=X-1).
   par(9).
-    out_variable(reg(x,8),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(in,1)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,8),reg(out,2)).
+    call('__dec__'/2).
   % body(tarai(X_1,Y,Z,R_X)).
   par(9).
     out_value(reg(x,8),reg(out,1)).
@@ -40,11 +38,9 @@ label(tarai/4-2).
     spawn(tarai/4).
   % body(Y_1:=Y-1).
   par(9).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(in,2)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,2),reg(out,1)).
+    out_variable(reg(x,7),reg(out,2)).
+    call('__dec__'/2).
   % body(tarai(Y_1,Z,X,R_Y)).
   par(9).
     out_value(reg(x,7),reg(out,1)).
@@ -54,11 +50,9 @@ label(tarai/4-2).
     spawn(tarai/4).
   % body(Z_1:=Z-1).
   par(9).
-    out_variable(reg(x,6),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(in,3)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,3),reg(out,1)).
+    out_variable(reg(x,6),reg(out,2)).
+    call('__dec__'/2).
   % body(tarai(Z_1,X,Y,R_Z)).
   tail(9).
     out_value(reg(x,6),reg(out,1)).

@@ -720,11 +720,9 @@ label('__open_opt_string_to_integer__'/5-3).
   activate.
   % body(Ac11:=Ac1+1).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,4)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,4),reg(out,1)).
+    out_variable(reg(x,7),reg(out,2)).
+    call('__inc__'/2).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -743,11 +741,10 @@ label('__open_opt_string_to_integer__'/5-4).
   activate.
   % body(Ac11:=Ac1+2).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,4)).
-      write_constant(2).
-    spawn((:=)/2).
+    out_value(reg(in,4),reg(out,1)).
+    out_constant(2,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -766,11 +763,10 @@ label('__open_opt_string_to_integer__'/5-5).
   activate.
   % body(Ac11:=Ac1+64).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,4)).
-      write_constant(64).
-    spawn((:=)/2).
+    out_value(reg(in,4),reg(out,1)).
+    out_constant(64,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -789,11 +785,10 @@ label('__open_opt_string_to_integer__'/5-6).
   activate.
   % body(Ac11:=Ac1+128).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,4)).
-      write_constant(128).
-    spawn((:=)/2).
+    out_value(reg(in,4),reg(out,1)).
+    out_constant(128,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -812,11 +807,10 @@ label('__open_opt_string_to_integer__'/5-7).
   activate.
   % body(Ac11:=Ac1+512).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,4)).
-      write_constant(512).
-    spawn((:=)/2).
+    out_value(reg(in,4),reg(out,1)).
+    out_constant(512,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -835,11 +829,10 @@ label('__open_opt_string_to_integer__'/5-8).
   activate.
   % body(Ac11:=Ac1+1024).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,4)).
-      write_constant(1024).
-    spawn((:=)/2).
+    out_value(reg(in,4),reg(out,1)).
+    out_constant(1024,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -858,11 +851,10 @@ label('__open_opt_string_to_integer__'/5-9).
   activate.
   % body(Ac21:=Ac2+256).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(256).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(256,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -881,11 +873,10 @@ label('__open_opt_string_to_integer__'/5-10).
   activate.
   % body(Ac21:=Ac2+128).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(128).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(128,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -904,11 +895,10 @@ label('__open_opt_string_to_integer__'/5-11).
   activate.
   % body(Ac21:=Ac2+64).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(64).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(64,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -927,11 +917,10 @@ label('__open_opt_string_to_integer__'/5-12).
   activate.
   % body(Ac21:=Ac2+32).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(32).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(32,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -950,11 +939,10 @@ label('__open_opt_string_to_integer__'/5-13).
   activate.
   % body(Ac21:=Ac2+16).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(16).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(16,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -973,11 +961,10 @@ label('__open_opt_string_to_integer__'/5-14).
   activate.
   % body(Ac21:=Ac2+8).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(8).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(8,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -996,11 +983,10 @@ label('__open_opt_string_to_integer__'/5-15).
   activate.
   % body(Ac21:=Ac2+4).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(4).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(4,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -1019,11 +1005,10 @@ label('__open_opt_string_to_integer__'/5-16).
   activate.
   % body(Ac21:=Ac2+2).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(2).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_constant(2,reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -1042,11 +1027,9 @@ label('__open_opt_string_to_integer__'/5-17).
   activate.
   % body(Ac21:=Ac2+1).
   par(8).
-    out_variable(reg(x,7),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,5)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,5),reg(out,1)).
+    out_variable(reg(x,7),reg(out,2)).
+    call('__inc__'/2).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
   tail(8).
     out_value(reg(x,6),reg(out,1)).
@@ -1692,6 +1675,17 @@ label((:=)/2).
   goal((:=)/2).
   requires(8).
   try_guard_else(label((:=)/2-2)).
+  % head(Y:=X).
+  % guard(integer(X)).
+  seq(4).
+    out_value(reg(in,2),reg(out,1)).
+    call(integer/1).
+  activate.
+  % body(X=Y).
+    get_value(reg(in,1),reg(in,2)).
+  proceed.
+label((:=)/2-2).
+  try_guard_else(label((:=)/2-3)).
   % head(C:=A+B).
     check_structure((+)/2,reg(in,2)).
       read_variable(reg(x,3)).
@@ -1704,8 +1698,8 @@ label((:=)/2).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
     execute('__add__'/3).
-label((:=)/2-2).
-  try_guard_else(label((:=)/2-3)).
+label((:=)/2-3).
+  try_guard_else(label((:=)/2-4)).
   % head(C:=A-B).
     check_structure((-)/2,reg(in,2)).
       read_variable(reg(x,3)).
@@ -1718,8 +1712,8 @@ label((:=)/2-2).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
     execute('__sub__'/3).
-label((:=)/2-3).
-  try_guard_else(label((:=)/2-4)).
+label((:=)/2-4).
+  try_guard_else(label((:=)/2-5)).
   % head(C:=A*B).
     check_structure((*)/2,reg(in,2)).
       read_variable(reg(x,3)).
@@ -1732,8 +1726,8 @@ label((:=)/2-3).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
     execute('__mul__'/3).
-label((:=)/2-4).
-  try_guard_else(label((:=)/2-5)).
+label((:=)/2-5).
+  try_guard_else(label((:=)/2-6)).
   % head(C:=A/B).
     check_structure((/)/2,reg(in,2)).
       read_variable(reg(x,3)).
@@ -1746,8 +1740,8 @@ label((:=)/2-4).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
     execute('__div__'/3).
-label((:=)/2-5).
-  try_guard_else(label((:=)/2-6)).
+label((:=)/2-6).
+  try_guard_else(label((:=)/2-7)).
   % head(C:=A mod B).
     check_structure((mod)/2,reg(in,2)).
       read_variable(reg(x,3)).
@@ -1760,8 +1754,8 @@ label((:=)/2-5).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
     execute('__mod__'/3).
-label((:=)/2-6).
-  try_guard_else(label((:=)/2-7)).
+label((:=)/2-7).
+  try_guard_else_suspend.
   % head(C:= -A).
     check_structure((-)/1,reg(in,2)).
       read_variable(reg(x,3)).
@@ -1772,17 +1766,6 @@ label((:=)/2-6).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     execute('__neg__'/2).
-label((:=)/2-7).
-  try_guard_else_suspend.
-  % head(Y:=X).
-  % guard(integer(X)).
-  seq(5).
-    out_value(reg(in,2),reg(out,1)).
-    call(integer/1).
-  activate.
-  % body(X=Y).
-    get_value(reg(in,1),reg(in,2)).
-  proceed.
 label('__add__'/3).
   goal('__add__'/3).
   requires(9).
@@ -2088,6 +2071,88 @@ label('__imod__'/3).
   inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));').
   inline('  MACRO_proceed;').
   inline('}').
+label('__inc__'/2).
+  goal('__inc__'/2).
+  requires(6).
+  try_guard_else(label('__inc__'/2-2)).
+  % head(__inc__(A,B)).
+  % guard(integer(A)).
+  seq(4).
+    out_value(reg(in,1),reg(out,1)).
+    call(integer/1).
+  activate.
+  % body(__iinc__(A,B)).
+  tail(4).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    execute('__iinc__'/2).
+label('__inc__'/2-2).
+  otherwise.
+  % head(__inc__(A,B)).
+  % guard(true).
+  activate.
+  % body(A1:=A).
+  par(4).
+    out_variable(reg(x,3),reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    spawn((:=)/2).
+  % body(__iinc__(A1,B)).
+  tail(4).
+    out_value(reg(x,3),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    execute('__iinc__'/2).
+label('__dec__'/2).
+  goal('__dec__'/2).
+  requires(6).
+  try_guard_else(label('__dec__'/2-2)).
+  % head(__dec__(A,B)).
+  % guard(integer(A)).
+  seq(4).
+    out_value(reg(in,1),reg(out,1)).
+    call(integer/1).
+  activate.
+  % body(__idec__(A,B)).
+  tail(4).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    execute('__idec__'/2).
+label('__dec__'/2-2).
+  otherwise.
+  % head(__dec__(A,B)).
+  % guard(true).
+  activate.
+  % body(A1:=A).
+  par(4).
+    out_variable(reg(x,3),reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    spawn((:=)/2).
+  % body(__idec__(A1,B)).
+  tail(4).
+    out_value(reg(x,3),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    execute('__idec__'/2).
+label('__iinc__'/2).
+  goal('__iinc__'/2).
+  requires(5).
+  inline('{').
+  inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
+  inline('  MACRO_activate;').
+  inline('  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('  ++v;').
+  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));').
+  inline('  MACRO_proceed;').
+  inline('}').
+label('__idec__'/2).
+  goal('__idec__'/2).
+  requires(5).
+  inline('{').
+  inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
+  inline('  MACRO_activate;').
+  inline('  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('  --v;').
+  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));').
+  inline('  MACRO_proceed;').
+  inline('}').
 label(append/3).
   goal(append/3).
   requires(9).
@@ -2258,7 +2323,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_221940],E)).
+  % head(__nth0__(0,[Y|_244912],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2270,7 +2335,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_227694|Ys],E)).
+  % head(__nth0__(N,[_250882|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -2278,11 +2343,9 @@ label('__nth0__'/3-2).
   activate.
   % body(N1:=N-1).
   par(6).
-    out_variable(reg(x,5),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(in,1)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,5),reg(out,2)).
+    call('__dec__'/2).
   % body(__nth0__(N1,Ys,E)).
   tail(6).
     out_value(reg(x,5),reg(out,1)).
@@ -2293,7 +2356,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_230650],E,Ac)).
+  % head(__nth0_rev__(N,[E|_253946],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2304,7 +2367,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_236496|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_260008|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).
@@ -2312,11 +2375,9 @@ label('__nth0_rev__'/4-2).
   activate.
   % body(Ac1:=Ac+1).
   par(7).
-    out_variable(reg(x,6),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(in,4)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,4),reg(out,1)).
+    out_variable(reg(x,6),reg(out,2)).
+    call('__inc__'/2).
   % body(__nth0_rev__(N,Ls,E,Ac1)).
   tail(7).
     out_value(reg(in,1),reg(out,1)).
@@ -2336,11 +2397,9 @@ label(nth1/3).
   activate.
   % body(N1:=N-1).
   par(5).
-    out_variable(reg(x,4),reg(out,1)).
-    out_structure((-)/2,reg(out,2)).
-      write_value(reg(in,1)).
-      write_constant(1).
-    spawn((:=)/2).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,4),reg(out,2)).
+    call('__dec__'/2).
   % body(__nth0__(N1,Ls,E)).
   tail(5).
     out_value(reg(x,4),reg(out,1)).
@@ -2364,11 +2423,9 @@ label(nth1/3-2).
     spawn('__nth0_rev__'/4).
   % body(N:=N1+1).
   tail(5).
-    out_value(reg(in,1),reg(out,1)).
-    out_structure((+)/2,reg(out,2)).
-      write_value(reg(x,4)).
-      write_constant(1).
-    execute((:=)/2).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    execute('__inc__'/2).
 label(inference_count/1).
   goal(inference_count/1).
   requires(3).

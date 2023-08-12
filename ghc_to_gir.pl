@@ -458,6 +458,60 @@ ghc_get(Ctx, reg(Reg, Nreg), X,
 
 %% ghc_compile_call(?Ctx, +SeqPar, +Goal)
 % サブゴール Goal の呼び出し処理をコンパイルする。
+ghc_compile_call(Ctx, SeqPar, C := Q) :-  % 数式演算の最適化
+    nonvar(Q),
+    ( SeqPar = seq -> write_source(Ctx, seq(_))
+    ; SeqPar = par -> write_source(Ctx, par(_))
+    ; SeqPar = tail -> write_source(Ctx, tail(_)) ),
+    ( Q = A + B, B == 1 ->
+      ghc_call_args(Ctx, [A, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__inc__'/2))
+      ; SeqPar = par -> write_source(Ctx, call('__inc__'/2))
+      ; SeqPar = tail -> write_source(Ctx, execute('__inc__'/2)) )
+    ; Q = A - B, B == 1 ->
+      ghc_call_args(Ctx, [A, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__dec__'/2))
+      ; SeqPar = par -> write_source(Ctx, call('__dec__'/2))
+      ; SeqPar = tail -> write_source(Ctx, execute('__dec__'/2)) )
+    ; Q = A + B ->
+      ghc_call_args(Ctx, [A, B, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__add__'/3))
+      ; SeqPar = par -> write_source(Ctx, call('__add__'/3))
+      ; SeqPar = tail -> write_source(Ctx, execute('__add__'/3)) )
+    ; Q = A - B ->
+      ghc_call_args(Ctx, [A, B, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__sub__'/3))
+      ; SeqPar = par -> write_source(Ctx, call('__sub__'/3))
+      ; SeqPar = tail -> write_source(Ctx, execute('__sub__'/3)) )
+    ; Q = A * B ->
+      ghc_call_args(Ctx, [A, B, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__mul__'/3))
+      ; SeqPar = par -> write_source(Ctx, call('__mul__'/3))
+      ; SeqPar = tail -> write_source(Ctx, execute('__mul__'/3)) )
+    ; Q = A / B ->
+      ghc_call_args(Ctx, [A, B, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__div__'/3))
+      ; SeqPar = par -> write_source(Ctx, call('__div__'/3))
+      ; SeqPar = tail -> write_source(Ctx, execute('__div__'/3)) )
+    ; Q = A mod B ->
+      ghc_call_args(Ctx, [A, B, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__mod__'/3))
+      ; SeqPar = par -> write_source(Ctx, call('__mod__'/3))
+      ; SeqPar = tail -> write_source(Ctx, execute('__mod__'/3)) )
+    ; Q = -A ->
+      ghc_call_args(Ctx, [A, C], 1),
+      ( SeqPar = seq -> write_source(Ctx, call('__neg__'/2))
+      ; SeqPar = par -> write_source(Ctx, call('__neg__'/2))
+      ; SeqPar = tail -> write_source(Ctx, execute('__neg__'/2)) )
+    ).
+ghc_compile_call(Ctx, SeqPar, C =:= Q) :-  % 数式演算の最適化
+    nonvar(Q),
+    ghc_compile_call(Ctx, seq, T := Q),
+    ghc_compile_call(Ctx, SeqPar, C =:= T).
+ghc_compile_call(Ctx, SeqPar, C =\= Q) :-  % 数式演算の最適化
+    nonvar(Q),
+    ghc_compile_call(Ctx, seq, T := Q),
+    ghc_compile_call(Ctx, SeqPar, C =\= T).
 ghc_compile_call(Ctx, SeqPar, Goal) :-
     ( SeqPar = seq -> write_source(Ctx, seq(_))
     ; SeqPar = par -> write_source(Ctx, par(_))
