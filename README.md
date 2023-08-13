@@ -83,6 +83,18 @@ Usage: `queen <N>`
 
 Description: Display all solutions of N-queens problem.
 
+### sample/qsort.ghc
+
+Usage: `qsort <Numbers...>`
+
+Description: Display quicksort results. All arguments must be integer numbers.
+
+### sample/fibonacci.ghc
+
+Usage: `fibonacci <Max>`
+
+Description: Display Fibonacci sequence up to `Max`.
+
 ### sample/tarai.ghc
 
 Usage: `tarai <X> <Y> <Z>`
