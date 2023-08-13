@@ -186,7 +186,7 @@ translate1(_, proceed, proceed).
 translate1(_, seq(N), seq(N)).
 translate1(_, par(N), par(N)).
 translate1(_, tail(N), tail(N)).
-translate1(_, wait(N), wait(N)).
+translate1(_, wait(Ai), wait(A)) :- to_reg(Ai, A).
 translate1(Ctx, check_structure(F / N, Ai), check_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).
 translate1(Ctx, out_structure(F / N, Ai), out_structure(atom(AtomID), A)) :-

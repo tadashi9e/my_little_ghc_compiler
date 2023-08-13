@@ -216,7 +216,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_goal(9,atom(6));
       MACRO_requires(9);
       MACRO_try_guard_else_suspend;
-      MACRO_wait(1);
+      MACRO_wait(reg::in(1));
       MACRO_activate;
       MACRO_tail(6);
       MACRO_out_value(reg::in(2),reg::out(1));
@@ -2409,7 +2409,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_goal(273,atom(122));
       MACRO_requires(3);
       MACRO_try_guard_else_suspend;
-      MACRO_wait(1);
+      MACRO_wait(reg::in(1));
       MACRO_activate;
       MACRO_tail(3);
       MACRO_out_list(reg::out(1));

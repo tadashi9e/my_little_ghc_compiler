@@ -7,7 +7,8 @@ BUILTIN_GIR = ./builtin.gir
 CXX=g++
 CXXFLAGS=--std=c++11 -Wall -g -I.
 
-TARGETS=sample/hello sample/test sample/tarai sample/tarai_reordered sample/primes sample/hanoi sample/queen
+TARGETS=sample/hello sample/test sample/tarai sample/tarai_reordered \
+	sample/primes sample/hanoi sample/queen sample/qsort sample/fibonacci
 
 all:: $(TARGETS)
 
@@ -65,3 +66,17 @@ sample/queen.cc: $(GIR_TO_CC) $(BUILTIN_GIR) sample/queen.gir
 	$(GIR_TO_CC) $(BUILTIN_GIR) sample/queen.gir -o sample/queen.cc
 sample/queen.gir: $(GHC_TO_GIR) sample/queen.ghc
 	$(GHC_TO_GIR) sample/queen.ghc -o sample/queen.gir
+
+sample/qsort: sample/qsort.cc ghc.h
+	$(CXX) $(CXXFLAGS) sample/qsort.cc -o sample/qsort
+sample/qsort.cc: $(GIR_TO_CC) $(BUILTIN_GIR) sample/qsort.gir
+	$(GIR_TO_CC) $(BUILTIN_GIR) sample/qsort.gir -o sample/qsort.cc
+sample/qsort.gir: $(GHC_TO_GIR) sample/qsort.ghc
+	$(GHC_TO_GIR) sample/qsort.ghc -o sample/qsort.gir
+
+sample/fibonacci: sample/fibonacci.cc ghc.h
+	$(CXX) $(CXXFLAGS) sample/fibonacci.cc -o sample/fibonacci
+sample/fibonacci.cc: $(GIR_TO_CC) $(BUILTIN_GIR) sample/fibonacci.gir
+	$(GIR_TO_CC) $(BUILTIN_GIR) sample/fibonacci.gir -o sample/fibonacci.cc
+sample/fibonacci.gir: $(GHC_TO_GIR) sample/fibonacci.ghc
+	$(GHC_TO_GIR) sample/fibonacci.ghc -o sample/fibonacci.gir

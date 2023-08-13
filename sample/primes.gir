@@ -184,7 +184,8 @@ label(printstream/2-2).
     check_list(reg(in,1)).
       read_variable(reg(x,4)).
       read_variable(reg(x,3)).
-  % guard(true).
+  % guard(wait(P)).
+  wait(reg(x,4)).
   activate.
   % body(Stream=[write(P)|Stream2]).
     get_list(reg(in,2)).
@@ -215,7 +216,8 @@ label(printstream_rest/2-2).
     check_list(reg(in,1)).
       read_variable(reg(x,4)).
       read_variable(reg(x,3)).
-  % guard(true).
+  % guard(wait(P)).
+  wait(reg(x,4)).
   activate.
   % body(Stream=[write(,),write(P)|Stream2]).
     get_list(reg(in,2)).
@@ -234,7 +236,7 @@ label(main/1).
   goal(main/1).
   requires(5).
   try_guard_else(label(main/1-2)).
-  % head(main([_3124,A])).
+  % head(main([_3132,A])).
     check_list(reg(in,1)).
       read_void.
       read_list.

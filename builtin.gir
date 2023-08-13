@@ -94,7 +94,7 @@ label('__wait_time__'/4).
   try_guard_else_suspend.
   % head(__wait_time__(Var,Start,InferenceCount,ResumeCount)).
   % guard(wait(Var)).
-  wait(1).
+  wait(reg(in,1)).
   activate.
   % body(__time_post__(Start,InferenceCount,ResumeCount)).
   tail(6).

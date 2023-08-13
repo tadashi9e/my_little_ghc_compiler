@@ -20,14 +20,14 @@ printstream(Ps) :- outstream(Stream), printstream(Ps, Stream).
 printstream([], Stream) :-
     true | Stream = [].
 printstream([P|Ps], Stream) :-
-    true |
+    wait(P) |
     Stream = [write(P) | Stream2],
     printstream_rest(Ps, Stream2).
 printstream_rest([], Stream) :-
     true |
     Stream = [nl].
 printstream_rest([P|Ps], Stream) :-
-    true |
+    wait(P) |
     Stream = [write(','), write(P) | Stream2],
     printstream_rest(Ps, Stream2).
 

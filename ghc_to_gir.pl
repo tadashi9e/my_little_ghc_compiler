@@ -270,8 +270,8 @@ ghc_compile_guard1(Ctx, Guard) :-
     % writeln(Guard),
     ( Guard = true -> true
     ; Guard = wait(X) ->
-      ( get(Ctx, X, reg(in, Ai)) ->
-        write_source(Ctx, wait(Ai)) )
+      ( get(Ctx, X, Reg), Reg = reg(_, _) ->
+        write_source(Ctx, wait(Reg)) )
     ; Guard = (X = Y) ->
       ( get(Ctx, X, reg(in, Ai)) ->
         always_success(ghc_get_check(Ctx, reg(in, Ai), Y))

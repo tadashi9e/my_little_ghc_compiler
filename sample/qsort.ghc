@@ -1,0 +1,50 @@
+% -*- coding:utf-8-unix; mode:prolog -*-
+
+qsort(Xs, Ys) :- true | qsort(Xs, Ys, []).
+
+qsort([X|Xs], Ys0, Ys3) :-
+    true |
+    part(Xs, X, S, L),
+    qsort(S, Ys0, [X|Ys2]),
+    qsort(L, Ys2, Ys3).
+qsort([],     Ys0, Ys1) :-
+    true |
+    Ys0 = Ys1.
+part([X|Xs], A, S, L0) :-
+    A < X |
+    L0 = [X|L1], part(Xs, A, S, L1).
+part([X|Xs], A, S0, L) :-
+    A >= X |
+    S0 = [X|S1], part(Xs, A, S1, L).
+part([],     _, S,  L) :-
+    true |
+    S = [], L = [].
+
+atom_number_list([], Ns) :- Ns = [].
+atom_number_list([A|As], Ns) :-
+    atom_number(A, N),
+    Ns = [N|Ns2],
+    atom_number_list(As, Ns2).
+
+printstream(Ns) :- outstream(Stream), printstream(Ns, Stream).
+printstream([], Stream) :-
+    true | Stream = [].
+printstream([N|Ns], Stream) :-
+    wait(N) |
+    Stream = [write(N) | Stream2],
+    printstream_rest(Ns, Stream2).
+printstream_rest([], Stream) :-
+    true |
+    Stream = [nl].
+printstream_rest([N|Ns], Stream) :-
+    wait(N) |
+    Stream = [write(','), write(N) | Stream2],
+    printstream_rest(Ns, Stream2).
+
+main([_|Args]) :-
+    atom_number_list(Args, Ns),
+    printstream(SortedNs),
+    qsort(Ns, SortedNs).
+otherwise.
+main([Prog]) :-
+    outstream([write('usage: '), write(Prog), write(' <Numbers...>'), nl]).

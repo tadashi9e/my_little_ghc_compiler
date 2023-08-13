@@ -1,0 +1,37 @@
+% -*- coding:utf-8-unix; mode:prolog -*-
+
+fibonacci(Max, Ns) :-
+    true |
+    fib(Max, 0, 1, Ns).
+fib(Max, N1, N2, Ns0) :-
+    N2 =< Max |
+    Ns0 = [N2 | Ns1],
+    N3 := N1 + N2,
+    fib(Max, N2, N3, Ns1).
+fib(Max, N1, N2, Ns0) :-
+    N2 > Max | Ns0 = [].
+
+
+printstream(Ns) :- outstream(Stream), printstream(Ns, Stream).
+printstream([], Stream) :-
+    true | Stream = [].
+printstream([N|Ns], Stream) :-
+    wait(N) |
+    Stream = [write(N) | Stream2],
+    printstream_rest(Ns, Stream2).
+printstream_rest([], Stream) :-
+    true |
+    Stream = [nl].
+printstream_rest([N|Ns], Stream) :-
+    wait(N) |
+    Stream = [write(','), write(N) | Stream2],
+    printstream_rest(Ns, Stream2).
+
+main([_,Arg]) :-
+    atom_number(Arg, N),
+    printstream(Ns),
+    fibonacci(N, Ns).
+
+otherwise.
+main([Prog]) :-
+    outstream([write('usage: '), write(Prog), writeln(' <Max>')]).

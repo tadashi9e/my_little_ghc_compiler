@@ -373,7 +373,7 @@ label(wait_var/1).
   try_guard_else_suspend.
   % head(wait_var(X)).
   % guard(wait(X)).
-  wait(1).
+  wait(reg(in,1)).
   activate.
   % body(writeln(X)).
   tail(3).
@@ -1634,7 +1634,7 @@ label(test_splice_suspension1/1).
   try_guard_else_suspend.
   % head(test_splice_suspension1(X)).
   % guard(wait(X)).
-  wait(1).
+  wait(reg(in,1)).
   activate.
   % body(writeln(X)).
   tail(3).
