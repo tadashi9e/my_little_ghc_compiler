@@ -1360,7 +1360,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_set_value(Vn, Ai)                             \
   {                                                         \
-    const Q q = deref(ref_of(vm->in[Vn]));                  \
+    const Q q = ref_of(deref(vm->in[Vn]));                  \
     vm->in[Vn] = q;                                         \
     vm->in[Ai] = q;                                         \
   }
@@ -1402,7 +1402,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_out_value(Vn, Oi)                             \
   {                                                         \
-    const Q q = ref_of(deref(ref_of(vm->in[Vn])));          \
+    const Q q = ref_of(deref(vm->in[Vn]));                  \
     vm->in[Vn] = q;                                         \
     vm->out[Oi] = q;                                        \
   }
