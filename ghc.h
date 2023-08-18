@@ -1587,7 +1587,7 @@ class RuntimeError: public std::runtime_error {
         vm->heap_published(1 + arity);                          \
       } else {                                                  \
         failed = true;                                          \
-        continue;                                               \
+        break;                                                  \
       }                                                         \
     } while (0);                                                \
     if (failed) {                                               \
