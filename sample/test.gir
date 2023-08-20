@@ -1720,6 +1720,94 @@ label(main/1).
   % head(main(_12654)).
   % guard(true).
   activate.
+  % body(do_test(test_otherwise)).
+  seq(3).
+    out_constant(test_otherwise,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_write_var)).
+  seq(3).
+    out_constant(test_write_var,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_write_atom)).
+  seq(3).
+    out_constant(test_write_atom,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_write_list)).
+  seq(3).
+    out_constant(test_write_list,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_write_structure)).
+  seq(3).
+    out_constant(test_write_structure,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_get_structure)).
+  seq(3).
+    out_constant(test_get_structure,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_set_structure)).
+  seq(3).
+    out_constant(test_set_structure,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_get_list)).
+  seq(3).
+    out_constant(test_get_list,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_set_list)).
+  seq(3).
+    out_constant(test_set_list,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_check_constant)).
+  seq(3).
+    out_constant(test_check_constant,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_check_list)).
+  seq(3).
+    out_constant(test_check_list,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_check_nil)).
+  seq(3).
+    out_constant(test_check_nil,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_check_structure)).
+  seq(3).
+    out_constant(test_check_structure,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_wait_var)).
+  seq(3).
+    out_constant(test_wait_var,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_atom_concat)).
+  seq(3).
+    out_constant(test_atom_concat,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_atom_chars)).
+  seq(3).
+    out_constant(test_atom_chars,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_atom_codes)).
+  seq(3).
+    out_constant(test_atom_codes,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_append)).
+  seq(3).
+    out_constant(test_append,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_reverse)).
+  seq(3).
+    out_constant(test_reverse,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_nth0)).
+  seq(3).
+    out_constant(test_nth0,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_nth1)).
+  seq(3).
+    out_constant(test_nth1,reg(out,1)).
+    call(do_test/1).
+  % body(do_test(test_splice_suspension)).
+  seq(3).
+    out_constant(test_splice_suspension,reg(out,1)).
+    call(do_test/1).
   % body(do_test(test_calc)).
   seq(3).
     out_constant(test_calc,reg(out,1)).

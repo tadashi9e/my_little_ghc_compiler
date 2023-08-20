@@ -152,33 +152,33 @@ void module(VM::ptr vm, Program* prog) {
     case 3:  // __call__/1
       MACRO_goal(3,atom(3));
       MACRO_requires(3);
-{
   MACRO_wait(reg::in(1));
-  Q q = vm->in[1];
-  const TAG_T tag = tag_of(q);
-  if (tag == TAG_ATOM) {
-    MACRO_activate;
-    const int pc = prog->query_entry_point(q);
-    MACRO_execute(pc, 0);
-  } else if (tag == TAG_STR) {
-    MACRO_activate;
-    A* structure = ptr_of<A>(q);
-    Q g = structure[0].load();
-    const int pc = prog->query_entry_point(g);
-    if (pc < 0) {
-      vm->fail();
-      continue;
+  {
+    Q q = vm->in[1];
+    const TAG_T tag = tag_of(q);
+    if (tag == TAG_ATOM) {
+      MACRO_activate;
+      const int pc = prog->query_entry_point(q);
+      MACRO_execute(pc, 0);
+    } else if (tag == TAG_STR) {
+      MACRO_activate;
+      A* structure = ptr_of<A>(q);
+      Q g = structure[0].load();
+      const int pc = prog->query_entry_point(g);
+      if (pc < 0) {
+        vm->fail();
+        continue;
+      }
+      const int arity = atom_arity_of(g);
+      MACRO_tail(2);
+      for (int i = 1; i <= arity; ++i) {
+        MACRO_out_constant(structure[i].load(), reg::out(i));
+      }
+      MACRO_execute(pc, arity);
+    } else {
+      MACRO_fail;
     }
-    const int arity = atom_arity_of(g);
-    MACRO_tail(2);
-    for (int i = 1; i <= arity; ++i) {
-      MACRO_out_constant(structure[i].load(), reg::out(i));
-    }
-    MACRO_execute(pc, arity);
-  } else {
-    MACRO_fail;
   }
-}
     case 4:  // time/1
       MACRO_goal(4,atom(4));
       MACRO_requires(8);
@@ -230,33 +230,33 @@ void module(VM::ptr vm, Program* prog) {
     case 10:  // __time_pre__/3
       MACRO_goal(10,atom(7));
       MACRO_requires(7);
-{
   MACRO_activate;
-  const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);
-  MACRO_get_constant(tagvalue<TAG_INT>(istart), reg::in(1));
+  {
+    const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);
+    MACRO_get_constant(tagvalue<TAG_INT>(istart), reg::in(1));
+  }
   MACRO_get_constant(tagvalue<TAG_INT>(vm->inference_count), reg::in(2));
   MACRO_get_constant(tagvalue<TAG_INT>(vm->resume_count), reg::in(3));
   MACRO_proceed;
-}
     case 11:  // __time_post__/3
       MACRO_goal(11,atom(8));
       MACRO_requires(7);
-{
   MACRO_activate;
-  const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);
-  const int64_t istart =
+  {
+    const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);
+    const int64_t istart =
           value_of<int64_t>(vm->in[1]);
-  const int64_t inferences =
+    const int64_t inferences =
           vm->inference_count - value_of<int64_t>(vm->in[2]);
-  const int64_t resumes =
+    const int64_t resumes =
           vm->resume_count - value_of<int64_t>(vm->in[3]);
-  const double seconds = (iend - istart) / 1000000.0;
-  std::cout << "% " << inferences << " inferences("
-            << resumes << " times resumed), "
-            << seconds << " CPU seconds ("
-            << std::fixed << (inferences / seconds) << " Lips)" << std::endl;
+    const double seconds = (iend - istart) / 1000000.0;
+    std::cout << "% " << inferences << " inferences("
+              << resumes << " times resumed), "
+              << seconds << " CPU seconds ("
+              << std::fixed << (inferences / seconds) << " Lips)" << std::endl;
+  }
   MACRO_proceed;
-}
     case 12:  // atom_concat/3
       MACRO_goal(12,atom(9));
       MACRO_requires(7);
@@ -310,63 +310,63 @@ void module(VM::ptr vm, Program* prog) {
     case 21:  // __atom_concat_1__/3
       MACRO_goal(21,atom(10));
       MACRO_requires(7);
-{
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const Q q2 = vm->in[2];
-  const std::string s1 = atom_str_of(q1);
-  const std::string s2 = atom_str_of(q2);
-  const std::string s = s1 + s2;
-  const Q c = to_atom(s.c_str(), 0);
-  vm->unify(c, vm->in[3]);
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    const std::string s1 = atom_str_of(q1);
+    const std::string s2 = atom_str_of(q2);
+    const std::string s = s1 + s2;
+    const Q c = to_atom(s.c_str(), 0);
+    vm->unify(c, vm->in[3]);
+  }
   MACRO_proceed;
-}
     case 22:  // __atom_concat_2__/3
       MACRO_goal(22,atom(11));
       MACRO_requires(7);
-{
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const Q q3 = vm->in[3];
-  const std::string s1 = atom_str_of(q1);
-  const std::string s3 = atom_str_of(q3);
-  if (s1.length() > s3.length()) {
-    vm->fail();
-    continue;
+  {
+    const Q q1 = vm->in[1];
+    const Q q3 = vm->in[3];
+    const std::string s1 = atom_str_of(q1);
+    const std::string s3 = atom_str_of(q3);
+    if (s1.length() > s3.length()) {
+      vm->fail();
+      continue;
+    }
+    const size_t i = s1.length();
+    if (s3.substr(0, i) != s1) {
+      vm->fail();
+      continue;
+    }
+    const std::string s2 = s3.substr(i);
+    const Q c = to_atom(s2.c_str(), 0);
+    vm->unify(c, vm->in[2]);
   }
-  const size_t i = s1.length();
-  if (s3.substr(0, i) != s1) {
-    vm->fail();
-    continue;
-  }
-  const std::string s2 = s3.substr(i);
-  const Q c = to_atom(s2.c_str(), 0);
-  vm->unify(c, vm->in[2]);
   MACRO_proceed;
-}
     case 23:  // __atom_concat_3__/3
       MACRO_goal(23,atom(12));
       MACRO_requires(7);
-{
   MACRO_activate;
-  const Q q2 = vm->in[2];
-  const Q q3 = vm->in[3];
-  const std::string s2 = atom_str_of(q2);
-  const std::string s3 = atom_str_of(q3);
-  if (s2.length() > s3.length()) {
-    vm->fail();
-    continue;
+  {
+    const Q q2 = vm->in[2];
+    const Q q3 = vm->in[3];
+    const std::string s2 = atom_str_of(q2);
+    const std::string s3 = atom_str_of(q3);
+    if (s2.length() > s3.length()) {
+      vm->fail();
+      continue;
+    }
+    const size_t i = s2.length();
+    if (s3.substr(i) != s2) {
+      vm->fail();
+      continue;
+    }
+    const std::string s1 = s3.substr(0, i);
+    const Q c = to_atom(s1.c_str(), 0);
+    vm->unify(c, vm->in[1]);
   }
-  const size_t i = s2.length();
-  if (s3.substr(i) != s2) {
-    vm->fail();
-    continue;
-  }
-  const std::string s1 = s3.substr(0, i);
-  const Q c = to_atom(s1.c_str(), 0);
-  vm->unify(c, vm->in[1]);
   MACRO_proceed;
-}
     case 24:  // atom_codes/2
       MACRO_goal(24,atom(13));
       MACRO_requires(8);
@@ -396,23 +396,23 @@ void module(VM::ptr vm, Program* prog) {
     case 27:  // __atom_to_codes__/2
       MACRO_goal(27,atom(15));
       MACRO_requires(5);
-{
   MACRO_activate;
-  const Q q = vm->in[1];
-  const std::string s = atom_str_of(q);
-  const size_t h = vm->heap_publishing(s.length() * 2);
-  for (size_t i = 0; i < s.length(); ++i) {
-    const unsigned char c = s.at(i);
-    vm->heap[h + i * 2].store(tagvalue<TAG_INT>(c));
-    vm->heap[h + i * 2 + 1].store(
-            (i < s.length() - 1)
-            ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])
-            : tagptr<TAG_NIL, Q>(0));
+  {
+    const Q q = vm->in[1];
+    const std::string s = atom_str_of(q);
+    const size_t h = vm->heap_publishing(s.length() * 2);
+    for (size_t i = 0; i < s.length(); ++i) {
+      const unsigned char c = s.at(i);
+      vm->heap[h + i * 2].store(tagvalue<TAG_INT>(c));
+      vm->heap[h + i * 2 + 1].store(
+              (i < s.length() - 1)
+              ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])
+              : tagptr<TAG_NIL, Q>(0));
+    }
+    vm->heap_published(s.length() * 2);
+    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);
   }
-  vm->heap_published(s.length() * 2);
-  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);
   MACRO_proceed;
-}
     case 28:  // __codes_to_atom__/3
       MACRO_goal(28,atom(16));
       MACRO_requires(9);
@@ -445,16 +445,16 @@ void module(VM::ptr vm, Program* prog) {
     case 32:  // __atom_code_concat__/3
       MACRO_goal(32,atom(17));
       MACRO_requires(7);
-{
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const Q q2 = vm->in[2];
-  std::string s = atom_str_of(q1);
-  const unsigned char c = value_of<char>(q2);
-  s += c;
-  vm->unify(to_atom(s.c_str(), 0), vm->in[3]);
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    std::string s = atom_str_of(q1);
+    const unsigned char c = value_of<char>(q2);
+    s += c;
+    vm->unify(to_atom(s.c_str(), 0), vm->in[3]);
+  }
   MACRO_proceed;
-}
     case 33:  // atom_chars/2
       MACRO_goal(33,atom(18));
       MACRO_requires(8);
@@ -482,51 +482,51 @@ void module(VM::ptr vm, Program* prog) {
     case 36:  // __atom_to_chars__/2
       MACRO_goal(36,atom(19));
       MACRO_requires(5);
-{
   MACRO_activate;
-  const Q q = vm->in[1];
-  const std::string s = atom_str_of(q);
-  const size_t h = vm->heap_publishing(s.length() * 2);
-  size_t i = 0;
-  for (size_t j = 0; j < s.length(); ++i) {
-    const int c0 = s.at(j) & 0xff;
-    int n = 1;
-    if (c0 < 0x80) {
-      n = 1;
-    } else if (j + 2 <= s.length()) {
-      const int c1 = s.at(j + 1) & 0xff;
-      if (c0 - 0xc2 < 0x1e && c1 - 0x80 < 0x40) {
-        n = 2;
-      } else if (j + 3 <= s.length()) {
-        const int c2 = s.at(j + 2) & 0xff;
-        if (((c0 == 0xe0       && c1 - 0xa0 < 0x20) ||
-             (c0 - 0xe1 < 0x0c && c1 - 0x80 < 0x40) ||
-             (c0 == 0xed       && c1 - 0x80 < 0x20) ||
-             (c0 - 0xee < 0x02 && c1 - 0x80 < 0x40)) && c2 - 0x80 < 0x40) {
-          n = 3;
-        } else if (j + 4 <= s.length()) {
-          const int c3 = s.at(j + 3) & 0xff;
-          if (((c0 == 0xf0       && c1 - 0x90 < 0x30) ||
-               (c0 - 0xf1 < 0x03 && c1 - 0x80 < 0x40) ||
-               (c0 == 0xf4       && c1 - 0x80 < 0x10)) && c2 - 0x80 < 0x40 && c3 - 0x80 < 0x40) {
-            n = 4;
+  {
+    const Q q = vm->in[1];
+    const std::string s = atom_str_of(q);
+    const size_t h = vm->heap_publishing(s.length() * 2);
+    size_t i = 0;
+    for (size_t j = 0; j < s.length(); ++i) {
+      const int c0 = s.at(j) & 0xff;
+      int n = 1;
+      if (c0 < 0x80) {
+        n = 1;
+      } else if (j + 2 <= s.length()) {
+        const int c1 = s.at(j + 1) & 0xff;
+        if (c0 - 0xc2 < 0x1e && c1 - 0x80 < 0x40) {
+          n = 2;
+        } else if (j + 3 <= s.length()) {
+          const int c2 = s.at(j + 2) & 0xff;
+          if (((c0 == 0xe0       && c1 - 0xa0 < 0x20) ||
+               (c0 - 0xe1 < 0x0c && c1 - 0x80 < 0x40) ||
+               (c0 == 0xed       && c1 - 0x80 < 0x20) ||
+               (c0 - 0xee < 0x02 && c1 - 0x80 < 0x40)) && c2 - 0x80 < 0x40) {
+            n = 3;
+          } else if (j + 4 <= s.length()) {
+            const int c3 = s.at(j + 3) & 0xff;
+            if (((c0 == 0xf0       && c1 - 0x90 < 0x30) ||
+                 (c0 - 0xf1 < 0x03 && c1 - 0x80 < 0x40) ||
+                 (c0 == 0xf4       && c1 - 0x80 < 0x10)) && c2 - 0x80 < 0x40 && c3 - 0x80 < 0x40) {
+              n = 4;
+            }
           }
         }
       }
+      const std::string s1 = (
+              (j + n < s.length()) ? s.substr(j, n) : s.substr(j));
+      j += n;
+      vm->heap[h + i * 2].store(to_atom(s1.c_str(), 0));
+      vm->heap[h + i * 2 + 1].store(
+              (j < s.length() - 1)
+              ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])
+              : tagptr<TAG_NIL, Q>(0));
     }
-    const std::string s1 = (
-            (j + n < s.length()) ? s.substr(j, n) : s.substr(j));
-    j += n;
-    vm->heap[h + i * 2].store(to_atom(s1.c_str(), 0));
-    vm->heap[h + i * 2 + 1].store(
-            (j < s.length() - 1)
-            ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])
-            : tagptr<TAG_NIL, Q>(0));
+    vm->heap_published(i * 2);
+    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);
   }
-  vm->heap_published(i * 2);
-  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);
   MACRO_proceed;
-}
     case 37:  // __chars_to_atom__/3
       MACRO_goal(37,atom(20));
       MACRO_requires(9);
@@ -579,25 +579,25 @@ void module(VM::ptr vm, Program* prog) {
     case 44:  // __atom_to_number__/2
       MACRO_goal(44,atom(22));
       MACRO_requires(5);
-{
   MACRO_activate;
-  const Q q = vm->in[1];
-  const std::string s = atom_str_of(q);
-  const int64_t i = std::stoll(s);
-  MACRO_get_constant(tagvalue<TAG_INT>(i), reg::in(2));
+  {
+    const Q q = vm->in[1];
+    const std::string s = atom_str_of(q);
+    const int64_t i = std::stoll(s);
+    MACRO_get_constant(tagvalue<TAG_INT>(i), reg::in(2));
+  }
   MACRO_proceed;
-}
     case 45:  // __number_to_atom__/2
       MACRO_goal(45,atom(23));
       MACRO_requires(5);
-{
   MACRO_activate;
-  const Q q = vm->in[2];
-  const int64_t i = value_of<int64_t>(q);
-  const std::string s = std::to_string(i);
-  MACRO_get_constant(to_atom(s.c_str(), 0), reg::in(1));
+  {
+    const Q q = vm->in[2];
+    const int64_t i = value_of<int64_t>(q);
+    const std::string s = std::to_string(i);
+    MACRO_get_constant(to_atom(s.c_str(), 0), reg::in(1));
+  }
   MACRO_proceed;
-}
     case 46:  // outstream/1
       MACRO_goal(46,atom(24));
       MACRO_requires(6);
@@ -1052,34 +1052,34 @@ void module(VM::ptr vm, Program* prog) {
     case 98:  // __open__/4
       MACRO_goal(98,atom(52));
       MACRO_requires(9);
-{
   MACRO_wait_for(TAG_ATOM, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
   MACRO_wait_for(TAG_INT, reg::in(3));
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const Q q2 = vm->in[2];
-  const Q q3 = vm->in[3];
-  const std::string src = atom_str_of(q1);
-  const int oflag = value_of<int>(q2);
-  const int omode = value_of<int>(q3);
-  const int fd = open(src.c_str(), oflag, omode);
-  if (fd < 0) {
-    vm->unify(to_atom("error", 0), vm->in[4]);
-  } else {
-    vm->unify(tagvalue<TAG_INT>(fd), vm->in[4]);
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    const Q q3 = vm->in[3];
+    const std::string src = atom_str_of(q1);
+    const int oflag = value_of<int>(q2);
+    const int omode = value_of<int>(q3);
+    const int fd = open(src.c_str(), oflag, omode);
+    if (fd < 0) {
+      vm->unify(to_atom("error", 0), vm->in[4]);
+    } else {
+      vm->unify(tagvalue<TAG_INT>(fd), vm->in[4]);
+    }
   }
   MACRO_proceed;
-}
     case 99:  // __close__/1
       MACRO_goal(99,atom(53));
       MACRO_requires(3);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_activate;
-  const int fd = tagvalue<TAG_INT>(vm->in[1]);
-  close(fd);
-}
+  {
+    const int fd = tagvalue<TAG_INT>(vm->in[1]);
+    close(fd);
+  }
     case 100:  // writeln/1
       MACRO_goal(100,atom(30));
       MACRO_requires(3);
@@ -1127,21 +1127,21 @@ void module(VM::ptr vm, Program* prog) {
     case 107:  // __nl__/1
       MACRO_goal(107,atom(54));
       MACRO_requires(3);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const int fd = value_of<int>(q1);
-  const std::string s = "\n";
-  for (size_t offset = 0; offset <  s.size();) {
-    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
-    if (n <= 0) {
-      break;
+  {
+    const Q q1 = vm->in[1];
+    const int fd = value_of<int>(q1);
+    const std::string s = "\n";
+    for (size_t offset = 0; offset <  s.size();) {
+      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
+      if (n <= 0) {
+        break;
+      }
+      offset += n;
     }
-    offset += n;
   }
   MACRO_proceed;
-}
     case 108:  // write/1
       MACRO_goal(108,atom(28));
       MACRO_requires(4);
@@ -1386,186 +1386,182 @@ void module(VM::ptr vm, Program* prog) {
     case 146:  // __write_number__/2
       MACRO_goal(146,atom(67));
       MACRO_requires(5);
-{
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const Q q2 = vm->in[2];
-  const int fd = value_of<int>(q1);
-  const int64_t i = value_of<int64_t>(q2);
-  const std::string s = std::to_string(i);
-  for (size_t offset = 0; offset <  s.size();) {
-    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
-    if (n <= 0) {
-      break;
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    const int fd = value_of<int>(q1);
+    const int64_t i = value_of<int64_t>(q2);
+    const std::string s = std::to_string(i);
+    for (size_t offset = 0; offset <  s.size();) {
+      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
+      if (n <= 0) {
+        break;
+      }
+      offset += n;
     }
-    offset += n;
   }
   MACRO_proceed;
-}
     case 147:  // __write_atom__/2
       MACRO_goal(147,atom(68));
       MACRO_requires(5);
-{
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const Q q2 = vm->in[2];
-  const int fd = value_of<int>(q1);
-  const std::string s = atom_str_of(q2);
-  for (size_t offset = 0; offset <  s.size();) {
-    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
-    if (n <= 0) {
-      break;
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    const int fd = value_of<int>(q1);
+    const std::string s = atom_str_of(q2);
+    for (size_t offset = 0; offset <  s.size();) {
+      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
+      if (n <= 0) {
+        break;
+      }
+      offset += n;
     }
-    offset += n;
   }
   MACRO_proceed;
-}
     case 148:  // __write_var__/2
       MACRO_goal(148,atom(69));
       MACRO_requires(5);
-{
   MACRO_activate;
-  const Q q1 = vm->in[1];
-  const Q q2 = vm->in[2];
-  const int fd = value_of<int>(q1);
-  const A* a = ptr_of<A>(q2);
-  std::stringstream ss;
-  ss << a;
-  const std::string s = ss.str();
-  for (size_t offset = 0; offset <  s.size();) {
-    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
-    if (n <= 0) {
-      break;
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    const int fd = value_of<int>(q1);
+    const A* a = ptr_of<A>(q2);
+    std::stringstream ss;
+    ss << a;
+    const std::string s = ss.str();
+    for (size_t offset = 0; offset <  s.size();) {
+      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);
+      if (n <= 0) {
+        break;
+      }
+      offset += n;
     }
-    offset += n;
   }
   MACRO_proceed;
-}
     case 149:  // integer/1
       MACRO_goal(149,atom(70));
       MACRO_requires(3);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_return;
-}
     case 150:  // atom/1
       MACRO_goal(150,atom(71));
       MACRO_requires(3);
-{
   MACRO_wait_for(TAG_ATOM, reg::in(1));
   MACRO_return;
-}
     case 151:  // var/1
       MACRO_goal(151,atom(72));
       MACRO_requires(3);
-{
-  const Q q = vm->in[1] = deref(vm->in[1]);
-  const TAG_T tag = tag_of(q);
-  if (tag != TAG_REF && tag != TAG_SUS) {
-    vm->fail();
-    continue;
+  {
+    const Q q = vm->in[1] = deref(vm->in[1]);
+    const TAG_T tag = tag_of(q);
+    if (tag != TAG_REF && tag != TAG_SUS) {
+      vm->fail();
+      continue;
+    }
   }
   MACRO_return;
-}
     case 152:  // is_functor/1
       MACRO_goal(152,atom(73));
       MACRO_requires(3);
-{
   MACRO_wait_for(TAG_STR, reg::in(1));
-  const Q q = vm->in[1];
-  const TAG_T tag = tag_of(q);
-  if (tag != TAG_STR) {
-    vm->fail();
-    continue;
+  {
+    const Q q = vm->in[1];
+    const TAG_T tag = tag_of(q);
+    if (tag != TAG_STR) {
+      vm->fail();
+      continue;
+    }
   }
   MACRO_return;
-}
     case 153:  // (=..)/2
       MACRO_goal(153,atom(74));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_STR, reg::in(1));
   MACRO_activate;
-  const Q q = vm->in[1];
-  A* p = ptr_of<A>(q);
-  const Q Fun = p[0].load();
-  const int arity = atom_arity_of(Fun);
-  const size_t h = vm->heap_publishing((1 + arity) * 2);
-  for (int i = 0; i <= arity; ++i) {
-    vm->heap[h + i * 2].store(p[i].load());
-    vm->heap[h + i * 2 + 1].store(
-      (i < arity) ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2]) :
-      tagptr<TAG_NIL, Q>(0));
+  {
+    const Q q = vm->in[1];
+    A* p = ptr_of<A>(q);
+    const Q Fun = p[0].load();
+    const int arity = atom_arity_of(Fun);
+    const size_t h = vm->heap_publishing((1 + arity) * 2);
+    for (int i = 0; i <= arity; ++i) {
+      vm->heap[h + i * 2].store(p[i].load());
+      vm->heap[h + i * 2 + 1].store(
+        (i < arity) ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2]) :
+        tagptr<TAG_NIL, Q>(0));
+    }
+    vm->heap_published((1 + arity) * 2);
+    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);
   }
-  vm->heap_published((1 + arity) * 2);
-  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);
   MACRO_proceed;
-}
     case 154:  // (==)/2
       MACRO_goal(154,atom(75));
       MACRO_requires(5);
-{
   MACRO_wait(reg::in(1));
   MACRO_wait(reg::in(2));
-  Q q1 = vm->in[1];
-  Q q2 = vm->in[2];
-  if (!(q1 == q2)) {
-    MACRO_fail;
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    if (!(q1 == q2)) {
+      MACRO_fail;
+    }
   }
   MACRO_return;
-}
     case 155:  // (>=)/2
       MACRO_goal(155,atom(76));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  if (!(v1 >= v2)) {
-    MACRO_fail;
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    if (!(v1 >= v2)) {
+      MACRO_fail;
+    }
   }
   MACRO_return;
-}
     case 156:  // (=<)/2
       MACRO_goal(156,atom(77));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  if (!(v1 <= v2)) {
-    MACRO_fail;
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    if (!(v1 <= v2)) {
+      MACRO_fail;
+    }
   }
   MACRO_return;
-}
     case 157:  // (>)/2
       MACRO_goal(157,atom(78));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  if (!(v1 > v2)) {
-    MACRO_fail;
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    if (!(v1 > v2)) {
+      MACRO_fail;
+    }
   }
   MACRO_return;
-}
     case 158:  // (<)/2
       MACRO_goal(158,atom(79));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  if (!(v1 < v2)) {
-    MACRO_fail;
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    if (!(v1 < v2)) {
+      MACRO_fail;
+    }
   }
   MACRO_return;
-}
     case 159:  // (=:=)/2
       MACRO_goal(159,atom(80));
       MACRO_requires(7);
@@ -1607,16 +1603,16 @@ void module(VM::ptr vm, Program* prog) {
     case 165:  // __not_equal__/2
       MACRO_goal(165,atom(82));
       MACRO_requires(5);
-{
   MACRO_wait(reg::in(1));
   MACRO_wait(reg::in(2));
-  Q q1 = vm->in[1];
-  Q q2 = vm->in[2];
-  if (!(q1 != q2)) {
-    MACRO_fail;
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    if (!(q1 != q2)) {
+      MACRO_fail;
+    }
   }
   MACRO_return;
-}
     case 166:  // (:=)/2
       MACRO_goal(166,atom(83));
       MACRO_requires(8);
@@ -1900,78 +1896,78 @@ void module(VM::ptr vm, Program* prog) {
     case 208:  // __ineg__/2
       MACRO_goal(208,atom(96));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_activate;
-  const int64_t v = -value_of<int64_t>(reg::in(1));
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));
+  {
+    const int64_t v = -value_of<int64_t>(reg::in(1));
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));
+  }
   MACRO_proceed;
-}
     case 209:  // __iadd__/3
       MACRO_goal(209,atom(97));
       MACRO_requires(7);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
   MACRO_activate;
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  const int64_t v = v1 + v2;
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    const int64_t v = v1 + v2;
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  }
   MACRO_proceed;
-}
     case 210:  // __isub__/3
       MACRO_goal(210,atom(98));
       MACRO_requires(7);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
   MACRO_activate;
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  const int64_t v = v1 - v2;
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    const int64_t v = v1 - v2;
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  }
   MACRO_proceed;
-}
     case 211:  // __imul__/3
       MACRO_goal(211,atom(99));
       MACRO_requires(7);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
   MACRO_activate;
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  const int64_t v = v1 * v2;
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    const int64_t v = v1 * v2;
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  }
   MACRO_proceed;
-}
     case 212:  // __idiv__/3
       MACRO_goal(212,atom(100));
       MACRO_requires(7);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
   MACRO_activate;
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  const int64_t v = v1 / v2;
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    const int64_t v = v1 / v2;
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  }
   MACRO_proceed;
-}
     case 213:  // __imod__/3
       MACRO_goal(213,atom(101));
       MACRO_requires(7);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_wait_for(TAG_INT, reg::in(2));
   MACRO_activate;
-  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
-  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
-  const int64_t v = v1 % v2;
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  {
+    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);
+    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);
+    const int64_t v = v1 % v2;
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));
+  }
   MACRO_proceed;
-}
     case 214:  // __inc__/2
       MACRO_goal(214,atom(102));
       MACRO_requires(6);
@@ -2025,25 +2021,25 @@ void module(VM::ptr vm, Program* prog) {
     case 222:  // __iinc__/2
       MACRO_goal(222,atom(104));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_activate;
-  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);
-  ++v;
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));
+  {
+    int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);
+    ++v;
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));
+  }
   MACRO_proceed;
-}
     case 223:  // __idec__/2
       MACRO_goal(223,atom(105));
       MACRO_requires(5);
-{
   MACRO_wait_for(TAG_INT, reg::in(1));
   MACRO_activate;
-  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);
-  --v;
-  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));
+  {
+    int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);
+    --v;
+    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));
+  }
   MACRO_proceed;
-}
     case 224:  // append/3
       MACRO_goal(224,atom(106));
       MACRO_requires(9);
@@ -2285,11 +2281,9 @@ void module(VM::ptr vm, Program* prog) {
     case 255:  // __inference_count__/1
       MACRO_goal(255,atom(114));
       MACRO_requires(3);
-{
   MACRO_activate;
   vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1]);
   MACRO_proceed;
-}
     case 256:  // resume_count/1
       MACRO_goal(256,atom(115));
       MACRO_requires(3);
@@ -2301,11 +2295,9 @@ void module(VM::ptr vm, Program* prog) {
     case 257:  // __resume_count__/1
       MACRO_goal(257,atom(116));
       MACRO_requires(3);
-{
   MACRO_activate;
   vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1]);
   MACRO_proceed;
-}
     case 258:  // dump_to_dot/1
       MACRO_goal(258,atom(117));
       MACRO_requires(3);
@@ -2321,13 +2313,13 @@ void module(VM::ptr vm, Program* prog) {
     case 260:  // __dump_to_dot__/1
       MACRO_goal(260,atom(118));
       MACRO_requires(3);
-{
-  const Q q = vm->in[1];
-  const std::string s = atom_str_of(q);
   MACRO_activate;
-  vm->dump_to_dot(s);
+  {
+    const Q q = vm->in[1];
+    const std::string s = atom_str_of(q);
+    vm->dump_to_dot(s);
+  }
   MACRO_proceed;
-}
     case 261:  // dump_to_dot/2
       MACRO_goal(261,atom(119));
       MACRO_requires(5);
@@ -2344,14 +2336,14 @@ void module(VM::ptr vm, Program* prog) {
     case 263:  // __dump_to_dot__/2
       MACRO_goal(263,atom(120));
       MACRO_requires(5);
-{
-  const Q q1 = vm->in[1];
-  const Q q2 = vm->in[2];
-  const std::string s = atom_str_of(q1);
   MACRO_activate;
-  vm->dump_to_dot(s, q2);
+  {
+    const Q q1 = vm->in[1];
+    const Q q2 = vm->in[2];
+    const std::string s = atom_str_of(q1);
+    vm->dump_to_dot(s, q2);
+  }
   MACRO_proceed;
-}
     case 264:  // primes/2
       MACRO_goal(264,atom(121));
       MACRO_requires(7);
