@@ -725,7 +725,6 @@ struct VM : std::enable_shared_from_this<VM> {
   using ptr = std::shared_ptr<VM>;
   void* FAIL;
   void* FAIL2;
-  void* FAIL3;
   void* NO_MORE_GOALS;
   LOG_LEVEL log_level;
   int64_t inference_count;
@@ -1013,7 +1012,7 @@ struct VM : std::enable_shared_from_this<VM> {
     if (contexts.back().status != ST_SUBGOAL_IN_GUARD) {
       wait_list.clear();
       contexts.back().status = ST_ACTIVE;
-      contexts.back().pc_on_error = FAIL3;
+      contexts.back().pc_on_error = FAIL2;
     } else {
       contexts.back().pc_on_error = FAIL;
     }
@@ -1066,8 +1065,7 @@ struct VM : std::enable_shared_from_this<VM> {
       }
     }
     if ((pc == FAIL ||
-         pc == FAIL2 ||
-         pc == FAIL3) && (contexts.back().status == ST_IN_GUARD)) {
+         pc == FAIL2) && (contexts.back().status == ST_IN_GUARD)) {
       bool retry_this_goal = false;
       if (!wait_list.empty()) {
         const int arity = atom_arity_of(in[0]);

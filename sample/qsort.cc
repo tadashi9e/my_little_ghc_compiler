@@ -364,7 +364,6 @@ void module(VM::ptr vm, Program* prog, bool setup) {
     prog->add_entry_point(atom(128), &&L283);  // main / 1
     vm->FAIL = &&LFAIL;
     vm->FAIL2 = &&LFAIL2;
-    vm->FAIL3 = &&LFAIL3;
     vm->NO_MORE_GOALS = &&LNO_MORE_GOALS;
     return;
   }
@@ -372,8 +371,6 @@ void module(VM::ptr vm, Program* prog, bool setup) {
  LFAIL:
   throw RuntimeError();
  LFAIL2:
-  throw RuntimeError();
- LFAIL3:
   throw RuntimeError();
  L1:  // fail/0
   MACRO_goal(L1, atom(1));
