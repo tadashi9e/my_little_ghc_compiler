@@ -1,9 +1,11 @@
 label(fail/0).
   goal(fail/0).
   requires(1).
-  inline('{').
-  inline('    MACRO_fail;').
-  inline('}').
+  inline('  do {').
+  inline('    vm->fail();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label(call/1).
   goal(call/1).
   requires(3).
@@ -18,33 +20,42 @@ label(call/1).
 label('__call__'/1).
   goal('__call__'/1).
   requires(3).
-  inline('{').
   inline('  MACRO_wait(reg::in(1));').
-  inline('  Q q = vm->in[1];').
-  inline('  const TAG_T tag = tag_of(q);').
-  inline('  if (tag == TAG_ATOM) {').
-  inline('    MACRO_activate;').
-  inline('    const int pc = prog->query_entry_point(q);').
-  inline('    MACRO_execute(pc, 0);').
-  inline('  } else if (tag == TAG_STR) {').
-  inline('    MACRO_activate;').
-  inline('    A* structure = ptr_of<A>(q);').
-  inline('    Q g = structure[0].load();').
-  inline('    const int pc = prog->query_entry_point(g);').
-  inline('    if (pc < 0) {').
+  inline('  do {').
+  inline('    Q q = vm->in[1];').
+  inline('    const TAG_T tag = tag_of(q);').
+  inline('    if (tag == TAG_ATOM) {').
+  inline('      MACRO_activate;').
+  inline('      void* pc = prog->query_entry_point(q);').
+  inline('      if (pc == NULL) {').
+  inline('        vm->fail();').
+  inline('        break;').
+  inline('      }').
+  inline('      MACRO_execute2(pc, 0);').
+  inline('      break;').
+  inline('    } else if (tag == TAG_STR) {').
+  inline('      MACRO_activate;').
+  inline('      A* structure = ptr_of<A>(q);').
+  inline('      Q g = structure[0].load();').
+  inline('      void* pc = prog->query_entry_point(g);').
+  inline('      if (pc == NULL) {').
+  inline('        vm->fail();').
+  inline('        break;').
+  inline('      }').
+  inline('      const int arity = atom_arity_of(g);').
+  inline('      MACRO_tail(2);').
+  inline('      for (int i = 1; i <= arity; ++i) {').
+  inline('        MACRO_out_constant(structure[i].load(), reg::out(i));').
+  inline('      }').
+  inline('      MACRO_execute2(pc, arity);').
+  inline('      break;').
+  inline('    } else {').
   inline('      vm->fail();').
-  inline('      continue;').
+  inline('      break;').
   inline('    }').
-  inline('    const int arity = atom_arity_of(g);').
-  inline('    MACRO_tail(2);').
-  inline('    for (int i = 1; i <= arity; ++i) {').
-  inline('      MACRO_out_constant(structure[i].load(), reg::out(i));').
-  inline('    }').
-  inline('    MACRO_execute(pc, arity);').
-  inline('  } else {').
-  inline('    MACRO_fail;').
-  inline('  }').
-  inline('}').
+  inline('  } while(0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label(time/1).
   goal(time/1).
   requires(8).
@@ -105,33 +116,34 @@ label('__wait_time__'/4).
 label('__time_pre__'/3).
   goal('__time_pre__'/3).
   requires(7).
-  inline('{').
-  inline('  MACRO_activate;').
-  inline('  const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(istart), reg::in(1));').
+  inline('  do {').
+  inline('    MACRO_activate;').
+  inline('    const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(istart), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(1));').
   inline('  MACRO_get_constant(tagvalue<TAG_INT>(vm->inference_count), reg::in(2));').
   inline('  MACRO_get_constant(tagvalue<TAG_INT>(vm->resume_count), reg::in(3));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__time_post__'/3).
   goal('__time_post__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);').
-  inline('  const int64_t istart =').
+  inline('  do {').
+  inline('    const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);').
+  inline('    const int64_t istart =').
   inline('          value_of<int64_t>(vm->in[1]);').
-  inline('  const int64_t inferences =').
+  inline('    const int64_t inferences =').
   inline('          vm->inference_count - value_of<int64_t>(vm->in[2]);').
-  inline('  const int64_t resumes =').
+  inline('    const int64_t resumes =').
   inline('          vm->resume_count - value_of<int64_t>(vm->in[3]);').
-  inline('  const double seconds = (iend - istart) / 1000000.0;').
-  inline('  std::cout << "% " << inferences << " inferences("').
-  inline('            << resumes << " times resumed), "').
-  inline('            << seconds << " CPU seconds ("').
-  inline('            << std::fixed << (inferences / seconds) << " Lips)" << std::endl;').
+  inline('    const double seconds = (iend - istart) / 1000000.0;').
+  inline('    std::cout << "% " << inferences << " inferences("').
+  inline('              << resumes << " times resumed), "').
+  inline('              << seconds << " CPU seconds ("').
+  inline('              << std::fixed << (inferences / seconds) << " Lips)" << std::endl;').
+  inline('  } while(0);').
   inline('  MACRO_proceed;').
-  inline('}').
 label(atom_concat/3).
   goal(atom_concat/3).
   requires(7).
@@ -188,63 +200,78 @@ label(atom_concat/3-3).
 label('__atom_concat_1__'/3).
   goal('__atom_concat_1__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  const std::string s1 = atom_str_of(q1);').
-  inline('  const std::string s2 = atom_str_of(q2);').
-  inline('  const std::string s = s1 + s2;').
-  inline('  const Q c = to_atom(s.c_str(), 0);').
-  inline('  vm->unify(c, vm->in[3]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    const std::string s1 = atom_str_of(q1);').
+  inline('    const std::string s2 = atom_str_of(q2);').
+  inline('    const std::string s = s1 + s2;').
+  inline('    const Q c = to_atom(s.c_str(), 0);').
+  inline('    if (!vm->unify(c, vm->in[3])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label('__atom_concat_2__'/3).
   goal('__atom_concat_2__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q3 = vm->in[3];').
-  inline('  const std::string s1 = atom_str_of(q1);').
-  inline('  const std::string s3 = atom_str_of(q3);').
-  inline('  if (s1.length() > s3.length()) {').
-  inline('    vm->fail();').
-  inline('    continue;').
-  inline('  }').
-  inline('  const size_t i = s1.length();').
-  inline('  if (s3.substr(0, i) != s1) {').
-  inline('    vm->fail();').
-  inline('    continue;').
-  inline('  }').
-  inline('  const std::string s2 = s3.substr(i);').
-  inline('  const Q c = to_atom(s2.c_str(), 0);').
-  inline('  vm->unify(c, vm->in[2]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q3 = vm->in[3];').
+  inline('    const std::string s1 = atom_str_of(q1);').
+  inline('    const std::string s3 = atom_str_of(q3);').
+  inline('    if (s1.length() > s3.length()) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    const size_t i = s1.length();').
+  inline('    if (s3.substr(0, i) != s1) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    const std::string s2 = s3.substr(i);').
+  inline('    const Q c = to_atom(s2.c_str(), 0);').
+  inline('    if (!vm->unify(c, vm->in[2])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label('__atom_concat_3__'/3).
   goal('__atom_concat_3__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  const Q q3 = vm->in[3];').
-  inline('  const std::string s2 = atom_str_of(q2);').
-  inline('  const std::string s3 = atom_str_of(q3);').
-  inline('  if (s2.length() > s3.length()) {').
-  inline('    vm->fail();').
-  inline('    continue;').
-  inline('  }').
-  inline('  const size_t i = s2.length();').
-  inline('  if (s3.substr(i) != s2) {').
-  inline('    vm->fail();').
-  inline('    continue;').
-  inline('  }').
-  inline('  const std::string s1 = s3.substr(0, i);').
-  inline('  const Q c = to_atom(s1.c_str(), 0);').
-  inline('  vm->unify(c, vm->in[1]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    const Q q3 = vm->in[3];').
+  inline('    const std::string s2 = atom_str_of(q2);').
+  inline('    const std::string s3 = atom_str_of(q3);').
+  inline('    if (s2.length() > s3.length()) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    const size_t i = s2.length();').
+  inline('    if (s3.substr(i) != s2) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    const std::string s1 = s3.substr(0, i);').
+  inline('    const Q c = to_atom(s1.c_str(), 0);').
+  inline('    if (!vm->unify(c, vm->in[1])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label(atom_codes/2).
   goal(atom_codes/2).
   requires(8).
@@ -279,23 +306,28 @@ label(atom_codes/2-2).
 label('__atom_to_codes__'/2).
   goal('__atom_to_codes__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q = vm->in[1];').
-  inline('  const std::string s = atom_str_of(q);').
-  inline('  const size_t h = vm->heap_publishing(s.length() * 2);').
-  inline('  for (size_t i = 0; i < s.length(); ++i) {').
-  inline('    const unsigned char c = s.at(i);').
-  inline('    vm->heap[h + i * 2].store(tagvalue<TAG_INT>(c));').
-  inline('    vm->heap[h + i * 2 + 1].store(').
-  inline('            (i < s.length() - 1)').
-  inline('            ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])').
-  inline('            : tagptr<TAG_NIL, Q>(0));').
-  inline('  }').
-  inline('  vm->heap_published(s.length() * 2);').
-  inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q = vm->in[1];').
+  inline('    const std::string s = atom_str_of(q);').
+  inline('    const size_t h = vm->heap_publishing(s.length() * 2);').
+  inline('    for (size_t i = 0; i < s.length(); ++i) {').
+  inline('      const unsigned char c = s.at(i);').
+  inline('      vm->heap[h + i * 2].store(tagvalue<TAG_INT>(c));').
+  inline('      vm->heap[h + i * 2 + 1].store(').
+  inline('              (i < s.length() - 1)').
+  inline('              ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])').
+  inline('              : tagptr<TAG_NIL, Q>(0));').
+  inline('    }').
+  inline('    vm->heap_published(s.length() * 2);').
+  inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label('__codes_to_atom__'/3).
   goal('__codes_to_atom__'/3).
   requires(9).
@@ -333,16 +365,21 @@ label('__codes_to_atom__'/3-2).
 label('__atom_code_concat__'/3).
   goal('__atom_code_concat__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  std::string s = atom_str_of(q1);').
-  inline('  const unsigned char c = value_of<char>(q2);').
-  inline('  s += c;').
-  inline('  vm->unify(to_atom(s.c_str(), 0), vm->in[3]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    std::string s = atom_str_of(q1);').
+  inline('    const unsigned char c = value_of<char>(q2);').
+  inline('    s += c;').
+  inline('    if (!vm->unify(to_atom(s.c_str(), 0), vm->in[3])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label(atom_chars/2).
   goal(atom_chars/2).
   requires(8).
@@ -375,51 +412,56 @@ label(atom_chars/2-2).
 label('__atom_to_chars__'/2).
   goal('__atom_to_chars__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q = vm->in[1];').
-  inline('  const std::string s = atom_str_of(q);').
-  inline('  const size_t h = vm->heap_publishing(s.length() * 2);').
-  inline('  size_t i = 0;').
-  inline('  for (size_t j = 0; j < s.length(); ++i) {').
-  inline('    const int c0 = s.at(j) & 0xff;').
-  inline('    int n = 1;').
-  inline('    if (c0 < 0x80) {').
-  inline('      n = 1;').
-  inline('    } else if (j + 2 <= s.length()) {').
-  inline('      const int c1 = s.at(j + 1) & 0xff;').
-  inline('      if (c0 - 0xc2 < 0x1e && c1 - 0x80 < 0x40) {').
-  inline('        n = 2;').
-  inline('      } else if (j + 3 <= s.length()) {').
-  inline('        const int c2 = s.at(j + 2) & 0xff;').
-  inline('        if (((c0 == 0xe0       && c1 - 0xa0 < 0x20) ||').
-  inline('             (c0 - 0xe1 < 0x0c && c1 - 0x80 < 0x40) ||').
-  inline('             (c0 == 0xed       && c1 - 0x80 < 0x20) ||').
-  inline('             (c0 - 0xee < 0x02 && c1 - 0x80 < 0x40)) && c2 - 0x80 < 0x40) {').
-  inline('          n = 3;').
-  inline('        } else if (j + 4 <= s.length()) {').
-  inline('          const int c3 = s.at(j + 3) & 0xff;').
-  inline('          if (((c0 == 0xf0       && c1 - 0x90 < 0x30) ||').
-  inline('               (c0 - 0xf1 < 0x03 && c1 - 0x80 < 0x40) ||').
-  inline('               (c0 == 0xf4       && c1 - 0x80 < 0x10)) && c2 - 0x80 < 0x40 && c3 - 0x80 < 0x40) {').
-  inline('            n = 4;').
+  inline('  do {').
+  inline('    const Q q = vm->in[1];').
+  inline('    const std::string s = atom_str_of(q);').
+  inline('    const size_t h = vm->heap_publishing(s.length() * 2);').
+  inline('    size_t i = 0;').
+  inline('    for (size_t j = 0; j < s.length(); ++i) {').
+  inline('      const int c0 = s.at(j) & 0xff;').
+  inline('      int n = 1;').
+  inline('      if (c0 < 0x80) {').
+  inline('        n = 1;').
+  inline('      } else if (j + 2 <= s.length()) {').
+  inline('        const int c1 = s.at(j + 1) & 0xff;').
+  inline('        if (c0 - 0xc2 < 0x1e && c1 - 0x80 < 0x40) {').
+  inline('          n = 2;').
+  inline('        } else if (j + 3 <= s.length()) {').
+  inline('          const int c2 = s.at(j + 2) & 0xff;').
+  inline('          if (((c0 == 0xe0       && c1 - 0xa0 < 0x20) ||').
+  inline('               (c0 - 0xe1 < 0x0c && c1 - 0x80 < 0x40) ||').
+  inline('               (c0 == 0xed       && c1 - 0x80 < 0x20) ||').
+  inline('               (c0 - 0xee < 0x02 && c1 - 0x80 < 0x40)) && c2 - 0x80 < 0x40) {').
+  inline('            n = 3;').
+  inline('          } else if (j + 4 <= s.length()) {').
+  inline('            const int c3 = s.at(j + 3) & 0xff;').
+  inline('            if (((c0 == 0xf0       && c1 - 0x90 < 0x30) ||').
+  inline('                 (c0 - 0xf1 < 0x03 && c1 - 0x80 < 0x40) ||').
+  inline('                 (c0 == 0xf4       && c1 - 0x80 < 0x10)) && c2 - 0x80 < 0x40 && c3 - 0x80 < 0x40) {').
+  inline('              n = 4;').
+  inline('            }').
   inline('          }').
   inline('        }').
   inline('      }').
-  inline('    }').
-  inline('    const std::string s1 = (').
+  inline('      const std::string s1 = (').
   inline('            (j + n < s.length()) ? s.substr(j, n) : s.substr(j));').
-  inline('    j += n;').
-  inline('    vm->heap[h + i * 2].store(to_atom(s1.c_str(), 0));').
-  inline('    vm->heap[h + i * 2 + 1].store(').
+  inline('      j += n;').
+  inline('      vm->heap[h + i * 2].store(to_atom(s1.c_str(), 0));').
+  inline('      vm->heap[h + i * 2 + 1].store(').
   inline('            (j < s.length() - 1)').
   inline('            ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2])').
   inline('            : tagptr<TAG_NIL, Q>(0));').
-  inline('  }').
-  inline('  vm->heap_published(i * 2);').
-  inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('    }').
+  inline('    vm->heap_published(i * 2);').
+  inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label('__chars_to_atom__'/3).
   goal('__chars_to_atom__'/3).
   requires(9).
@@ -482,25 +524,28 @@ label(atom_number/2-2).
 label('__atom_to_number__'/2).
   goal('__atom_to_number__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q = vm->in[1];').
-  inline('  const std::string s = atom_str_of(q);').
-  inline('  const int64_t i = std::stoll(s);').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(i), reg::in(2));').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q = vm->in[1];').
+  inline('    const std::string s = atom_str_of(q);').
+  inline('    const int64_t i = std::stoll(s);').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(i), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(2));').
+  inline('  vm->proceed();').
+  inline('  goto *(vm->pc);').
 label('__number_to_atom__'/2).
   goal('__number_to_atom__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q = vm->in[2];').
-  inline('  const int64_t i = value_of<int64_t>(q);').
-  inline('  const std::string s = std::to_string(i);').
-  inline('  MACRO_get_constant(to_atom(s.c_str(), 0), reg::in(1));').
+  inline('  do {').
+  inline('    const Q q = vm->in[2];').
+  inline('    const int64_t i = value_of<int64_t>(q);').
+  inline('    const std::string s = std::to_string(i);').
+  inline('    MACRO_set_constant(to_atom(s.c_str(), 0), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(1));').
   inline('  MACRO_proceed;').
-  inline('}').
 label(outstream/1).
   goal(outstream/1).
   requires(6).
@@ -1041,34 +1086,44 @@ label('__open_opt_string_to_integer__'/5-17).
 label('__open__'/4).
   goal('__open__'/4).
   requires(9).
-  inline('{').
   inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(3));').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  const Q q3 = vm->in[3];').
-  inline('  const std::string src = atom_str_of(q1);').
-  inline('  const int oflag = value_of<int>(q2);').
-  inline('  const int omode = value_of<int>(q3);').
-  inline('  const int fd = open(src.c_str(), oflag, omode);').
-  inline('  if (fd < 0) {').
-  inline('    vm->unify(to_atom("error", 0), vm->in[4]);').
-  inline('  } else {').
-  inline('    vm->unify(tagvalue<TAG_INT>(fd), vm->in[4]);').
-  inline('  }').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    const Q q3 = vm->in[3];').
+  inline('    const std::string src = atom_str_of(q1);').
+  inline('    const int oflag = value_of<int>(q2);').
+  inline('    const int omode = value_of<int>(q3);').
+  inline('    const int fd = open(src.c_str(), oflag, omode);').
+  inline('    if (fd < 0) {').
+  inline('      if (!vm->unify(to_atom("error", 0), vm->in[4])) {').
+  inline('        vm->fail();').
+  inline('        break;').
+  inline('      }').
+  inline('    } else {').
+  inline('      if (!vm->unify(tagvalue<TAG_INT>(fd), vm->in[4])) {').
+  inline('        vm->fail();').
+  inline('        break;').
+  inline('      }').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('    vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label('__close__'/1).
   goal('__close__'/1).
   requires(3).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
-  inline('  const int fd = tagvalue<TAG_INT>(vm->in[1]);').
-  inline('  close(fd);').
-  inline('}').
+  inline('  do {').
+  inline('    const int fd = tagvalue<TAG_INT>(vm->in[1]);').
+  inline('    close(fd);').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label(writeln/1).
   goal(writeln/1).
   requires(3).
@@ -1127,21 +1182,22 @@ label(nl/1).
 label('__nl__'/1).
   goal('__nl__'/1).
   requires(3).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const int fd = value_of<int>(q1);').
-  inline('  const std::string s = "\\n";').
-  inline('  for (size_t offset = 0; offset <  s.size();) {').
-  inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
-  inline('    if (n <= 0) {').
-  inline('      break;').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const int fd = value_of<int>(q1);').
+  inline('    const std::string s = "\\n";').
+  inline('    for (size_t offset = 0; offset <  s.size();) {').
+  inline('      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
+  inline('      if (n <= 0) {').
+  inline('        break;').
+  inline('      }').
+  inline('      offset += n;').
   inline('    }').
-  inline('    offset += n;').
-  inline('  }').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label(write/1).
   goal(write/1).
   requires(4).
@@ -1278,7 +1334,7 @@ label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
   requires(5).
   try_guard_else(label('__write_functor_args__'/2-2)).
-  % head(__write_functor_args__(_67462,[])).
+  % head(__write_functor_args__(_68022,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1308,7 +1364,7 @@ label('__write_functor_args2__'/2).
   goal('__write_functor_args2__'/2).
   requires(7).
   try_guard_else(label('__write_functor_args2__'/2-2)).
-  % head(__write_functor_args2__(_72388,[])).
+  % head(__write_functor_args2__(_72948,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1387,7 +1443,7 @@ label('__write_list_tail__'/2).
     execute('__write__'/2).
 label('__write_list_tail__'/2-2).
   try_guard_else(label('__write_list_tail__'/2-3)).
-  % head(__write_list_tail__(_80896,[])).
+  % head(__write_list_tail__(_81456,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1434,186 +1490,210 @@ label('__write_list_tail__'/2-4).
 label('__write_number__'/2).
   goal('__write_number__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  const int fd = value_of<int>(q1);').
-  inline('  const int64_t i = value_of<int64_t>(q2);').
-  inline('  const std::string s = std::to_string(i);').
-  inline('  for (size_t offset = 0; offset <  s.size();) {').
-  inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
-  inline('    if (n <= 0) {').
-  inline('      break;').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    const int fd = value_of<int>(q1);').
+  inline('    const int64_t i = value_of<int64_t>(q2);').
+  inline('    const std::string s = std::to_string(i);').
+  inline('    for (size_t offset = 0; offset <  s.size();) {').
+  inline('      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
+  inline('      if (n <= 0) {').
+  inline('        break;').
+  inline('      }').
+  inline('      offset += n;').
   inline('    }').
-  inline('    offset += n;').
-  inline('  }').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label('__write_atom__'/2).
   goal('__write_atom__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  const int fd = value_of<int>(q1);').
-  inline('  const std::string s = atom_str_of(q2);').
-  inline('  for (size_t offset = 0; offset <  s.size();) {').
-  inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
-  inline('    if (n <= 0) {').
-  inline('      break;').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    const int fd = value_of<int>(q1);').
+  inline('    const std::string s = atom_str_of(q2);').
+  inline('    for (size_t offset = 0; offset <  s.size();) {').
+  inline('      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
+  inline('      if (n <= 0) {').
+  inline('        break;').
+  inline('      }').
+  inline('      offset += n;').
   inline('    }').
-  inline('    offset += n;').
-  inline('  }').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label('__write_var__'/2).
   goal('__write_var__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  const int fd = value_of<int>(q1);').
-  inline('  const A* a = ptr_of<A>(q2);').
-  inline('  std::stringstream ss;').
-  inline('  ss << a;').
-  inline('  const std::string s = ss.str();').
-  inline('  for (size_t offset = 0; offset <  s.size();) {').
-  inline('    const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
-  inline('    if (n <= 0) {').
-  inline('      break;').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    const int fd = value_of<int>(q1);').
+  inline('    const A* a = ptr_of<A>(q2);').
+  inline('    std::stringstream ss;').
+  inline('    ss << a;').
+  inline('    const std::string s = ss.str();').
+  inline('    for (size_t offset = 0; offset <  s.size();) {').
+  inline('      const ssize_t n = write(fd, s.c_str() + offset, s.size() - offset);').
+  inline('      if (n <= 0) {').
+  inline('        break;').
+  inline('      }').
+  inline('      offset += n;').
   inline('    }').
-  inline('    offset += n;').
-  inline('  }').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label(integer/1).
   goal(integer/1).
   requires(3).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_return;').
-  inline('}').
+  inline('  goto *(vm->pc);').
 label(atom/1).
   goal(atom/1).
   requires(3).
-  inline('{').
   inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));').
   inline('  MACRO_return;').
-  inline('}').
+  inline('  goto *(vm->pc);').
 label(var/1).
   goal(var/1).
   requires(3).
-  inline('{').
-  inline('  const Q q = vm->in[1] = deref(vm->in[1]);').
-  inline('  const TAG_T tag = tag_of(q);').
-  inline('  if (tag != TAG_REF && tag != TAG_SUS) {').
-  inline('    vm->fail();').
-  inline('    continue;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q = vm->in[1] = deref(vm->in[1]);').
+  inline('    const TAG_T tag = tag_of(q);').
+  inline('    if (tag != TAG_REF && tag != TAG_SUS) {').
+  inline('      vm->fail();').
+  inline('    } else {').
+  inline('      MACRO_return;').
+  inline('    }').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label(is_functor/1).
   goal(is_functor/1).
   requires(3).
-  inline('{').
   inline('  MACRO_wait_for(TAG_STR, reg::in(1));').
-  inline('  const Q q = vm->in[1];').
-  inline('  const TAG_T tag = tag_of(q);').
-  inline('  if (tag != TAG_STR) {').
-  inline('    vm->fail();').
-  inline('    continue;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q = vm->in[1];').
+  inline('    const TAG_T tag = tag_of(q);').
+  inline('    if (tag != TAG_STR) {').
+  inline('      vm->fail();').
+  inline('    } else {').
+  inline('      MACRO_return;').
+  inline('    }').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label((=..)/2).
   goal((=..)/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_STR, reg::in(1));').
   inline('  MACRO_activate;').
-  inline('  const Q q = vm->in[1];').
-  inline('  A* p = ptr_of<A>(q);').
-  inline('  const Q Fun = p[0].load();').
-  inline('  const int arity = atom_arity_of(Fun);').
-  inline('  const size_t h = vm->heap_publishing((1 + arity) * 2);').
-  inline('  for (int i = 0; i <= arity; ++i) {').
-  inline('    vm->heap[h + i * 2].store(p[i].load());').
-  inline('    vm->heap[h + i * 2 + 1].store(').
-  inline('      (i < arity) ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2]) :').
-  inline('      tagptr<TAG_NIL, Q>(0));').
-  inline('  }').
-  inline('  vm->heap_published((1 + arity) * 2);').
-  inline('  vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q = vm->in[1];').
+  inline('    A* p = ptr_of<A>(q);').
+  inline('    const Q Fun = p[0].load();').
+  inline('    const int arity = atom_arity_of(Fun);').
+  inline('    const size_t h = vm->heap_publishing((1 + arity) * 2);').
+  inline('    for (int i = 0; i <= arity; ++i) {').
+  inline('      vm->heap[h + i * 2].store(p[i].load());').
+  inline('      vm->heap[h + i * 2 + 1].store(').
+  inline('        (i < arity) ? tagptr<TAG_LIST>(&vm->heap[h + i * 2 + 2]) :').
+  inline('        tagptr<TAG_NIL, Q>(0));').
+  inline('    }').
+  inline('    vm->heap_published((1 + arity) * 2);').
+  inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label((==)/2).
   goal((==)/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait(reg::in(1));').
   inline('  MACRO_wait(reg::in(2));').
-  inline('  Q q1 = vm->in[1];').
-  inline('  Q q2 = vm->in[2];').
-  inline('  if (!(q1 == q2)) {').
-  inline('    MACRO_fail;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    Q q1 = vm->in[1];').
+  inline('    Q q2 = vm->in[2];').
+  inline('    if (!(q1 == q2)) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    MACRO_return;').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label((>=)/2).
   goal((>=)/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  if (!(v1 >= v2)) {').
-  inline('    MACRO_fail;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    if (!(v1 >= v2)) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    MACRO_return;').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label((=<)/2).
   goal((=<)/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  if (!(v1 <= v2)) {').
-  inline('    MACRO_fail;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    if (!(v1 <= v2)) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    MACRO_return;').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label((>)/2).
   goal((>)/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  if (!(v1 > v2)) {').
-  inline('    MACRO_fail;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    if (!(v1 > v2)) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    MACRO_return;').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label((<)/2).
   goal((<)/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  if (!(v1 < v2)) {').
-  inline('    MACRO_fail;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    if (!(v1 < v2)) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    MACRO_return;').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label((=:=)/2).
   goal((=:=)/2).
   requires(7).
@@ -1661,16 +1741,19 @@ label((=\=)/2).
 label('__not_equal__'/2).
   goal('__not_equal__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait(reg::in(1));').
   inline('  MACRO_wait(reg::in(2));').
-  inline('  Q q1 = vm->in[1];').
-  inline('  Q q2 = vm->in[2];').
-  inline('  if (!(q1 != q2)) {').
-  inline('    MACRO_fail;').
-  inline('  }').
-  inline('  MACRO_return;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    if (!(q1 != q2)) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    MACRO_return;').
+  inline('  } while (0);').
+  inline('  vm->failed = false;').
+  inline('  goto *(vm->pc);').
 label((:=)/2).
   goal((:=)/2).
   requires(8).
@@ -1999,78 +2082,84 @@ label('__neg__'/2-2).
 label('__ineg__'/2).
   goal('__ineg__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
-  inline('  const int64_t v = -value_of<int64_t>(reg::in(1));').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));').
+  inline('  do {').
+  inline('    const int64_t v = -value_of<int64_t>(reg::in(1));').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(2));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__iadd__'/3).
   goal('__iadd__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  const int64_t v = v1 + v2;').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    const int64_t v = v1 + v2;').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(3));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__isub__'/3).
   goal('__isub__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  const int64_t v = v1 - v2;').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    const int64_t v = v1 - v2;').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(3));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__imul__'/3).
   goal('__imul__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  const int64_t v = v1 * v2;').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    const int64_t v = v1 * v2;').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(3));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__idiv__'/3).
   goal('__idiv__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  const int64_t v = v1 / v2;').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    const int64_t v = v1 / v2;').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(3));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__imod__'/3).
   goal('__imod__'/3).
   requires(7).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
-  inline('  const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
-  inline('  const int64_t v = v1 % v2;').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));').
+  inline('  do {').
+  inline('    const int64_t v1 = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    const int64_t v2 = value_of<int64_t>(vm->in[reg::in(2)]);').
+  inline('    const int64_t v = v1 % v2;').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(3));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__inc__'/2).
   goal('__inc__'/2).
   requires(6).
@@ -2134,25 +2223,27 @@ label('__dec__'/2-2).
 label('__iinc__'/2).
   goal('__iinc__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
-  inline('  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  ++v;').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));').
+  inline('  do {').
+  inline('    int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    ++v;').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(2));').
   inline('  MACRO_proceed;').
-  inline('}').
 label('__idec__'/2).
   goal('__idec__'/2).
   requires(5).
-  inline('{').
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
-  inline('  int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);').
-  inline('  --v;').
-  inline('  MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));').
+  inline('  do {').
+  inline('    int64_t v = value_of<int64_t>(vm->in[reg::in(1)]);').
+  inline('    --v;').
+  inline('    MACRO_set_constant(tagvalue<TAG_INT>(v), reg::in(10));').
+  inline('  } while (0);').
+  inline('  MACRO_get_value(reg::in(10), reg::in(2));').
   inline('  MACRO_proceed;').
-  inline('}').
 label(append/3).
   goal(append/3).
   requires(9).
@@ -2323,7 +2414,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_244912],E)).
+  % head(__nth0__(0,[Y|_245822],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2335,7 +2426,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_250882|Ys],E)).
+  % head(__nth0__(N,[_251792|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -2356,7 +2447,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_253946],E,Ac)).
+  % head(__nth0_rev__(N,[E|_254856],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2367,7 +2458,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_260008|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_260918|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).
@@ -2440,11 +2531,15 @@ label(inference_count/1).
 label('__inference_count__'/1).
   goal('__inference_count__'/1).
   requires(3).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    if (!vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label(resume_count/1).
   goal(resume_count/1).
   requires(3).
@@ -2459,11 +2554,15 @@ label(resume_count/1).
 label('__resume_count__'/1).
   goal('__resume_count__'/1).
   requires(3).
-  inline('{').
   inline('  MACRO_activate;').
-  inline('  vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1]);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    if (!vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1])) {').
+  inline('      vm->fail();').
+  inline('      break;').
+  inline('    }').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label(dump_to_dot/1).
   goal(dump_to_dot/1).
   requires(3).
@@ -2481,13 +2580,14 @@ label(dump_to_dot/1).
 label('__dump_to_dot__'/1).
   goal('__dump_to_dot__'/1).
   requires(3).
-  inline('{').
-  inline('  const Q q = vm->in[1];').
-  inline('  const std::string s = atom_str_of(q);').
   inline('  MACRO_activate;').
-  inline('  vm->dump_to_dot(s);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q = vm->in[1];').
+  inline('    const std::string s = atom_str_of(q);').
+  inline('    vm->dump_to_dot(s);').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').
 label(dump_to_dot/2).
   goal(dump_to_dot/2).
   requires(5).
@@ -2506,11 +2606,12 @@ label(dump_to_dot/2).
 label('__dump_to_dot__'/2).
   goal('__dump_to_dot__'/2).
   requires(5).
-  inline('{').
-  inline('  const Q q1 = vm->in[1];').
-  inline('  const Q q2 = vm->in[2];').
-  inline('  const std::string s = atom_str_of(q1);').
   inline('  MACRO_activate;').
-  inline('  vm->dump_to_dot(s, q2);').
-  inline('  MACRO_proceed;').
-  inline('}').
+  inline('  do {').
+  inline('    const Q q1 = vm->in[1];').
+  inline('    const Q q2 = vm->in[2];').
+  inline('    const std::string s = atom_str_of(q1);').
+  inline('    vm->dump_to_dot(s, q2);').
+  inline('    vm->proceed();').
+  inline('  } while (0);').
+  inline('  goto *(vm->pc);').

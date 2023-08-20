@@ -391,15 +391,15 @@ struct Context {
   Context()
     : status(ST_IN_GUARD),
       in_offset(0),
-      pc_continue(-1),
-      pc_on_error(-1),
+      pc_continue(NULL),
+      pc_on_error(NULL),
       push_pos(0) {
   }
   int status;
   size_t in_offset;
-  int pc_goal;  // ゴール開始プログラム位置
-  int pc_continue;
-  int pc_on_error;
+  void* pc_goal;  // ゴール開始プログラム位置
+  void* pc_continue;
+  void* pc_on_error;
   size_t push_pos;
 };
 
@@ -598,7 +598,11 @@ class DotFile {
         if (i != 0) {
           st << "|";
         }
-        st << "<" << i << ">" << esc(to_str(q));
+        if (raws.find(&group->a[i]) != raws.end()) {
+          st << reinterpret_cast<void*>(group->a[i].load());
+        } else {
+          st << "<" << i << ">" << esc(to_str(q));
+        }
       }
       st << "}\"];"<< std::endl;
     }
@@ -616,23 +620,42 @@ class DotFile {
   }
 
  private:
+  std::set<A*> raws;
   std::set<std::pair<A*, A*> > edges;
   PortGroupSet portGroupSet;
+  void add_raw_pointer(A* p) {
+    raws.insert(p);
+  }
   void add_edge(A* a1, A* a2) {
+    if (raws.find(a1) != raws.end()) {
+      return;
+    }
+    if (raws.find(a2) != raws.end()) {
+      return;
+    }
     edges.insert(std::make_pair(a1, a2));
   }
   void add_ref_port(A* a) {
+    if (raws.find(a) != raws.end()) {
+      return;
+    }
     if (portGroupSet.add_group(a, 1)) {
       add_edge_from(a);
     }
   }
   void add_list_port(A* a) {
+    if (raws.find(a) != raws.end()) {
+      return;
+    }
     if (portGroupSet.add_group(a, 2)) {
       add_edge_from(&a[0]);
       add_edge_from(&a[1]);
     }
   }
   void add_str_port(A* a) {
+    if (raws.find(a) != raws.end()) {
+      return;
+    }
     const Q q = a->load();
     const int arity = atom_arity_of(q);
     if (portGroupSet.add_group(a, 1 + arity)) {
@@ -642,6 +665,9 @@ class DotFile {
     }
   }
   void add_sus_port(A* a) {
+    if (raws.find(a) != raws.end()) {
+      return;
+    }
     const Q q = a->load();
     if (tag_of(q) != TAG_SUS ||
         ptr_of<A>(q) != a) {
@@ -662,6 +688,7 @@ class DotFile {
       // 3: args...
       A* goal = ptr_of<A>(a[2].load());
       const int arity = atom_arity_of(goal[2].load());
+      add_raw_pointer(&goal[1]);
       if (portGroupSet.add_group(goal, 2 + arity + 1)) {
         for (int i = 1; i <= arity; ++i) {
           add_edge_from(&goal[2 + i]);
@@ -680,6 +707,7 @@ class DotFile {
         add_edge_from(&p[0]);
         add_edge_from(&p[1]);
         A* goal = ptr_of<A>(p[1].load());
+        add_raw_pointer(&goal[1]);
         const int arity = atom_arity_of(goal[2].load());
         if (portGroupSet.add_group(goal, 2 + arity + 1)) {
           for (int i = 1; i <= arity; ++i) {
@@ -695,11 +723,15 @@ class Program;
 
 struct VM : std::enable_shared_from_this<VM> {
   using ptr = std::shared_ptr<VM>;
+  void* FAIL;
+  void* FAIL2;
+  void* FAIL3;
+  void* NO_MORE_GOALS;
   LOG_LEVEL log_level;
   int64_t inference_count;
   int64_t resume_count;
   bool failed;
-  int pc;
+  void* pc;
   std::vector<Q> reg;
   Q* in;
   Q* out;
@@ -720,6 +752,9 @@ struct VM : std::enable_shared_from_this<VM> {
     reg.resize(INITIAL_REG_SIZE);
     contexts.reserve(INITIAL_CONTEXTS);
     contexts.push_back(Context());
+    contexts.back().pc_goal = FAIL;
+    contexts.back().pc_continue = FAIL;
+    contexts.back().pc_on_error = FAIL;
     in = &reg[0];
     out = in;
   }
@@ -885,7 +920,7 @@ struct VM : std::enable_shared_from_this<VM> {
       ++p;
     }
   }
-  void run(void (&module)(VM::ptr, Program*), Program* prog) {
+  void run(void (&module)(VM::ptr, Program*, bool), Program* prog) {
     for (;;) {
       A* goal = Scheduler::getInstance().dequeue_list();
       if (!goal) {
@@ -899,12 +934,12 @@ struct VM : std::enable_shared_from_this<VM> {
         in[i] = deref(goal[2 + i].load());
       }
       Context& context = contexts.back();
-      context.pc_continue = -1;
-      context.pc_on_error = -1;
-      pc = value_of<int>(goal[1]);
+      context.pc_continue = FAIL;
+      context.pc_on_error = FAIL;
+      pc = reinterpret_cast<void*>(goal[1].load());
       failed = false;
       try {
-        module(shared_from_this(), prog);
+        module(shared_from_this(), prog, false);
       } catch (const std::runtime_error& ex) {
         std::cerr << ex.what() << std::endl;
         dump();
@@ -925,20 +960,21 @@ struct VM : std::enable_shared_from_this<VM> {
       out = &reg[next_context.in_offset];
     }
   }
-  void switch_next_window(int target, int return_pc) {
+  void switch_next_window(void* target, void* return_pc) {
     contexts.back().pc_continue = return_pc;
     const int status = contexts.back().status;
     next_context.status =
       (status != ST_ACTIVE) ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;
+    next_context.pc_goal = FAIL;
     next_context.pc_continue = target;
-    next_context.pc_on_error = -1;
+    next_context.pc_on_error = FAIL;
     in = out;
     pc = target;
     contexts.push_back(next_context);
   }
   bool switch_prev_window() {
     if (contexts.size() <= 1) {
-      pc = -1;
+      pc = NO_MORE_GOALS;
       return false;
     }
     Context& context = contexts.back();
@@ -977,9 +1013,9 @@ struct VM : std::enable_shared_from_this<VM> {
     if (contexts.back().status != ST_SUBGOAL_IN_GUARD) {
       wait_list.clear();
       contexts.back().status = ST_ACTIVE;
-      contexts.back().pc_on_error = -3;
+      contexts.back().pc_on_error = FAIL3;
     } else {
-      contexts.back().pc_on_error = -1;
+      contexts.back().pc_on_error = FAIL;
     }
   }
   void push(Q q) {
@@ -1011,31 +1047,34 @@ struct VM : std::enable_shared_from_this<VM> {
              std::setw(5) << pc << "        " << space()
              << "fail()");
 #endif
+    failed = true;
     for (;;) {
       pc = contexts.back().pc_on_error;
-      contexts.back().pc_on_error = -1;
-      if (pc != -1) {
+      contexts.back().pc_on_error = FAIL;
+      if (pc != FAIL) {
 #if 0
         log_trace(this, "fail: on_error " << pc);
 #endif
         break;
       }
       if (!switch_prev_window()) {
-        pc = -1;
+        pc = NO_MORE_GOALS;
 #if 0
         log_trace(this, "fail: no more prev goal: " << pc);
 #endif
         break;
       }
     }
-    if ((pc < 0) && (contexts.back().status == ST_IN_GUARD)) {
+    if ((pc == FAIL ||
+         pc == FAIL2 ||
+         pc == FAIL3) && (contexts.back().status == ST_IN_GUARD)) {
       bool retry_this_goal = false;
       if (!wait_list.empty()) {
         const int arity = atom_arity_of(in[0]);
         const size_t h = heap_publishing(3 + arity);
         Q goal = tagptr<TAG_REF>(&heap[h]);
         heap[h + 0].store(tagvalue<TAG_INT>(0));
-        heap[h + 1].store(tagvalue<TAG_INT>(contexts.back().pc_goal));
+        heap[h + 1].store(reinterpret_cast<intptr_t>(contexts.back().pc_goal));
         for (int i = 0; i <= arity; ++i) {
           heap[h + 2 + i].store(in[i]);
         }
@@ -1095,14 +1134,14 @@ struct VM : std::enable_shared_from_this<VM> {
       */
       for (;;) {
         if (!switch_prev_window()) {
-          pc = -1;
+          pc = NO_MORE_GOALS;
 #if 0
           log_trace(this, "fail: no more prev goal: " << pc);
 #endif
           break;
         }
         pc = contexts.back().pc_continue;
-        if (pc != -1) {
+        if (pc != FAIL) {
 #if 0
           log_trace(this, "fail: on_error " << pc);
 #endif
@@ -1130,9 +1169,9 @@ struct VM : std::enable_shared_from_this<VM> {
       in[i] = deref(goal[2 + i].load());
     }
     Context& context = contexts.back();
-    context.pc_continue = -1;
-    context.pc_on_error = -1;
-    pc = value_of<int>(goal[1]);
+    context.pc_continue = FAIL;
+    context.pc_on_error = FAIL;
+    pc = reinterpret_cast<void*>(goal[1].load());
   }
   void wake(Q q) {
     std::unique_lock<std::mutex> lock(Scheduler::getInstance().mutex_);
@@ -1255,102 +1294,136 @@ class RuntimeError: public std::runtime_error {
   }
 };
 
-#define MACRO_goal(pc, goal)                                     \
-  ++vm->inference_count;                                         \
-  vm->contexts.back().pc_goal = pc;                              \
-  vm->in[0] = (goal)
+#define MACRO_goal(pc, goal) {                                   \
+    ++vm->inference_count;                                       \
+    vm->contexts.back().pc_goal = &&pc;                          \
+    vm->in[0] = (goal);                                          \
+  }
 
-#define MACRO_requires(n)                                 \
-  vm->require(n);                                         \
-  vm->contexts.back().push_pos = n + 1
-#define MACRO_fail vm->fail(); continue
+#define MACRO_requires(n) {                               \
+    vm->require(n);                                       \
+    vm->contexts.back().push_pos = n + 1;                 \
+  }
+#define MACRO_fail {                            \
+    vm->fail();                                 \
+    vm->failed = false;                         \
+    goto *(vm->pc);                             \
+  }
 #define MACRO_wait(Ai)                                \
-  {                                                   \
+  do {                                                \
     const Q q = deref(vm->in[Ai]);                    \
     const TAG_T t = tag_of(q);                        \
     if (t == TAG_REF || t == TAG_SUS) {               \
       vm->add_wait_list(q);                           \
       vm->fail();                                     \
-      continue;                                       \
+      break;                                          \
     }                                                 \
     vm->in[Ai] = ref_of(q);                           \
+  } while (0);                                        \
+  if (vm->failed) {                                   \
+    vm->failed = false;                               \
+    goto *(vm->pc);                                   \
   }
 #define MACRO_wait_for(tag, Ai)                   \
-  {                                               \
+  do {                                            \
     const Q q = deref(vm->in[Ai]);                \
     const TAG_T t = tag_of(q);                    \
     if (t == TAG_REF || t == TAG_SUS) {           \
       vm->add_wait_list(q);                       \
       vm->fail();                                 \
-      continue;                                   \
+      break;                                      \
     } else if (t != tag) {                        \
       vm->fail();                                 \
-      continue;                                   \
+      break;                                      \
     }                                             \
     vm->in[Ai] = ref_of(q);                       \
+  } while (0);                                    \
+  if (vm->failed) {                               \
+    vm->failed = false;                           \
+    goto *(vm->pc);                               \
   }
 
-#define MACRO_try_guard_else(jump_to)                                   \
-  vm->contexts.back().pc_on_error = (jump_to)
-#define MACRO_try_guard_else_suspend                       \
-  vm->contexts.back().pc_on_error = -2
-#define MACRO_otherwise                      \
-  if (!vm->wait_list.empty()) {              \
-    vm->contexts.back().pc_on_error = -2;    \
-    vm->fail();                              \
-    continue;                                \
+#define MACRO_try_guard_else(jump_to) {           \
+    vm->contexts.back().pc_on_error = &&jump_to;  \
+  }
+#define MACRO_try_guard_else_suspend {            \
+    vm->contexts.back().pc_on_error = vm->FAIL2;  \
+  }
+#define MACRO_otherwise                           \
+  if (!vm->wait_list.empty()) {                   \
+    vm->contexts.back().pc_on_error = vm->FAIL2;  \
+    vm->fail();                                   \
+    vm->failed = false;                           \
+    goto *(vm->pc);                               \
   }
 
 // call 呼び出しに備えて次レジスタウィンドウをセットアップする。
 // out レジスタ位置を次レジスタウィンドウ上に設定する。
-#define MACRO_seq(N)                                \
-  vm->create_new_window(N)
+#define MACRO_seq(N) {                          \
+    vm->create_new_window(N);                   \
+  }
 
 // レジスタウィンドウを進め、target を呼びだす。
 // このとき、return_pc を戻り先アドレスとする。
-#define MACRO_call(target, return_pc)                          \
-  vm->switch_next_window(target, return_pc);                   \
-  continue
+#define MACRO_call(target, return_pc) {                        \
+    vm->switch_next_window(&&target, &&return_pc);             \
+    goto target;                                               \
+  }
 
 // spawn 呼び出しに備えて新しいコンテキストを生成する。
 // out レジスタ位置を新しいコンテキスト上に設定する。
-#define MACRO_par(N)                              \
-  vm->create_new_window(N)
+#define MACRO_par(N) {                          \
+    vm->create_new_window(N);                   \
+  }
 
 // 新しいコンテストの実行開始位置を start_from に設定する。
 // 新しいコンテキストをコンテキストキューに投入する。
-#define MACRO_spawn(target, return_pc)                          \
-  vm->switch_next_window(target, return_pc);                   \
-  continue
+#define MACRO_spawn(target, return_pc) {                       \
+    vm->switch_next_window(&&target, &&return_pc);             \
+    goto target;                                               \
+  }
 
 // jump 呼び出しに備えて out レジスタ位置を設定する。
-#define MACRO_tail(N)                             \
-  vm->out = &vm->in[N]
+#define MACRO_tail(N) {                         \
+    vm->out = &vm->in[N];                       \
+  }
 // out レジスタの内容を in レジスタにコピーし、
 // 制御を jump_to に移す。
-#define MACRO_execute(jump_to, arity)                       \
-  for (int i = 1; i <= (arity); ++i) {                      \
-    vm->in[i] = vm->out[i];                                 \
+#define MACRO_execute(jump_to, arity) {                     \
+    for (int i = 1; i <= (arity); ++i) {                    \
+      vm->in[i] = vm->out[i];                               \
+    }                                                       \
+    vm->pc = &&jump_to;                                     \
+    vm->contexts.back().pc_continue = vm->FAIL;             \
+    vm->contexts.back().status =                            \
+      (vm->contexts.back().status != ST_ACTIVE)             \
+      ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;                  \
   }                                                         \
-  vm->pc = (jump_to);                                       \
-  vm->contexts.back().pc_continue = -1;                     \
-  vm->contexts.back().status =                              \
-    (vm->contexts.back().status != ST_ACTIVE)               \
-    ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;                    \
-  continue
+  goto jump_to
+#define MACRO_execute2(jump_to, arity) {                    \
+    for (int i = 1; i <= (arity); ++i) {                    \
+      vm->in[i] = vm->out[i];                               \
+    }                                                       \
+    vm->pc = jump_to;                                       \
+    vm->contexts.back().pc_continue = vm->FAIL;             \
+    vm->contexts.back().status =                            \
+      (vm->contexts.back().status != ST_ACTIVE)             \
+      ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;                  \
+  }
 
-#define MACRO_activate                          \
-  vm->activate()
-#define MACRO_proceed                           \
-  vm->proceed();                                \
-  continue
-#define MACRO_return                            \
-  vm->switch_prev_window();                     \
-  vm->pc = vm->contexts.back().pc_continue;     \
-  continue
+#define MACRO_activate {                        \
+    vm->activate();                             \
+  }
+#define MACRO_proceed {                         \
+    vm->proceed();                              \
+    goto *(vm->pc);                             \
+  }
+#define MACRO_return {                          \
+    vm->switch_prev_window();                   \
+    vm->pc = vm->contexts.back().pc_continue;   \
+  }
 
-#define MACRO_set_variable(Ai)                  \
-  {                                             \
+#define MACRO_set_variable(Ai) {                \
     const size_t h = vm->heap_publishing(1);    \
     const Q q = tagptr<TAG_REF>(&vm->heap[h]);  \
     vm->heap[h].store(q);                       \
@@ -1358,18 +1431,18 @@ class RuntimeError: public std::runtime_error {
     vm->heap_published(1);                      \
   }
 
-#define MACRO_set_value(Vn, Ai)                             \
-  {                                                         \
+#define MACRO_set_value(Vn, Ai) {                           \
     const Q q = ref_of(deref(vm->in[Vn]));                  \
     vm->in[Vn] = q;                                         \
     vm->in[Ai] = q;                                         \
   }
-#define MACRO_set_constant(C, Ai)                           \
-  vm->in[Ai] = (C)
-#define MACRO_set_nil(Ai)                  \
-  vm->in[Ai] = tagptr<TAG_NIL, Q>(0)
-#define MACRO_set_list(Ai)                          \
-  {                                                 \
+#define MACRO_set_constant(C, Ai) {             \
+    vm->in[Ai] = (C);                           \
+  }
+#define MACRO_set_nil(Ai) {                     \
+    vm->in[Ai] = tagptr<TAG_NIL, Q>(0);         \
+  }
+#define MACRO_set_list(Ai) {                        \
     const size_t h = vm->heap_publishing(2);        \
     vm->push(tagptr<TAG_REF>(&vm->heap[h + 1]));    \
     vm->push(tagptr<TAG_REF>(&vm->heap[h + 0]));    \
@@ -1377,8 +1450,7 @@ class RuntimeError: public std::runtime_error {
     vm->in[Ai] = q;                                 \
     vm->heap_published(2);                          \
   }
-#define MACRO_set_structure(Fn, Ai)                               \
-  {                                                               \
+#define MACRO_set_structure(Fn, Ai) {                             \
     const int arity = atom_arity_of(Fn);                          \
     const size_t h = vm->heap_publishing(1 + arity);              \
     vm->heap[h].store(Fn);                                        \
@@ -1390,8 +1462,7 @@ class RuntimeError: public std::runtime_error {
     vm->heap_published(1 + arity);                                \
   }
 
-#define MACRO_out_variable(Vn, Oi)                              \
-  {                                                             \
+#define MACRO_out_variable(Vn, Oi) {                            \
     const size_t h = vm->heap_publishing(1);                    \
     const Q q = tagptr<TAG_REF>(&vm->heap[h]);                  \
     vm->heap[h].store(q);                                       \
@@ -1400,19 +1471,18 @@ class RuntimeError: public std::runtime_error {
     vm->heap_published(1);                                      \
   }
 
-#define MACRO_out_value(Vn, Oi)                             \
-  {                                                         \
+#define MACRO_out_value(Vn, Oi) {                           \
     const Q q = ref_of(deref(vm->in[Vn]));                  \
     vm->in[Vn] = q;                                         \
     vm->out[Oi] = q;                                        \
   }
-#define MACRO_out_constant(C, Oi)                           \
-  vm->out[Oi] = (C)
-#define MACRO_out_nil(Oi)                       \
-  vm->out[Oi] = tagptr<TAG_NIL, Q>(0)
-
-#define MACRO_out_list(Oi)                       \
-  {                                              \
+#define MACRO_out_constant(C, Oi) {             \
+    vm->out[Oi] = (C);                          \
+  }
+#define MACRO_out_nil(Oi) {                     \
+    vm->out[Oi] = tagptr<TAG_NIL, Q>(0);        \
+  }
+#define MACRO_out_list(Oi) {                     \
     const size_t h = vm->heap_publishing(2);     \
     const Q q = tagptr<TAG_LIST>(&vm->heap[h]);  \
     vm->out[Oi] = q;                             \
@@ -1421,8 +1491,7 @@ class RuntimeError: public std::runtime_error {
     vm->heap_published(2);                       \
   }
 
-#define MACRO_out_structure(Fn, Oi)                               \
-  {                                                               \
+#define MACRO_out_structure(Fn, Oi) {                             \
     const int arity = atom_arity_of(Fn);                          \
     const size_t h = vm->heap_publishing(1 + arity);              \
     vm->heap[h + 0].store(Fn);                                    \
@@ -1434,33 +1503,28 @@ class RuntimeError: public std::runtime_error {
     vm->heap_published(1 + arity);                                \
   }
 
-#define MACRO_write_variable(Vn)                                  \
-  {                                                               \
+#define MACRO_write_variable(Vn) {                                \
     const Q q = vm->pop();                                        \
     A* p = ptr_of<A>(q);                                          \
     p->store(q);                                                  \
     vm->in[Vn] = q;                                               \
   }
-#define MACRO_write_value(Vn)                       \
-  {                                                 \
+#define MACRO_write_value(Vn) {                     \
     const Q q = vm->pop();                          \
     ptr_of<A>(q)->store(ref_of(deref(vm->in[Vn]))); \
   }
 
-#define MACRO_write_constant(C)                           \
-  {                                                       \
+#define MACRO_write_constant(C) {                         \
     const Q q = vm->pop();                                \
     A* p = ptr_of<A>(q);                                  \
     p->store(C);                                          \
   }
-#define MACRO_write_nil                         \
-  {                                             \
+#define MACRO_write_nil {                       \
     const Q q = vm->pop();                      \
     A* p = ptr_of<A>(q);                        \
     p->store(tagptr<TAG_NIL, Q>(0));            \
   }
-#define MACRO_write_list                                          \
-  {                                                               \
+#define MACRO_write_list {                                        \
     const Q q = vm->pop();                                        \
     const size_t h = vm->heap_publishing(2);                      \
     vm->push(tagptr<TAG_REF>(&vm->heap[h + 1]));                  \
@@ -1469,8 +1533,7 @@ class RuntimeError: public std::runtime_error {
     p->store(tagptr<TAG_LIST>(&vm->heap[h + 0]));                 \
     vm->heap_published(2);                                        \
   }
-#define MACRO_write_structure(Fn)                                 \
-  {                                                               \
+#define MACRO_write_structure(Fn) {                               \
     const Q q = vm->pop();                                        \
     const int arity = atom_arity_of(Fn);                          \
     const size_t h = vm->heap_publishing(1 + arity);              \
@@ -1482,15 +1545,13 @@ class RuntimeError: public std::runtime_error {
     p->store(tagptr<TAG_STR>(&vm->heap[h]));                      \
     vm->heap_published(1 + arity);                                \
   }
-#define MACRO_write_void                        \
-  {                                             \
+#define MACRO_write_void {                      \
     const Q q = vm->pop();                      \
     A* p = ptr_of<A>(q);                        \
     p->store(q);                                \
   }
 
-#define MACRO_get_variable(Vn, Ai)                        \
-  {                                                       \
+#define MACRO_get_variable(Vn, Ai) {                      \
     const Q q = ref_of(deref(vm->in[Ai]));                \
     vm->in[Ai] = q;                                       \
     vm->in[Vn] = q;                                       \
@@ -1498,102 +1559,99 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_get_value(Vn, Ai)                           \
   if (!vm->unify(vm->in[Vn], vm->in[Ai])) {               \
     vm->fail();                                           \
-    continue;                                             \
+    vm->failed = false;                                   \
+    goto *(vm->pc);                                       \
   }
 
 #define MACRO_get_constant(C, Ai)                                   \
   if (!vm->unify(C, vm->in[Ai])) {                                  \
     vm->fail();                                                     \
-    continue;                                                       \
+    vm->failed = false;                                             \
+    goto *(vm->pc);                                                 \
   }
 
 #define MACRO_get_nil(Ai)                               \
   if (!vm->unify(tagptr<TAG_NIL, Q>(0), vm->in[Ai])) {  \
     vm->fail();                                         \
-    continue;                                           \
+    vm->failed = false;                                 \
+    goto *(vm->pc);                                     \
   }
 #define MACRO_get_list(Ai)                                \
-  {                                                       \
-    bool failed = false;                                  \
-    do {                                                  \
-      Q q = deref(vm->in[Ai]);                            \
-      const TAG_T tag = tag_of(q);                        \
-      if (tag == TAG_LIST) {                              \
-        A* p = ptr_of<A>(q);                              \
-        vm->push(p[1].load());                            \
-        vm->push(p[0].load());                            \
-      } else if (tag == TAG_REF || tag == TAG_SUS) {      \
-        A* p = ptr_of<A>(q);                              \
-        const size_t h = vm->heap_publishing(2);          \
-        Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);         \
-        Q q1 = tagptr<TAG_REF>(&vm->heap[h + 1]);         \
-        vm->heap[h + 0].store(q0);                        \
-        vm->heap[h + 1].store(q1);                        \
-        Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]);       \
-        if (!p->compare_exchange_strong(q, lst)) {        \
-          failed = true;                                  \
-          break;                                          \
-        }                                                 \
-        if (tag == TAG_SUS) {                             \
-          vm->wake(q);                                    \
-        }                                                 \
-        vm->heap_published(2);                            \
-        vm->push(q1);                                     \
-        vm->push(q0);                                     \
-      } else {                                            \
-        failed = true;                                    \
+  do {                                                    \
+    Q q = deref(vm->in[Ai]);                              \
+    const TAG_T tag = tag_of(q);                          \
+    if (tag == TAG_LIST) {                                \
+      A* p = ptr_of<A>(q);                                \
+      vm->push(p[1].load());                              \
+      vm->push(p[0].load());                              \
+    } else if (tag == TAG_REF || tag == TAG_SUS) {        \
+      A* p = ptr_of<A>(q);                                \
+      const size_t h = vm->heap_publishing(2);            \
+      Q q0 = tagptr<TAG_REF>(&vm->heap[h + 0]);           \
+      Q q1 = tagptr<TAG_REF>(&vm->heap[h + 1]);           \
+      vm->heap[h + 0].store(q0);                          \
+      vm->heap[h + 1].store(q1);                          \
+      Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]);         \
+      if (!p->compare_exchange_strong(q, lst)) {          \
+        vm->fail();                                       \
         break;                                            \
       }                                                   \
-    } while (0);                                          \
-    if (failed) {                                         \
+      if (tag == TAG_SUS) {                               \
+        vm->wake(q);                                      \
+      }                                                   \
+      vm->heap_published(2);                              \
+      vm->push(q1);                                       \
+      vm->push(q0);                                       \
+    } else {                                              \
       vm->fail();                                         \
-      continue;                                           \
+      break;                                              \
     }                                                     \
+  } while (0);                                            \
+  if (vm->failed) {                                       \
+    vm->failed = false;                                   \
+    goto *(vm->pc);                                       \
   }
 #define MACRO_get_structure(Fn, Ai)                             \
-  {                                                             \
-    bool failed = false;                                        \
-    do {                                                        \
-      Q q = deref(vm->in[Ai]);                                  \
-      const TAG_T tag = tag_of(q);                              \
-      if (tag == TAG_STR) {                                     \
-        A* p = ptr_of<A>(q);                                    \
-        if (p[0].load() != Fn) {                                \
-          failed = true;                                        \
-          break;                                                \
-        }                                                       \
-        const int arity = atom_arity_of(Fn);                    \
-        for (int i = arity; i > 0; --i) {                       \
-          vm->push(p[i].load());                                \
-        }                                                       \
-      } else if (tag == TAG_REF || tag == TAG_SUS) {            \
-        A* p = ptr_of<A>(q);                                    \
-        const int arity = atom_arity_of(Fn);                    \
-        const size_t h = vm->heap_publishing(1 + arity);        \
-        vm->heap[h + 0].store(Fn);                              \
-        const Q structure = tagptr<TAG_STR>(&vm->heap[h + 0]);  \
-        for (int i = arity; i > 0; --i) {                       \
-          const Q q1 = tagptr<TAG_REF>(&vm->heap[h + i]);       \
-          vm->heap[h + i] = q1;                                 \
-          vm->push(q1);                                         \
-        }                                                       \
-        if (!p->compare_exchange_strong(q, structure)) {        \
-          failed = true;                                        \
-          break;                                                \
-        }                                                       \
-        if (tag == TAG_SUS) {                                   \
-          vm->wake(q);                                          \
-        }                                                       \
-        vm->heap_published(1 + arity);                          \
-      } else {                                                  \
-        failed = true;                                          \
-        continue;                                               \
+  do {                                                          \
+    Q q = deref(vm->in[Ai]);                                    \
+    const TAG_T tag = tag_of(q);                                \
+    if (tag == TAG_STR) {                                       \
+      A* p = ptr_of<A>(q);                                      \
+      if (p[0].load() != Fn) {                                  \
+        vm->fail();                                             \
+        break;                                                  \
       }                                                         \
-    } while (0);                                                \
-    if (failed) {                                               \
+      const int arity = atom_arity_of(Fn);                      \
+      for (int i = arity; i > 0; --i) {                         \
+        vm->push(p[i].load());                                  \
+      }                                                         \
+    } else if (tag == TAG_REF || tag == TAG_SUS) {              \
+      A* p = ptr_of<A>(q);                                      \
+      const int arity = atom_arity_of(Fn);                      \
+      const size_t h = vm->heap_publishing(1 + arity);          \
+      vm->heap[h + 0].store(Fn);                                \
+      const Q structure = tagptr<TAG_STR>(&vm->heap[h + 0]);    \
+      for (int i = arity; i > 0; --i) {                         \
+        const Q q1 = tagptr<TAG_REF>(&vm->heap[h + i]);         \
+        vm->heap[h + i] = q1;                                   \
+        vm->push(q1);                                           \
+      }                                                         \
+      if (!p->compare_exchange_strong(q, structure)) {          \
+        vm->fail();                                             \
+        break;                                                  \
+      }                                                         \
+      if (tag == TAG_SUS) {                                     \
+        vm->wake(q);                                            \
+      }                                                         \
+      vm->heap_published(1 + arity);                            \
+    } else {                                                    \
       vm->fail();                                               \
-      continue;                                                 \
+      break;                                                    \
     }                                                           \
+  } while (0);                                                  \
+  if (vm->failed) {                                             \
+    vm->failed = false;                                         \
+    goto *(vm->pc);                                             \
   }
 
 #define MACRO_unify_variable(Vn)                             \
@@ -1602,117 +1660,123 @@ class RuntimeError: public std::runtime_error {
     vm->in[Vn] = ref_of(q);                                  \
   }
 #define MACRO_unify_value(Vn)                             \
-  {                                                       \
+  do {                                                    \
     const Q q = vm->pop();                                \
     if (!vm->unify(q, vm->in[Vn])) {                      \
       vm->fail();                                         \
-      continue;                                           \
+      break;                                              \
     }                                                     \
+  } while (0);                                            \
+  if (vm->failed) {                                       \
+    vm->failed = false;                                   \
+    goto *(vm->pc);                                       \
   }
 #define MACRO_unify_constant(C)                           \
-  {                                                       \
+  do {                                                    \
     const Q q = vm->pop();                                \
     if (!vm->unify(C, q)) {                               \
       vm->fail();                                         \
-      continue;                                           \
+      break;                                              \
     }                                                     \
+  } while (0);                                            \
+  if (vm->failed) {                                       \
+    vm->failed = false;                                   \
+    goto *(vm->pc);                                       \
   }
 #define MACRO_unify_nil                                   \
-  {                                                       \
+  do {                                                    \
     const Q q = deref(vm->pop());                         \
     if (!vm->unify(tagptr<TAG_NIL, Q>(0), q)) {           \
       vm->fail();                                         \
-      continue;                                           \
+      break;                                              \
     }                                                     \
+  } while (0);                                            \
+  if (vm->failed) {                                       \
+    vm->failed = false;                                   \
+    goto *(vm->pc);                                       \
   }
 #define MACRO_unify_list                                  \
-  {                                                       \
-    bool failed = false;                                  \
-    do {                                                  \
-      Q q = deref(vm->pop());                             \
-      const TAG_T tag = tag_of(q);                        \
-      if (tag == TAG_LIST) {                              \
-        A* p = ptr_of<A>(q);                              \
-        vm->push(p[1].load());                            \
-        vm->push(p[0].load());                            \
-      } else if (tag == TAG_REF || tag == TAG_SUS) {      \
-        A* p = ptr_of<A>(q);                              \
-        const size_t h = vm->heap_publishing(2);          \
-        const Q car = tagptr<TAG_REF>(&vm->heap[h + 0]);  \
-        const Q cdr = tagptr<TAG_REF>(&vm->heap[h + 1]);  \
-        vm->heap[h + 0] = car;                            \
-        vm->heap[h + 1] = cdr;                            \
-        const Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]); \
-        if (!p->compare_exchange_strong(q, lst)) {        \
-          failed = true;                                  \
-          break;                                          \
-        }                                                 \
-        if (tag == TAG_SUS) {                             \
-          vm->wake(q);                                    \
-        }                                                 \
-        vm->push(cdr);                                    \
-        vm->push(car);                                    \
-        vm->heap_published(2);                            \
-      } else {                                            \
-        failed = true;                                    \
+  do {                                                    \
+    Q q = deref(vm->pop());                               \
+    const TAG_T tag = tag_of(q);                          \
+    if (tag == TAG_LIST) {                                \
+      A* p = ptr_of<A>(q);                                \
+      vm->push(p[1].load());                              \
+      vm->push(p[0].load());                              \
+    } else if (tag == TAG_REF || tag == TAG_SUS) {        \
+      A* p = ptr_of<A>(q);                                \
+      const size_t h = vm->heap_publishing(2);            \
+      const Q car = tagptr<TAG_REF>(&vm->heap[h + 0]);    \
+      const Q cdr = tagptr<TAG_REF>(&vm->heap[h + 1]);    \
+      vm->heap[h + 0] = car;                              \
+      vm->heap[h + 1] = cdr;                              \
+      const Q lst = tagptr<TAG_LIST>(&vm->heap[h + 0]);   \
+      if (!p->compare_exchange_strong(q, lst)) {          \
+        vm->fail();                                       \
         break;                                            \
       }                                                   \
-    } while (0);                                          \
-    if (failed) {                                         \
-      vm->fail();                                         \
-      continue;                                           \
+      if (tag == TAG_SUS) {                               \
+        vm->wake(q);                                      \
+      }                                                   \
+      vm->push(cdr);                                      \
+      vm->push(car);                                      \
+      vm->heap_published(2);                              \
+    } else {                                              \
+        vm->fail();                                       \
+        break;                                            \
     }                                                     \
+  } while (0);                                            \
+  if (vm->failed) {                                       \
+    vm->failed = false;                                   \
+    goto *(vm->pc);                                       \
   }
 
 #define MACRO_unify_structure(Fn)                                     \
-  {                                                                   \
-    bool failed = false;                                              \
-    do {                                                              \
-      Q q = deref(vm->pop());                                         \
-      const TAG_T tag = tag_of(q);                                    \
-      if (tag == TAG_STR) {                                           \
-        A* p = ptr_of<A>(q);                                          \
-        if (p->load() != Fn) {                                        \
-          failed = true;                                              \
-          break;                                                      \
-        }                                                             \
-        const int arity = atom_arity_of(Fn);                          \
-        for (int i = arity; i > 0; --i) {                             \
-          vm->push(p[i].load());                                      \
-        }                                                             \
-      } else if (tag == TAG_REF || tag == TAG_SUS) {                  \
-        A* p = ptr_of<A>(q);                                          \
-        const int arity = atom_arity_of(Fn);                          \
-        const size_t h = vm->heap_publishing(1 + arity);              \
-        vm->heap[h + 0] = Fn;                                         \
-        for (int i = arity; i > 0; --i) {                             \
-          vm->heap[h + i] = tagptr<TAG_REF>(&vm->heap[h + i]);        \
-          vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                \
-        }                                                             \
-        const Q s = tagptr<TAG_STR>(&vm->heap[h]);                    \
-        if (!p->compare_exchange_strong(q, s)) {                      \
-          failed = true;                                              \
-          break;                                                      \
-        }                                                             \
-        if (tag == TAG_SUS) {                                         \
-          vm->wake(q);                                                \
-        }                                                             \
-        vm->heap_published(1 + arity);                                \
-      } else {                                                        \
-        failed = true;                                                \
+  do {                                                                \
+    Q q = deref(vm->pop());                                           \
+    const TAG_T tag = tag_of(q);                                      \
+    if (tag == TAG_STR) {                                             \
+      A* p = ptr_of<A>(q);                                            \
+      if (p->load() != Fn) {                                          \
+        vm->fail();                                                   \
         break;                                                        \
       }                                                               \
-    } while (0);                                                      \
-    if (failed) {                                                     \
+      const int arity = atom_arity_of(Fn);                            \
+      for (int i = arity; i > 0; --i) {                               \
+        vm->push(p[i].load());                                        \
+      }                                                               \
+    } else if (tag == TAG_REF || tag == TAG_SUS) {                    \
+      A* p = ptr_of<A>(q);                                            \
+      const int arity = atom_arity_of(Fn);                            \
+      const size_t h = vm->heap_publishing(1 + arity);                \
+      vm->heap[h + 0] = Fn;                                           \
+      for (int i = arity; i > 0; --i) {                               \
+        vm->heap[h + i] = tagptr<TAG_REF>(&vm->heap[h + i]);          \
+        vm->push(tagptr<TAG_REF>(&vm->heap[h + i]));                  \
+      }                                                               \
+      const Q s = tagptr<TAG_STR>(&vm->heap[h]);                      \
+      if (!p->compare_exchange_strong(q, s)) {                        \
+        vm->fail();                                                   \
+        break;                                                        \
+      }                                                               \
+      if (tag == TAG_SUS) {                                           \
+        vm->wake(q);                                                  \
+      }                                                               \
+      vm->heap_published(1 + arity);                                  \
+    } else {                                                          \
       vm->fail();                                                     \
-      continue;                                                       \
+      break;                                                          \
     }                                                                 \
+  } while (0);                                                        \
+  if (vm->failed) {                                                   \
+    vm->failed = false;                                               \
+    goto *(vm->pc);                                                   \
   }
-#define MACRO_unify_void                        \
-  vm->pop()
+#define MACRO_unify_void {                      \
+    vm->pop();                                  \
+  }
 
-#define MACRO_check_variable(Vn, Ai)                 \
-  {                                                  \
+#define MACRO_check_variable(Vn, Ai) {               \
     vm->in[Vn] = ref_of(deref(vm->in[Ai]));          \
   }
 
@@ -1720,7 +1784,7 @@ class RuntimeError: public std::runtime_error {
   throw std::runtime_error("fix me: check_value")
 
 #define MACRO_check_constant(C, Ai)                         \
-  {                                                         \
+  do {                                                      \
     const Q q = deref(vm->in[Ai]);                          \
     if (q != C) {                                           \
       const TAG_T t = tag_of(q);                            \
@@ -1728,12 +1792,16 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                               \
       }                                                     \
       vm->fail();                                           \
-      continue;                                             \
+      break;                                                \
     }                                                       \
+  } while (0);                                              \
+  if (vm->failed) {                                         \
+    vm->failed = false;                                     \
+    goto *(vm->pc);                                         \
   }
 
 #define MACRO_check_nil(Ai)                                 \
-  {                                                         \
+  do {                                                      \
     const Q q = deref(vm->in[Ai]);                          \
     const TAG_T t = tag_of(q);                              \
     if (t != TAG_NIL) {                                     \
@@ -1741,11 +1809,16 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                               \
       }                                                     \
       vm->fail();                                           \
-      continue;                                             \
+      break;                                                \
     }                                                       \
+  } while (0);                                              \
+  if (vm->failed) {                                         \
+    vm->failed = false;                                     \
+    goto *(vm->pc);                                         \
   }
+
 #define MACRO_check_list(Ai)                      \
-  {                                               \
+  do {                                            \
     const Q q = deref(vm->in[Ai]);                \
     const TAG_T t = tag_of(q);                    \
     if (t != TAG_LIST) {                          \
@@ -1753,15 +1826,19 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                     \
       }                                           \
       vm->fail();                                 \
-      continue;                                   \
+      break;                                      \
     }                                             \
     A* p = ptr_of<A>(q);                          \
     vm->push(p[1].load());                        \
     vm->push(p[0].load());                        \
+  } while (0);                                    \
+  if (vm->failed) {                               \
+    vm->failed = false;                           \
+    goto *(vm->pc);                               \
   }
 
 #define MACRO_check_structure(Fn, Ai)                      \
-  {                                                        \
+  do {                                                     \
     const Q q = deref(vm->in[Ai]);                         \
     const TAG_T t = tag_of(q);                             \
     if (t != TAG_STR) {                                    \
@@ -1769,27 +1846,30 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                              \
       }                                                    \
       vm->fail();                                          \
-      continue;                                            \
+      break;                                               \
     }                                                      \
     A* p = ptr_of<A>(q);                                   \
     if (p->load() != Fn) {                                 \
       vm->fail();                                          \
-      continue;                                            \
+      break;                                               \
     }                                                      \
     const int arity = atom_arity_of(Fn);                   \
     for (int i = arity; i > 0; --i) {                      \
       vm->push(p[i].load());                               \
     }                                                      \
+  } while (0);                                             \
+  if (vm->failed) {                                        \
+    vm->failed = false;                                    \
+    goto *(vm->pc);                                        \
   }
 
-#define MACRO_read_variable(Vn)                               \
-  {                                                           \
+#define MACRO_read_variable(Vn) {                             \
     const Q q = deref(vm->pop());                             \
     vm->in[Vn] = ref_of(q);                                   \
   }
 
 #define MACRO_read_value(Vn)                                \
-  {                                                         \
+  do {                                                      \
     const Q q = deref(vm->pop());                           \
     const Q q2 = deref(vm->in[Vn]);                         \
     if (q != q2) {                                          \
@@ -1798,11 +1878,16 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                               \
       }                                                     \
       vm->fail();                                           \
-      continue;                                             \
+      break;                                                \
     }                                                       \
+  } while (0);                                              \
+  if (vm->failed) {                                         \
+    vm->failed = false;                                     \
+    goto *(vm->pc);                                         \
   }
+
 #define MACRO_read_constant(C)                              \
-  {                                                         \
+  do {                                                      \
     const Q q = deref(vm->pop());                           \
     if (q != C) {                                           \
       const TAG_T t = tag_of(q);                            \
@@ -1810,11 +1895,16 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                               \
       }                                                     \
       vm->fail();                                           \
-      continue;                                             \
+      break;                                                \
     }                                                       \
+  } while (0);                                              \
+  if (vm->failed) {                                         \
+    vm->failed = false;                                     \
+    goto *(vm->pc);                                         \
   }
+
 #define MACRO_read_nil                                      \
-  {                                                         \
+  do {                                                      \
     const Q q = deref(vm->pop());                           \
     const TAG_T t = tag_of(q);                              \
     if (t != TAG_NIL) {                                     \
@@ -1822,11 +1912,16 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                               \
       }                                                     \
       vm->fail();                                           \
-      continue;                                             \
+      break;                                                \
     }                                                       \
+  } while (0);                                              \
+  if (vm->failed) {                                         \
+    vm->failed = false;                                     \
+    goto *(vm->pc);                                         \
   }
+
 #define MACRO_read_list                                       \
-  {                                                           \
+  do {                                                        \
     const Q q = deref(vm->pop());                             \
     const TAG_T t = tag_of(q);                                \
     if (t != TAG_LIST) {                                      \
@@ -1834,12 +1929,17 @@ class RuntimeError: public std::runtime_error {
         vm->add_wait_list(q);                                 \
       }                                                       \
       vm->fail();                                             \
-      continue;                                               \
+      break;                                                  \
     }                                                         \
     A* p = ptr_of<A>(q);                                      \
     vm->push(p[1].load());                                    \
     vm->push(p[0].load());                                    \
+  } while (0);                                                \
+  if (vm->failed) {                                           \
+    vm->failed = false;                                       \
+    goto *(vm->pc);                                           \
   }
+
 #define MACRO_read_structure(Fn)                    \
   throw std::runtime_error("fix me: read_structure")
 #define MACRO_read_void                         \
@@ -1847,7 +1947,7 @@ class RuntimeError: public std::runtime_error {
 
 class Program {
  public:
-  void add_entry_point(Q q, int pc) {
+  void add_entry_point(Q q, void* pc) {
     fun_pc_map_[q] = pc;
     /*
     std::cerr << "add_entry_point: "
@@ -1855,17 +1955,17 @@ class Program {
               << " = " << pc << std::endl;
     */
   }
-  int query_entry_point(Q q) const {
-    std::unordered_map<Q, int>::const_iterator
+  void* query_entry_point(Q q) const {
+    std::unordered_map<Q, void*>::const_iterator
       iter = fun_pc_map_.find(q);
     if (iter == fun_pc_map_.end()) {
-      return -1;
+      return NULL;
     }
     return iter->second;
   }
 
  private:
-  std::unordered_map<Q, int> fun_pc_map_;
+  std::unordered_map<Q, void*> fun_pc_map_;
 };
 
 extern void setup(Program* prog);

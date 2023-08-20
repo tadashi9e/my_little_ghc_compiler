@@ -15,10 +15,6 @@ label(main/1).
       write_constant('Hello ').
       write_variable(reg(x,3)).
     spawn(outstream/1).
-  % body(dump_to_dot(dump/hello.dot)).
-  par(4).
-    out_constant('dump/hello.dot',reg(out,1)).
-    spawn(dump_to_dot/1).
   % body(writes(Ss,OStream)).
   tail(4).
     out_value(reg(x,2),reg(out,1)).

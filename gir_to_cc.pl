@@ -65,35 +65,41 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     open(CcFile, write, OStream, [create([write]), encoding(utf8)]),
     writeln(OStream, '# include "./ghc.h"'),
     always_success(dump_atom_defs(Ctx, OStream)),
-    writeln(OStream, 'void module(VM::ptr vm, Program* prog) {'),
-    writeln(OStream, '  for (;;) {'),
-    writeln(OStream, '    switch (vm->pc) {'),
-    writeln(OStream, '    case -1:'),
-    writeln(OStream, '      return;'),
-    always_success(dump(Ts, OStream)),
-    writeln(OStream, '    default:'),
-    writeln(OStream, '      throw RuntimeError();'),
-    writeln(OStream, '    }'),
-    writeln(OStream, '  }'),
-    writeln(OStream, '}'),
-    writeln(OStream, 'void setup(Program* prog) {'),
-    writeln(OStream, '  // setup atom constants'),
+    writeln(OStream, 'void module(VM::ptr vm, Program* prog, bool setup) {'),
+    writeln(OStream, '  if (setup) {'),
+    writeln(OStream, '    // setup atom constants'),
     always_success(dump_atom_values(Ctx, OStream)),
-    writeln(OStream, '  // setup entry points'),
+    writeln(OStream, '    // setup entry points'),
     always_success(dump_goals(Ctx, OStream)),
+    writeln(OStream, '    vm->FAIL = &&LFAIL;'),
+    writeln(OStream, '    vm->FAIL2 = &&LFAIL2;'),
+    writeln(OStream, '    vm->FAIL3 = &&LFAIL3;'),
+    writeln(OStream, '    vm->NO_MORE_GOALS = &&LNO_MORE_GOALS;'),
+    writeln(OStream, '    return;'),
+    writeln(OStream, '  }'),
+    writeln(OStream, '  goto *(vm->pc);'),
+    writeln(OStream, ' LFAIL:'),
+    writeln(OStream, '  throw RuntimeError();'),
+    writeln(OStream, ' LFAIL2:'),
+    writeln(OStream, '  throw RuntimeError();'),
+    writeln(OStream, ' LFAIL3:'),
+    writeln(OStream, '  throw RuntimeError();'),
+    always_success(dump(Ts, OStream)),
+    writeln(OStream, ' LNO_MORE_GOALS:'),
+    writeln(OStream, '  return;'),
     writeln(OStream, '}'),
     writeln(OStream, 'int'),
     writeln(OStream, 'main(int argc, char* argv[]) {'),
     writeln(OStream, '  Program prog;'),
-    writeln(OStream, '  setup(&prog);'),
     writeln(OStream, '  std::vector<VM::ptr> vms;'),
     writeln(OStream, '  vms.push_back(std::make_shared<VM>());'),
-    writeln(OStream, '  const int pc = prog.query_entry_point(to_atom("main", 1));'),
-    writeln(OStream, '  if (pc < 0) {'),
+    writeln(OStream, '  VM::ptr vm = vms[0];'),
+    writeln(OStream, '  module(vm, &prog, true);'),
+    writeln(OStream, '  void* pc = prog.query_entry_point(to_atom("main", 1));'),
+    writeln(OStream, '  if (!pc) {'),
     writeln(OStream, '    std::cerr << "failed to find main/1 predicate" << std::endl;'),
     writeln(OStream, '    return 1;'),
     writeln(OStream, '  }'),
-    writeln(OStream, '  VM::ptr vm = vms[0];'),
     writeln(OStream, '  vm->pc = pc;'),
     writeln(OStream, '  vm->failed = false;'),
     writeln(OStream, '  A* head = NULL;'),
@@ -116,7 +122,7 @@ write_translated_cc(Ctx, CcFile, Ts) :-
     writeln(OStream, '  vm->heap[h + 0].store(tagptr<TAG_REF>(&vm->heap[h + 0]));'),
     writeln(OStream, '  vm->heap[h + 1].store(tagptr<TAG_REF>(&vm->heap[h + 2]));'),
     writeln(OStream, '  vm->heap[h + 2].store(tagvalue<TAG_INT>(0));'),
-    writeln(OStream, '  vm->heap[h + 3].store(tagvalue<TAG_INT>(pc));'),
+    writeln(OStream, '  vm->heap[h + 3].store(reinterpret_cast<intptr_t>(pc));'),
     writeln(OStream, '  vm->heap[h + 4].store(to_atom("main", 1));'),
     writeln(OStream, '  vm->heap[h + 5].store(tagptr<TAG_LIST, A>(head));'),
     writeln(OStream, '  vm->heap_published(6);'),
@@ -283,32 +289,37 @@ to_functor(F / N, Fun) :-
 
 dump([], _) :- !.
 dump([label(Lno, Label)|Ts], OStream) :-
-    format(OStream, "    case ~d:  // ~w~n", [Lno, Label]),
+    format(OStream, " L~d:  // ~w~n", [Lno, Label]),
+    % format(OStream, '  std::cerr << "~w" << std::endl;~n', [Label]),
     always_success(dump(Ts, OStream)).
 dump([inline(Inline)|Ts], OStream) :-
     format(OStream, '~w~n', [Inline]),
     always_success(dump(Ts, OStream)).
 dump([Code|Ts], OStream) :-
-    ( Code = goal(L, G / N) ->
-      to_cstring(G, S), Code2 = goal(L, atom(S, N)),
-      format(OStream, '      MACRO_~w;~n', [Code2])
+    % format(OStream, '  std::cerr << "~w" << std::endl;~n', [Code]),
+    ( Code = goal(L, G) ->
+      % goal(L, atom(S, N))
+      format(OStream, '  MACRO_goal(L~w, ~w);~n', [L, G])
     ; Code = call(L, Link, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]) ; true ),
-      Code2 = call(L, Link),
-      format(OStream, '      MACRO_~w;  // call(~w)~n',
-             [Code2, Fun])
+      % call(L, Link)
+      format(OStream, '  MACRO_call(L~w, L~w);  // call(~w)~n',
+             [L, Link, Fun])
     ; Code = spawn(L, Link, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]); true),
-      Code2 = spawn(L, Link),
-      format(OStream, '      MACRO_~w;  // spawn(~w)~n',
-             [Code2, Fun])
+      % spawn(L, Link)
+      format(OStream, '  MACRO_spawn(L~w, L~w);  // spawn(~w)~n',
+             [L, Link, Fun])
     ; Code = execute(L, Fun) ->
       ( var(L) -> format('error: predicate not found: ~w~n', [Fun]); true),
       Fun = _ / Arity,
-      Code2 = execute(L, Arity),
-      format(OStream, '      MACRO_~w;  // execute(~w)~n',
-             [Code2, Fun])
-    ; format(OStream, '      MACRO_~w;~n', [Code]) ),
+      % execute(L, Arity)
+      format(OStream, '  MACRO_execute(L~w, ~w);  // execute(~w)~n',
+             [L, Arity, Fun])
+    ; Code = try_guard_else(L) ->
+      format(OStream, '  MACRO_try_guard_else(L~w);~n',
+             [L])
+    ; format(OStream, '  MACRO_~w;~n', [Code]) ),
     always_success(dump(Ts, OStream)).
 
 append_atom(Ctx, Atom, AtomID) :-
@@ -332,7 +343,7 @@ dump_atom_values(Ctx, OStream) :-
 dump_atom_values(_, _, [], _) :- !.
 dump_atom_values(Ctx, OStream, [atom(F / N, ID)|AtomIDList], ID) :-
     to_cstring(F, S),
-    format(OStream, '  ~w = to_atom(~w, ~d);~n', [atom(ID), S, N]),
+    format(OStream, '    ~w = to_atom(~w, ~d);~n', [atom(ID), S, N]),
     ID1 is ID + 1,
     dump_atom_values(Ctx, OStream, AtomIDList, ID1).
 
@@ -347,7 +358,7 @@ dump_goals(_, [], _) :- !.
 dump_goals(Ctx, [goal(L, G / N)|Gs], OStream) :-
     get(Ctx, G / N, atom(_, AtomID)),
     format(OStream,
-           '  prog->add_entry_point(atom(~d), ~d);  // ~w / ~d~n',
+           '    prog->add_entry_point(atom(~d), &&L~d);  // ~w / ~d~n',
            [AtomID, L, G, N]),
 %    to_cstring(G, S),
 %    format(OStream,
