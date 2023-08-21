@@ -1189,6 +1189,7 @@ void module(VM::ptr vm, Program* prog) {
     const int fd = tagvalue<TAG_INT>(vm->in[1]);
     close(fd);
   }
+  MACRO_proceed;
     case 100:  // writeln/1
       MACRO_goal(100,atom(30));
       MACRO_requires(3);

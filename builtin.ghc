@@ -347,7 +347,8 @@ close(Stream) :-
     inline('  {'),
     inline('    const int fd = tagvalue<TAG_INT>(vm->in[1]);'),
     inline('    close(fd);'),
-    inline('  }').
+    inline('  }'),
+    inline('  MACRO_proceed;').
 
 writeln(X) :- write(X) -> nl.
 writeln(Stream, X) :- write(Stream, X), nl(Stream).
