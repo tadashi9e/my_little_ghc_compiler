@@ -871,8 +871,7 @@ void module(VM::ptr vm, Program* prog, bool setup) {
     MACRO_set_constant(tagvalue<TAG_INT>(i), reg::in(10));
   } while (0);
   MACRO_get_value(reg::in(10), reg::in(2));
-  vm->proceed();
-  goto *(vm->pc);
+  MACRO_proceed;
  L45:  // __number_to_atom__/2
   MACRO_goal(L45, atom(23));
   MACRO_requires(5);
@@ -1436,9 +1435,8 @@ void module(VM::ptr vm, Program* prog, bool setup) {
       }
       offset += n;
     }
-    vm->proceed();
   } while (0);
-  goto *(vm->pc);
+  MACRO_proceed;
  L108:  // write/1
   MACRO_goal(L108, atom(28));
   MACRO_requires(4);
@@ -1697,9 +1695,8 @@ void module(VM::ptr vm, Program* prog, bool setup) {
       }
       offset += n;
     }
-    vm->proceed();
   } while (0);
-  goto *(vm->pc);
+  MACRO_proceed;
  L147:  // __write_atom__/2
   MACRO_goal(L147, atom(68));
   MACRO_requires(5);
@@ -1716,9 +1713,8 @@ void module(VM::ptr vm, Program* prog, bool setup) {
       }
       offset += n;
     }
-    vm->proceed();
   } while (0);
-  goto *(vm->pc);
+  MACRO_proceed;
  L148:  // __write_var__/2
   MACRO_goal(L148, atom(69));
   MACRO_requires(5);
@@ -1738,9 +1734,8 @@ void module(VM::ptr vm, Program* prog, bool setup) {
       }
       offset += n;
     }
-    vm->proceed();
   } while (0);
-  goto *(vm->pc);
+  MACRO_proceed;
  L149:  // integer/1
   MACRO_goal(L149, atom(70));
   MACRO_requires(3);
@@ -2666,9 +2661,8 @@ void module(VM::ptr vm, Program* prog, bool setup) {
     const Q q = vm->in[1];
     const std::string s = atom_str_of(q);
     vm->dump_to_dot(s);
-    vm->proceed();
   } while (0);
-  goto *(vm->pc);
+  MACRO_proceed;
  L261:  // dump_to_dot/2
   MACRO_goal(L261, atom(119));
   MACRO_requires(5);
@@ -2691,9 +2685,8 @@ void module(VM::ptr vm, Program* prog, bool setup) {
     const Q q2 = vm->in[2];
     const std::string s = atom_str_of(q1);
     vm->dump_to_dot(s, q2);
-    vm->proceed();
   } while (0);
-  goto *(vm->pc);
+  MACRO_proceed;
  L264:  // main/1
   MACRO_goal(L264, atom(121));
   MACRO_requires(6);

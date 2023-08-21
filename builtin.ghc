@@ -282,8 +282,7 @@ atom_number(A, N) :- integer(N) | '__number_to_atom__'(A, N).
     inline('    MACRO_set_constant(tagvalue<TAG_INT>(i), reg::in(10));'),
     inline('  } while (0);'),
     inline('  MACRO_get_value(reg::in(10), reg::in(2));'),
-    inline('  vm->proceed();'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').
 
 '__number_to_atom__'(A, N) :-
     inline('  MACRO_activate;'),
@@ -421,9 +420,8 @@ nl(Stream) :- integer(Stream) | '__nl__'(Stream).
     inline('      }'),
     inline('      offset += n;'),
     inline('    }'),
-    inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').
 
 write(X) :- write(1, X).
 write(Stream, X) :- integer(Stream) | '__write__'(Stream, X).
@@ -477,9 +475,8 @@ otherwise.
     inline('      }'),
     inline('      offset += n;'),
     inline('    }'),
-    inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').
 '__write_atom__'(Stream, X) :-
     inline('  MACRO_activate;'),
     inline('  do {'),
@@ -494,9 +491,8 @@ otherwise.
     inline('      }'),
     inline('      offset += n;'),
     inline('    }'),
-    inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').
 '__write_var__'(Stream, X) :-
     inline('  MACRO_activate;'),
     inline('  do {'),
@@ -514,9 +510,8 @@ otherwise.
     inline('      }'),
     inline('      offset += n;'),
     inline('    }'),
-    inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').
 
 integer(X) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
@@ -858,9 +853,8 @@ dump_to_dot(File) :- atom(File) | '__dump_to_dot__'(File).
     inline('    const Q q = vm->in[1];'),
     inline('    const std::string s = atom_str_of(q);'),
     inline('    vm->dump_to_dot(s);'),
-    inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').
 
 dump_to_dot(File, Var) :- atom(File) | '__dump_to_dot__'(File, Var).
 '__dump_to_dot__'(File, Var) :-
@@ -870,6 +864,5 @@ dump_to_dot(File, Var) :- atom(File) | '__dump_to_dot__'(File, Var).
     inline('    const Q q2 = vm->in[2];'),
     inline('    const std::string s = atom_str_of(q1);'),
     inline('    vm->dump_to_dot(s, q2);'),
-    inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').

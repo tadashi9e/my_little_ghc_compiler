@@ -532,8 +532,7 @@ label('__atom_to_number__'/2).
   inline('    MACRO_set_constant(tagvalue<TAG_INT>(i), reg::in(10));').
   inline('  } while (0);').
   inline('  MACRO_get_value(reg::in(10), reg::in(2));').
-  inline('  vm->proceed();').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
 label('__number_to_atom__'/2).
   goal('__number_to_atom__'/2).
   requires(5).
@@ -1194,9 +1193,8 @@ label('__nl__'/1).
   inline('      }').
   inline('      offset += n;').
   inline('    }').
-  inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
 label(write/1).
   goal(write/1).
   requires(4).
@@ -1333,7 +1331,7 @@ label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
   requires(5).
   try_guard_else(label('__write_functor_args__'/2-2)).
-  % head(__write_functor_args__(_68012,[])).
+  % head(__write_functor_args__(_67992,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1363,7 +1361,7 @@ label('__write_functor_args2__'/2).
   goal('__write_functor_args2__'/2).
   requires(7).
   try_guard_else(label('__write_functor_args2__'/2-2)).
-  % head(__write_functor_args2__(_72938,[])).
+  % head(__write_functor_args2__(_72918,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1442,7 +1440,7 @@ label('__write_list_tail__'/2).
     execute('__write__'/2).
 label('__write_list_tail__'/2-2).
   try_guard_else(label('__write_list_tail__'/2-3)).
-  % head(__write_list_tail__(_81446,[])).
+  % head(__write_list_tail__(_81426,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1503,9 +1501,8 @@ label('__write_number__'/2).
   inline('      }').
   inline('      offset += n;').
   inline('    }').
-  inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
 label('__write_atom__'/2).
   goal('__write_atom__'/2).
   requires(5).
@@ -1522,9 +1519,8 @@ label('__write_atom__'/2).
   inline('      }').
   inline('      offset += n;').
   inline('    }').
-  inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
 label('__write_var__'/2).
   goal('__write_var__'/2).
   requires(5).
@@ -1544,9 +1540,8 @@ label('__write_var__'/2).
   inline('      }').
   inline('      offset += n;').
   inline('    }').
-  inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
 label(integer/1).
   goal(integer/1).
   requires(3).
@@ -2413,7 +2408,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_245812],E)).
+  % head(__nth0__(0,[Y|_245762],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2425,7 +2420,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_251782|Ys],E)).
+  % head(__nth0__(N,[_251732|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -2446,7 +2441,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_254846],E,Ac)).
+  % head(__nth0_rev__(N,[E|_254796],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2457,7 +2452,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_260908|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_260858|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).
@@ -2584,9 +2579,8 @@ label('__dump_to_dot__'/1).
   inline('    const Q q = vm->in[1];').
   inline('    const std::string s = atom_str_of(q);').
   inline('    vm->dump_to_dot(s);').
-  inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
 label(dump_to_dot/2).
   goal(dump_to_dot/2).
   requires(5).
@@ -2611,6 +2605,5 @@ label('__dump_to_dot__'/2).
   inline('    const Q q2 = vm->in[2];').
   inline('    const std::string s = atom_str_of(q1);').
   inline('    vm->dump_to_dot(s, q2);').
-  inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
