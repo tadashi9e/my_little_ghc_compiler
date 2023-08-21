@@ -1364,7 +1364,7 @@ void module(VM::ptr vm, Program* prog, bool setup) {
     }
     vm->proceed();
   } while (0);
-    vm->failed = false;
+  vm->failed = false;
   goto *(vm->pc);
  L99:  // __close__/1
   MACRO_goal(L99, atom(53));
@@ -1374,9 +1374,8 @@ void module(VM::ptr vm, Program* prog, bool setup) {
   do {
     const int fd = tagvalue<TAG_INT>(vm->in[1]);
     close(fd);
-    vm->proceed();
   } while (0);
-  goto *(vm->pc);
+  MACRO_proceed;
  L100:  // writeln/1
   MACRO_goal(L100, atom(30));
   MACRO_requires(3);

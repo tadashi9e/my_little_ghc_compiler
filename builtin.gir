@@ -1111,7 +1111,7 @@ label('__open__'/4).
   inline('    }').
   inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('    vm->failed = false;').
+  inline('  vm->failed = false;').
   inline('  goto *(vm->pc);').
 label('__close__'/1).
   goal('__close__'/1).
@@ -1121,9 +1121,8 @@ label('__close__'/1).
   inline('  do {').
   inline('    const int fd = tagvalue<TAG_INT>(vm->in[1]);').
   inline('    close(fd);').
-  inline('    vm->proceed();').
   inline('  } while (0);').
-  inline('  goto *(vm->pc);').
+  inline('  MACRO_proceed;').
 label(writeln/1).
   goal(writeln/1).
   requires(3).
@@ -1334,7 +1333,7 @@ label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
   requires(5).
   try_guard_else(label('__write_functor_args__'/2-2)).
-  % head(__write_functor_args__(_68022,[])).
+  % head(__write_functor_args__(_68012,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1364,7 +1363,7 @@ label('__write_functor_args2__'/2).
   goal('__write_functor_args2__'/2).
   requires(7).
   try_guard_else(label('__write_functor_args2__'/2-2)).
-  % head(__write_functor_args2__(_72948,[])).
+  % head(__write_functor_args2__(_72938,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1443,7 +1442,7 @@ label('__write_list_tail__'/2).
     execute('__write__'/2).
 label('__write_list_tail__'/2-2).
   try_guard_else(label('__write_list_tail__'/2-3)).
-  % head(__write_list_tail__(_81456,[])).
+  % head(__write_list_tail__(_81446,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -2414,7 +2413,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_245822],E)).
+  % head(__nth0__(0,[Y|_245812],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2426,7 +2425,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_251792|Ys],E)).
+  % head(__nth0__(N,[_251782|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -2447,7 +2446,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_254856],E,Ac)).
+  % head(__nth0_rev__(N,[E|_254846],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2458,7 +2457,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_260918|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_260908|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).

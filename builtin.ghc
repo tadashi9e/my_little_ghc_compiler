@@ -391,7 +391,7 @@ close(Stream) :-
     inline('    }'),
     inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('    vm->failed = false;'),
+    inline('  vm->failed = false;'),
     inline('  goto *(vm->pc);').
 '__close__'(Stream) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
@@ -399,9 +399,8 @@ close(Stream) :-
     inline('  do {'),
     inline('    const int fd = tagvalue<TAG_INT>(vm->in[1]);'),
     inline('    close(fd);'),
-    inline('    vm->proceed();'),
     inline('  } while (0);'),
-    inline('  goto *(vm->pc);').
+    inline('  MACRO_proceed;').
 
 writeln(X) :- write(X) -> nl.
 writeln(Stream, X) :- write(Stream, X), nl(Stream).
