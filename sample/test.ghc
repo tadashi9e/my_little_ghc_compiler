@@ -1,4 +1,13 @@
 % -*- coding:utf-8-unix; mode:prolog -*-
+test_call3 :- call(test_call3(a), X, A),
+              call(test_call3(b), A, B),
+              call(test_call3(c), B, C),
+              call(test_call3, C, []),
+              writeln(X).
+test_call3(C, U, V) :-
+    U = [C|V].
+test_call3(U, V) :-
+    U = [done|V].
 test_otherwise :- test_otherwise_aux(X), X = 1.
 test_otherwise_aux(X) :- X = 0 | writeln('test failed').
 otherwise.
@@ -170,6 +179,7 @@ test_calc :-
 do_test(X) :- write(X) -> writeln(': ') -> time(X).
 
 main(_) :-
+    do_test(test_call3),
     do_test(test_otherwise),
     do_test(test_write_var),
     do_test(test_write_atom),

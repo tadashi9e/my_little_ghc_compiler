@@ -1,3 +1,65 @@
+label(test_call3/0).
+  goal(test_call3/0).
+  requires(6).
+  try_guard_else_suspend.
+  % head(test_call3).
+  % guard(true).
+  activate.
+  % body(call(test_call3(a),X,A)).
+  par(3).
+    out_structure(test_call3/1,reg(out,1)).
+      write_constant(a).
+    out_variable(reg(x,1),reg(out,2)).
+    out_variable(reg(x,2),reg(out,3)).
+    spawn(call/3).
+  % body(call(test_call3(b),A,B)).
+  par(3).
+    out_structure(test_call3/1,reg(out,1)).
+      write_constant(b).
+    out_value(reg(x,2),reg(out,2)).
+    out_variable(reg(x,2),reg(out,3)).
+    spawn(call/3).
+  % body(call(test_call3(c),B,C)).
+  par(3).
+    out_structure(test_call3/1,reg(out,1)).
+      write_constant(c).
+    out_value(reg(x,2),reg(out,2)).
+    out_variable(reg(x,2),reg(out,3)).
+    spawn(call/3).
+  % body(call(test_call3,C,[])).
+  par(3).
+    out_constant(test_call3,reg(out,1)).
+    out_value(reg(x,2),reg(out,2)).
+    out_nil(reg(out,3)).
+    spawn(call/3).
+  % body(writeln(X)).
+  tail(3).
+    out_value(reg(x,1),reg(out,1)).
+    execute(writeln/1).
+label(test_call3/3).
+  goal(test_call3/3).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_call3(C,U,V)).
+  % guard(true).
+  activate.
+  % body(U=[C|V]).
+    get_list(reg(in,2)).
+      unify_value(reg(in,1)).
+      unify_value(reg(in,3)).
+  proceed.
+label(test_call3/2).
+  goal(test_call3/2).
+  requires(5).
+  try_guard_else_suspend.
+  % head(test_call3(U,V)).
+  % guard(true).
+  activate.
+  % body(U=[done|V]).
+    get_list(reg(in,1)).
+      unify_constant(done).
+      unify_value(reg(in,2)).
+  proceed.
 label(test_otherwise/0).
   goal(test_otherwise/0).
   requires(3).
@@ -26,7 +88,7 @@ label(test_otherwise_aux/1).
     execute(writeln/1).
 label(test_otherwise_aux/1-2).
   otherwise.
-  % head(test_otherwise_aux(_346)).
+  % head(test_otherwise_aux(_862)).
   % guard(true).
   activate.
   % body(writeln(test success)).
@@ -62,7 +124,7 @@ label(test_write_list/0).
   % head(test_write_list).
   % guard(true).
   activate.
-  % body(writeln([1,2,3,4,5|_528])).
+  % body(writeln([1,2,3,4,5|_1254])).
   tail(2).
     out_list(reg(out,1)).
       write_constant(1).
@@ -197,7 +259,7 @@ label(test_check_constant_aux/1-2).
     execute(writeln/1).
 label(test_check_constant_aux/1-3).
   otherwise.
-  % head(test_check_constant_aux(_1478)).
+  % head(test_check_constant_aux(_2744)).
   % guard(true).
   activate.
   % body(writeln(test failed(otherwise))).
@@ -251,7 +313,7 @@ label(test_check_list_aux/1-2).
     execute(writeln/1).
 label(test_check_list_aux/1-3).
   otherwise.
-  % head(test_check_list_aux(_1972)).
+  % head(test_check_list_aux(_3508)).
   % guard(true).
   activate.
   % body(writeln(test failed(otherwise))).
@@ -297,7 +359,7 @@ label(test_check_nil_aux/1-2).
     execute(writeln/1).
 label(test_check_nil_aux/1-3).
   otherwise.
-  % head(test_check_nil_aux(_2438)).
+  % head(test_check_nil_aux(_4244)).
   % guard(true).
   activate.
   % body(writeln(test failed(otherwise))).
@@ -345,7 +407,7 @@ label(test_check_structure_aux/1-2).
     execute(writeln/1).
 label(test_check_structure_aux/1-3).
   otherwise.
-  % head(test_check_structure_aux(_2908)).
+  % head(test_check_structure_aux(_4984)).
   % guard(true).
   activate.
   % body(writeln(test failed(otherwise))).
@@ -1717,9 +1779,13 @@ label(main/1).
   goal(main/1).
   requires(4).
   try_guard_else_suspend.
-  % head(main(_12654)).
+  % head(main(_16296)).
   % guard(true).
   activate.
+  % body(do_test(test_call3)).
+  seq(3).
+    out_constant(test_call3,reg(out,1)).
+    call(do_test/1).
   % body(do_test(test_otherwise)).
   seq(3).
     out_constant(test_otherwise,reg(out,1)).
