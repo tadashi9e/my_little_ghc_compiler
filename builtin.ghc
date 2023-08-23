@@ -94,7 +94,9 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
     inline('    const std::string s2 = atom_str_of(q2);'),
     inline('    const std::string s = s1 + s2;'),
     inline('    const Q c = to_atom(s.c_str(), 0);'),
-    inline('    vm->unify(c, vm->in[3]);'),
+    inline('    if (!vm->unify(c, vm->in[3])) {'),
+    inline('      MACRO_fail;'),
+    inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
 '__atom_concat_2__'(A, B, C) :-
@@ -115,7 +117,9 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
     inline('    }'),
     inline('    const std::string s2 = s3.substr(i);'),
     inline('    const Q c = to_atom(s2.c_str(), 0);'),
-    inline('    vm->unify(c, vm->in[2]);'),
+    inline('    if (!vm->unify(c, vm->in[2])) {'),
+    inline('      MACRO_fail;'),
+    inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
 '__atom_concat_3__'(A, B, C) :-
@@ -136,7 +140,9 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
     inline('    }'),
     inline('    const std::string s1 = s3.substr(0, i);'),
     inline('    const Q c = to_atom(s1.c_str(), 0);'),
-    inline('    vm->unify(c, vm->in[1]);'),
+    inline('    if (!vm->unify(c, vm->in[1])) {'),
+    inline('      MACRO_fail;'),
+    inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
 
@@ -157,7 +163,9 @@ atom_codes(A, [C|Cs]) :- '__codes_to_atom__'(A, [C|Cs], '').
     inline('              : tagptr<TAG_NIL, Q>(0));'),
     inline('    }'),
     inline('    vm->heap_published(s.length() * 2);'),
-    inline('    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
+    inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {'),
+    inline('      MACRO_fail;'),
+    inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
 '__codes_to_atom__'(A, [], Ac) :- A = Ac.
@@ -173,8 +181,10 @@ atom_codes(A, [C|Cs]) :- '__codes_to_atom__'(A, [C|Cs], '').
     inline('    std::string s = atom_str_of(q1);'),
     inline('    const unsigned char c = value_of<char>(q2);'),
     inline('    s += c;'),
-    inline('    vm->unify(to_atom(s.c_str(), 0), vm->in[3]);'),
-    inline('  }'),
+    inline('    if (!vm->unify(to_atom(s.c_str(), 0), vm->in[3])) {'),
+    inline('      MACRO_fail;'),
+    inline('    }'),
+    inline('  }').
     inline('  MACRO_proceed;').
 atom_chars(A, Cs) :- atom(A) | '__atom_to_chars__'(A, Cs).
 atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
@@ -221,7 +231,9 @@ atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
     inline('              : tagptr<TAG_NIL, Q>(0));'),
     inline('    }'),
     inline('    vm->heap_published(i * 2);'),
-    inline('    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
+    inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {'),
+    inline('      MACRO_fail;'),
+    inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
 '__chars_to_atom__'(A, [], Ac) :- A = Ac.
@@ -335,11 +347,15 @@ close(Stream) :-
     inline('    const int omode = value_of<int>(q3);'),
     inline('    const int fd = open(src.c_str(), oflag, omode);'),
     inline('    if (fd < 0) {'),
-    inline('      vm->unify(to_atom("error", 0), vm->in[4]);'),
+    inline('      if (!vm->unify(to_atom("error", 0), vm->in[4])) {'),
+    inline('        MACRO_fail;'),
+    inline('      }'),
     inline('    } else {'),
-    inline('      vm->unify(tagvalue<TAG_INT>(fd), vm->in[4]);'),
+    inline('      if (!vm->unify(tagvalue<TAG_INT>(fd), vm->in[4])) {'),
+    inline('        MACRO_fail;'),
+    inline('      }'),
     inline('    }'),
-    inline('  }'),
+    inline('  }').
     inline('  MACRO_proceed;').
 '__close__'(Stream) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
@@ -509,7 +525,9 @@ is_functor(X) :-
     inline('        tagptr<TAG_NIL, Q>(0));'),
     inline('    }'),
     inline('    vm->heap_published((1 + arity) * 2);'),
-    inline('    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);'),
+    inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {'),
+    inline('      MACRO_fail;'),
+    inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
 
@@ -738,13 +756,17 @@ nth1(N, Ls, E) :- var(N) | '__nth0_rev__'(N1, Ls, E, 0), N := N1 + 1.
 inference_count(Count) :- '__inference_count__'(Count).
 '__inference_count__'(Count) :-
     inline('  MACRO_activate;'),
-    inline('  vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1]);'),
+    inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1])) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
     inline('  MACRO_proceed;').
 
 resume_count(Count) :- '__resume_count__'(Count).
 '__resume_count__'(Count) :-
     inline('  MACRO_activate;'),
-    inline('  vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1]);'),
+    inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1])) {'),
+    inline('    MACRO_fail;'),
+    inline('  }'),
     inline('  MACRO_proceed;').
 
 dump_to_dot(File) :- atom(File) | '__dump_to_dot__'(File).

@@ -196,7 +196,9 @@ label('__atom_concat_1__'/3).
   inline('    const std::string s2 = atom_str_of(q2);').
   inline('    const std::string s = s1 + s2;').
   inline('    const Q c = to_atom(s.c_str(), 0);').
-  inline('    vm->unify(c, vm->in[3]);').
+  inline('    if (!vm->unify(c, vm->in[3])) {').
+  inline('      MACRO_fail;').
+  inline('    }').
   inline('  }').
   inline('  MACRO_proceed;').
 label('__atom_concat_2__'/3).
@@ -219,7 +221,9 @@ label('__atom_concat_2__'/3).
   inline('    }').
   inline('    const std::string s2 = s3.substr(i);').
   inline('    const Q c = to_atom(s2.c_str(), 0);').
-  inline('    vm->unify(c, vm->in[2]);').
+  inline('    if (!vm->unify(c, vm->in[2])) {').
+  inline('      MACRO_fail;').
+  inline('    }').
   inline('  }').
   inline('  MACRO_proceed;').
 label('__atom_concat_3__'/3).
@@ -242,7 +246,9 @@ label('__atom_concat_3__'/3).
   inline('    }').
   inline('    const std::string s1 = s3.substr(0, i);').
   inline('    const Q c = to_atom(s1.c_str(), 0);').
-  inline('    vm->unify(c, vm->in[1]);').
+  inline('    if (!vm->unify(c, vm->in[1])) {').
+  inline('      MACRO_fail;').
+  inline('    }').
   inline('  }').
   inline('  MACRO_proceed;').
 label(atom_codes/2).
@@ -293,7 +299,9 @@ label('__atom_to_codes__'/2).
   inline('              : tagptr<TAG_NIL, Q>(0));').
   inline('    }').
   inline('    vm->heap_published(s.length() * 2);').
-  inline('    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);').
+  inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {').
+  inline('      MACRO_fail;').
+  inline('    }').
   inline('  }').
   inline('  MACRO_proceed;').
 label('__codes_to_atom__'/3).
@@ -340,9 +348,24 @@ label('__atom_code_concat__'/3).
   inline('    std::string s = atom_str_of(q1);').
   inline('    const unsigned char c = value_of<char>(q2);').
   inline('    s += c;').
-  inline('    vm->unify(to_atom(s.c_str(), 0), vm->in[3]);').
+  inline('    if (!vm->unify(to_atom(s.c_str(), 0), vm->in[3])) {').
+  inline('      MACRO_fail;').
+  inline('    }').
   inline('  }').
-  inline('  MACRO_proceed;').
+label(inline/1).
+  goal(inline/1).
+  requires(3).
+  try_guard_else(label(inline/1-2)).
+  % head(inline(  MACRO_proceed;)).
+    check_constant('  MACRO_proceed;',reg(in,1)).
+  activate.
+  proceed.
+label(inline/1-2).
+  try_guard_else_suspend.
+  % head(inline(  MACRO_proceed;)).
+    check_constant('  MACRO_proceed;',reg(in,1)).
+  activate.
+  proceed.
 label(atom_chars/2).
   goal(atom_chars/2).
   requires(8).
@@ -417,7 +440,9 @@ label('__atom_to_chars__'/2).
   inline('              : tagptr<TAG_NIL, Q>(0));').
   inline('    }').
   inline('    vm->heap_published(i * 2);').
-  inline('    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);').
+  inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {').
+  inline('      MACRO_fail;').
+  inline('    }').
   inline('  }').
   inline('  MACRO_proceed;').
 label('__chars_to_atom__'/3).
@@ -1054,12 +1079,15 @@ label('__open__'/4).
   inline('    const int omode = value_of<int>(q3);').
   inline('    const int fd = open(src.c_str(), oflag, omode);').
   inline('    if (fd < 0) {').
-  inline('      vm->unify(to_atom("error", 0), vm->in[4]);').
+  inline('      if (!vm->unify(to_atom("error", 0), vm->in[4])) {').
+  inline('        MACRO_fail;').
+  inline('      }').
   inline('    } else {').
-  inline('      vm->unify(tagvalue<TAG_INT>(fd), vm->in[4]);').
+  inline('      if (!vm->unify(tagvalue<TAG_INT>(fd), vm->in[4])) {').
+  inline('        MACRO_fail;').
+  inline('      }').
   inline('    }').
   inline('  }').
-  inline('  MACRO_proceed;').
 label('__close__'/1).
   goal('__close__'/1).
   requires(3).
@@ -1279,7 +1307,7 @@ label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
   requires(5).
   try_guard_else(label('__write_functor_args__'/2-2)).
-  % head(__write_functor_args__(_67472,[])).
+  % head(__write_functor_args__(_69574,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1309,7 +1337,7 @@ label('__write_functor_args2__'/2).
   goal('__write_functor_args2__'/2).
   requires(7).
   try_guard_else(label('__write_functor_args2__'/2-2)).
-  % head(__write_functor_args2__(_72398,[])).
+  % head(__write_functor_args2__(_74500,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1388,7 +1416,7 @@ label('__write_list_tail__'/2).
     execute('__write__'/2).
 label('__write_list_tail__'/2-2).
   try_guard_else(label('__write_list_tail__'/2-3)).
-  % head(__write_list_tail__(_80906,[])).
+  % head(__write_list_tail__(_83008,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1543,7 +1571,9 @@ label((=..)/2).
   inline('        tagptr<TAG_NIL, Q>(0));').
   inline('    }').
   inline('    vm->heap_published((1 + arity) * 2);').
-  inline('    vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2]);').
+  inline('    if (!vm->unify(tagptr<TAG_LIST>(&vm->heap[h]), vm->in[2])) {').
+  inline('      MACRO_fail;').
+  inline('    }').
   inline('  }').
   inline('  MACRO_proceed;').
 label((==)/2).
@@ -2320,7 +2350,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_244882],E)).
+  % head(__nth0__(0,[Y|_247004],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2332,7 +2362,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_250852|Ys],E)).
+  % head(__nth0__(N,[_252974|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -2353,7 +2383,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_253916],E,Ac)).
+  % head(__nth0_rev__(N,[E|_256038],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2364,7 +2394,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_259978|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_262100|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).
@@ -2438,7 +2468,9 @@ label('__inference_count__'/1).
   goal('__inference_count__'/1).
   requires(3).
   inline('  MACRO_activate;').
-  inline('  vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1]);').
+  inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1])) {').
+  inline('    MACRO_fail;').
+  inline('  }').
   inline('  MACRO_proceed;').
 label(resume_count/1).
   goal(resume_count/1).
@@ -2455,7 +2487,9 @@ label('__resume_count__'/1).
   goal('__resume_count__'/1).
   requires(3).
   inline('  MACRO_activate;').
-  inline('  vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1]);').
+  inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1])) {').
+  inline('    MACRO_fail;').
+  inline('  }').
   inline('  MACRO_proceed;').
 label(dump_to_dot/1).
   goal(dump_to_dot/1).
