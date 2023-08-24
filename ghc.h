@@ -1717,7 +1717,22 @@ class RuntimeError: public std::runtime_error {
   }
 
 #define MACRO_check_value(Vn, Ai)                    \
-  throw std::runtime_error("fix me: check_value")
+  {                                                  \
+    const Q q = deref(vm->in[Ai]);                   \
+    const Q q2 = deref(vm->in[Vn]);                  \
+    if (q != q2) {                                   \
+      const TAG_T t = tag_of(q);                     \
+      const TAG_T t2 = tag_of(q2);                   \
+      if (t == TAG_REF || t == TAG_SUS) {            \
+        vm->add_wait_list(q);                        \
+      }                                              \
+      if (t2 == TAG_REF || t2 == TAG_SUS) {          \
+        vm->add_wait_list(q2);                       \
+      }                                              \
+      vm->fail();                                    \
+      continue;                                      \
+    }                                                \
+  }
 
 #define MACRO_check_constant(C, Ai)                         \
   {                                                         \
