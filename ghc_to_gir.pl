@@ -240,7 +240,11 @@ ghc_compile_head_args(Ctx, Head) :-
 % 予め引数を既知の変数として登録しておく
 ghc_setup_head_args(_, [], _).
 ghc_setup_head_args(Ctx, [Arg|Args], N) :-
-    ( var(Arg) -> put(Ctx, Arg, reg(in, N)); true ),
+    ( var(Arg) ->
+      ( get(Ctx, Arg, reg(in, X)) ->
+        % 重複する引数のパッシブユニフィケーション
+        write_source(Ctx, check_value(reg(in, X), reg(in, N)))
+      ; put(Ctx, Arg, reg(in, N))); true ),
     N1 is N + 1,
     ghc_setup_head_args(Ctx, Args, N1).
 ghc_compile_head_args(_, [], _) :- !.
