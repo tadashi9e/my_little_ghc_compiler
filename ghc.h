@@ -1957,8 +1957,32 @@ class RuntimeError: public std::runtime_error {
     goto *(vm->pc);                                           \
   }
 
-#define MACRO_read_structure(Fn)                    \
-  throw std::runtime_error("fix me: read_structure")
+#define MACRO_read_structure(Fn)                              \
+  do {                                                        \
+    const Q q = deref(vm->pop());                             \
+    const TAG_T t = tag_of(q);                                \
+    if (t != TAG_STR) {                                       \
+      if (t == TAG_REF || t == TAG_SUS) {                     \
+        vm->add_wait_list(q);                                 \
+      }                                                       \
+      vm->fail();                                             \
+      break;                                                  \
+    }                                                         \
+    A* p = ptr_of<A>(q);                                      \
+    if (p->load() != Fn) {                                    \
+      vm->fail();                                             \
+      break;                                                  \
+    }                                                         \
+    const int arity = atom_arity_of(Fn);                      \
+    for (int i = arity; i > 0; --i) {                         \
+      vm->push(p[i].load());                                  \
+    }                                                         \
+  } while (0);                                                \
+  if (vm->failed) {                                           \
+    vm->failed = false;                                       \
+    goto *(vm->pc);                                           \
+  }
+
 #define MACRO_read_void                         \
   vm->pop();
 
