@@ -1855,8 +1855,27 @@ class RuntimeError: public std::runtime_error {
     vm->push(p[1].load());                                    \
     vm->push(p[0].load());                                    \
   }
-#define MACRO_read_structure(Fn)                    \
-  throw std::runtime_error("fix me: read_structure")
+#define MACRO_read_structure(Fn)                              \
+  {                                                           \
+    const Q q = deref(vm->pop());                             \
+    const TAG_T t = tag_of(q);                                \
+    if (t != TAG_STR) {                                       \
+      if (t == TAG_REF || t == TAG_SUS) {                     \
+        vm->add_wait_list(q);                                 \
+      }                                                       \
+      vm->fail();                                             \
+      continue;                                               \
+    }                                                         \
+    A* p = ptr_of<A>(q);                                      \
+    if (p->load() != Fn) {                                    \
+      vm->fail();                                             \
+      continue;                                               \
+    }                                                         \
+    const int arity = atom_arity_of(Fn);                      \
+    for (int i = arity; i > 0; --i) {                         \
+      vm->push(p[i].load());                                  \
+    }                                                         \
+  }
 #define MACRO_read_void                         \
   vm->pop();
 
