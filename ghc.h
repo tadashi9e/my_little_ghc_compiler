@@ -1139,6 +1139,66 @@ struct VM : std::enable_shared_from_this<VM> {
     A* lst = ptr_of<A>(q) + 1;
     Scheduler::getInstance().enqueue_list(lst);
   }
+  bool equals(Q q1, Q q2) {
+    q2 = deref(q2);
+    q1 = deref(q1);
+    if (q1 == q2) {
+      return true;
+    }
+    const TAG_T tag1 = tag_of(q1);
+    const TAG_T tag2 = tag_of(q2);
+    if (tag2 == TAG_REF) {
+      add_wait_list(q2);
+      return false;
+    }
+    if (tag1 == TAG_REF) {
+      add_wait_list(q1);
+      return false;
+    }
+    if (tag2 == TAG_SUS) {
+      add_wait_list(q2);
+      return false;
+    }
+    if (tag1 == TAG_SUS) {
+      add_wait_list(q1);
+      return false;
+    }
+    if (tag1 != tag2) {
+      return false;
+    }
+    switch (tag1) {
+    case TAG_LIST:
+      {
+        A* p1 = ptr_of<A>(q1);
+        A* p2 = ptr_of<A>(q2);
+        if (!equals(p1[0].load(), p2[0].load())) {
+          return false;
+        }
+        if (!equals(p1[1].load(), p2[1].load())) {
+          return false;
+        }
+        return true;
+      }
+    case TAG_STR:
+      {
+        A* p1 = ptr_of<A>(q1);
+        A* p2 = ptr_of<A>(q2);
+        const Q f1 = p1[0].load();
+        const Q f2 = p2[0].load();
+        if (f1 != f2) {
+          return false;
+        }
+        for (int i = 1; i <= atom_arity_of(f1); ++i) {
+          if (!equals(p1[i].load(), p2[i].load())) {
+            return false;
+          }
+        }
+        return true;
+      }
+    default:
+      return false;
+    }
+  }
   bool unify(Q q1, Q q2) {
     q2 = deref(q2);
     q1 = deref(q1);
@@ -1718,17 +1778,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_check_value(Vn, Ai)                    \
   {                                                  \
-    const Q q = deref(vm->in[Ai]);                   \
-    const Q q2 = deref(vm->in[Vn]);                  \
-    if (q != q2) {                                   \
-      const TAG_T t = tag_of(q);                     \
-      const TAG_T t2 = tag_of(q2);                   \
-      if (t == TAG_REF || t == TAG_SUS) {            \
-        vm->add_wait_list(q);                        \
-      }                                              \
-      if (t2 == TAG_REF || t2 == TAG_SUS) {          \
-        vm->add_wait_list(q2);                       \
-      }                                              \
+    if (!vm->equals(vm->in[Vn], vm->in[Ai])) {       \
       vm->fail();                                    \
       continue;                                      \
     }                                                \
@@ -1805,13 +1855,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_read_value(Vn)                                \
   {                                                         \
-    const Q q = deref(vm->pop());                           \
-    const Q q2 = deref(vm->in[Vn]);                         \
-    if (q != q2) {                                          \
-      const TAG_T t = tag_of(q);                            \
-      if (t == TAG_REF || t == TAG_SUS) {                   \
-        vm->add_wait_list(q);                               \
-      }                                                     \
+    if (!vm->equals(vm->pop(), vm->in[Vn])) {               \
       vm->fail();                                           \
       continue;                                             \
     }                                                       \
