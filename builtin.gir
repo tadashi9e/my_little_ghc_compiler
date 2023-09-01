@@ -8,13 +8,29 @@ label(fail/0).
   inline('  goto *(vm->pc);').
 label(call/1).
   goal(call/1).
-  requires(3).
-  try_guard_else_suspend.
+  requires(5).
+  try_guard_else(label(call/1-2)).
+  % head(call((G1,G2))).
+    check_structure((',')/2,reg(in,1)).
+      read_variable(reg(x,3)).
+      read_variable(reg(x,2)).
+  % guard(true).
+  activate.
+  % body(call(G1)).
+  par(4).
+    out_value(reg(x,3),reg(out,1)).
+    spawn(call/1).
+  % body(call(G2)).
+  tail(4).
+    out_value(reg(x,2),reg(out,1)).
+    execute(call/1).
+label(call/1-2).
+  otherwise.
   % head(call(Goal)).
   % guard(true).
   activate.
   % body(__call__(Goal)).
-  tail(3).
+  tail(4).
     out_value(reg(in,1),reg(out,1)).
     execute('__call__'/1).
 label('__call__'/1).
@@ -58,13 +74,33 @@ label('__call__'/1).
   inline('  goto *(vm->pc);').
 label(call/3).
   goal(call/3).
-  requires(7).
-  try_guard_else_suspend.
+  requires(9).
+  try_guard_else(label(call/3-2)).
+  % head(call((G1,G2),U,V)).
+    check_structure((',')/2,reg(in,1)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call(G1,U,U0)).
+  par(6).
+    out_value(reg(x,5),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(call/3).
+  % body(call(G2,U0,V)).
+  tail(6).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(call/3).
+label(call/3-2).
+  otherwise.
   % head(call(Goal,U,V)).
   % guard(true).
   activate.
   % body(__call__(Goal,U,V)).
-  tail(5).
+  tail(6).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -1394,7 +1430,7 @@ label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
   requires(5).
   try_guard_else(label('__write_functor_args__'/2-2)).
-  % head(__write_functor_args__(_72498,[])).
+  % head(__write_functor_args__(_75932,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1424,7 +1460,7 @@ label('__write_functor_args2__'/2).
   goal('__write_functor_args2__'/2).
   requires(7).
   try_guard_else(label('__write_functor_args2__'/2-2)).
-  % head(__write_functor_args2__(_77586,[])).
+  % head(__write_functor_args2__(_81146,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1503,7 +1539,7 @@ label('__write_list_tail__'/2).
     execute('__write__'/2).
 label('__write_list_tail__'/2-2).
   try_guard_else(label('__write_list_tail__'/2-3)).
-  % head(__write_list_tail__(_86364,[])).
+  % head(__write_list_tail__(_90134,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -2471,7 +2507,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_254426],E)).
+  % head(__nth0__(0,[Y|_261094],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2483,7 +2519,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_260504|Ys],E)).
+  % head(__nth0__(N,[_267256|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -2504,7 +2540,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_263622],E,Ac)).
+  % head(__nth0_rev__(N,[E|_270416],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2515,7 +2551,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_269792|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_276670|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).

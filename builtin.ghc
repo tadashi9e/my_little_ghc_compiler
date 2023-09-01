@@ -10,6 +10,8 @@ fail :-
     inline('  vm->failed = false;'),
     inline('  goto *(vm->pc);').
 
+call((G1, G2)) :- call(G1), call(G2).
+otherwise.
 call(Goal) :- '__call__'(Goal).
 
 '__call__'(Goal) :-
@@ -50,6 +52,8 @@ call(Goal) :- '__call__'(Goal).
     inline('  vm->failed = false;'),
     inline('  goto *(vm->pc);').
 
+call((G1,G2), U, V) :- call(G1, U, U0), call(G2, U0, V).
+otherwise.
 call(Goal, U, V) :- '__call__'(Goal, U, V).
 
 '__call__'(Goal, U, V) :-
