@@ -1,0 +1,310 @@
+% -*- coding:utf-8-unix; mode:prolog -*-
+% ----------------------------------------
+% microkanren.ghc
+% ----------------------------------------
+
+% empty_state(-S0)
+empty_state(S0) :-
+    true |
+    S0 = state([], 0).
+
+% var(-Var, +State, -State2)
+var(Var, state(Sub, C0), State2) :-
+    true |
+    C := C0 + 1,
+    Var = var(C),
+    State2 = state(Sub, C).
+
+% walk(+U, +Sub, -V)
+walk(var(C), Sub, V) :-
+    seek(var(C), Sub, V0),
+    continue_walk_if_seek_success(var(C), V0, Sub, V).
+otherwise.
+walk(U, _, V) :-
+    true |
+    V = U.
+
+seek(_,   [],         V0) :- true | V0 = fail.
+seek(Var, [Var=V1|_], V0) :- true | V0 = success(V1).
+otherwise.
+seek(Var, [_|Sub],    V0) :- seek(Var, Sub, V0).
+
+continue_walk_if_seek_success(U, success(V0), Sub, V) :- walk(V0, Sub, V).
+continue_walk_if_seek_success(U, fail,        _,   V) :- true | U = V.
+
+% unify(+U0, +V0, +St, -Str)
+unify(U0, V0, St0, Str) :-
+    true |
+    Str = thunk(Str1, delayed_unify(U0, V0, St0, Str1)).
+delayed_unify(U0, V0, state(Sub0,C), Str) :-
+    walk(U0, Sub0, U1),
+    walk(V0, Sub0, V1),
+    unification(U1, V1, Sub0, Sub),
+    put_result_state_if_success(Sub, state(Sub, C), Str).
+
+put_result_state_if_success([], _, Str) :-
+    true |
+    Str = [].
+put_result_state_if_success([_|_], State, Str) :-
+    true |
+    Str = [State].
+
+unification(U, U, Sub0, Sub2) :-
+    true |
+    Sub2 = Sub0.
+unification(VarU=ValU, VarV=ValU, Sub0, Sub2) :-
+    unify(VarU, VarV, Sub0, Sub1),
+    unify(ValU, ValV, Sub1, Sub2).
+unification(var(C), var(C), Sub0, Sub2) :-
+    true |
+    Sub2 = Sub0.
+otherwise.
+unification(U, V, Sub0, Sub2) :-
+    unification2(U, V, Sub0, Sub2).
+
+unification2(var(C), V, Sub0, Sub2) :-
+    true |
+    Sub2 = [var(C)=V|Sub0].
+unification2(U, var(C), Sub0, Sub2) :-
+    true |
+    Sub2 = [var(C)=U|Sub0].
+otherwise.
+unification2(_, _, _, Sub2) :-
+    true |
+    Sub2 = [].
+
+% call_fresh(-X, +Goal, +St0, -Str)
+call_fresh(X, Goal, St0, Str) :-
+    true |
+    var(X, St0, St),
+    call(Goal, St, Str).
+
+% disj(+Goal1, +Goal2, +St0, -Str)
+disj(G1, G2, St0, Str) :-
+    true |
+    Str = thunk(Str0, delayed_disj(G1, G2, St0, Str0)).
+delayed_disj(G1, G2, St0, Str) :-
+    call(G1, St0, Str1),
+    call(G2, St0, Str2),
+    mplus(Str1, Str2, Str).
+
+% conj(+Goal1, +Goal2, +St0, -Str)
+conj(G1, G2, St0, Str) :-
+    true |
+    Str = thunk(Str0, delayed_conj(G1, G2, St0, Str0)).
+delayed_conj(G1, G2, St0, Str) :-
+    call(G1, St0, St1),
+    bind(St1, G2, Str).
+
+% mplus(+S1, +S2, -Str)
+mplus([], S2, Str) :-
+    true | Str = S2.
+mplus(thunk(X1, P1), S2, Str) :-
+    true |
+    Str = thunk(Str0, delayed_mplus(P1, X1, S2, Str0)).
+mplus([S|S1], S2, Str) :-
+    true |
+    mplus(S1, S2, Sts),
+    Str = [S|Sts].
+delayed_mplus(P1, X1, S2, Str) :-
+    call(P1),
+    mplus(S2, X1, Str).
+
+% bind(+S, +G, -Str)
+bind([], _, Str) :-
+    true |
+    Str = [].
+bind(thunk(X, P), G, Str) :-
+    true |
+    Str = thunk(Str0, delayed_bind(P, X, G, Str0)).
+bind([S|Ss], Goal, Str) :-
+    call(Goal, S, Str1),
+    bind(Ss, Goal, Str2),
+    mplus(Str1, Str2, Str).
+delayed_bind(P, X, G, Str2) :-
+    call(P),
+    bind(X, G, Str2).
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% From Streams to Lists
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% pull(+T, -V)
+pull(thunk(X, P), V) :-
+    call(P), pull(X, V).
+otherwise.
+pull(T, V) :-
+    true |
+    V = T.
+
+% take_all(+T, -V)
+take_all(T, V) :-
+    pull(T, T1),
+    take_all_aux(T1, V).
+take_all_aux([], V) :-
+    true |
+    V = [].
+take_all_aux([T|Ts], V) :-
+    true |
+    V = [V1|V2],
+    pull(T, V1),
+    take_all(Ts, V2).
+
+% take(+N, +T, -V)
+take(0, T, V) :-
+    true |
+    V = [].
+take(N, T, V) :-
+    pull(T, T1),
+    take_aux(N, T1, V).
+take_aux(_, [], V) :-
+    true |
+    V = [].
+take_aux(N, [T1|Ts], V) :-
+    true |
+    pull(T1, V1),
+    N1 := N - 1,
+    take(N1, Ts, V2),
+    V = [V1|V2].
+
+% ------------------------------
+% test codes
+% ------------------------------
+
+main(_) :-
+    test_five_or_six,
+    test_fives,
+    test_sixes,
+    test_fives_and_sixes,
+    test_fives_and_sixes2,
+    test_fives_and_sixes3.
+
+test_five_or_six :-
+    empty_state(S0),
+    call_fresh(X,
+               ( five_or_six(X), take_all ),
+               S0, S2),
+    pp(0, S2, P, [nl]),
+    outstream([writeln('five_or_six(X), take_all'),
+               writeln(' -> ') | P]).
+
+test_fives :-
+    empty_state(S0),
+    call_fresh(X,
+               ( fives(X), take(10) ),
+               S0, S2),
+    pp(0, S2, P, [nl]),
+    outstream([writeln('fives(X), take(10)'),
+               writeln(' -> ') | P]).
+
+test_sixes :-
+    empty_state(S0),
+    call_fresh(X,
+               ( sixes(X), take(10) ),
+               S0, S2),
+    pp(0, S2, P, [nl]),
+    outstream([writeln('sixes(X), take(10)'),
+               writeln(' -> ') | P]).
+
+test_fives_and_sixes :-
+    empty_state(S0),
+    call_fresh(X,
+               ( fives_and_sixes(X), take(10) ),
+               S0, S2),
+    pp(0, S2, P, [nl]),
+    outstream([writeln('fives_and_sixes(X), take(10)'),
+               writeln(' -> ') | P]).
+
+test_fives_and_sixes2 :-
+    empty_state(S0),
+    call_fresh(X,
+               ( conj(fives_and_sixes(X), sixes(X)), take(10) ),
+               S0, S2),
+    pp(0, S2, P, [nl]),
+    outstream([writeln('conj(fives_and_sixes(X), sixes(X)), take(10)'),
+               writeln(' -> ') | P]).
+
+test_fives_and_sixes3 :-
+    empty_state(S0),
+    call_fresh(X, (fives_and_sixes(X),
+                   test_fives_and_sixes3_Y,
+                   take(4) ), S0, S2),
+    pp(0, S2, P, [nl]),
+    outstream([write('(fives_and_sixes(X), take(4)), '),
+               writeln('(fives_and_sixes(Y), take(4))'),
+               writeln(' -> ') | P]).
+test_fives_and_sixes3_Y(thunk(St0, P), St1) :-
+    call(P), test_fives_and_sixes3_Y(St0, St1).
+test_fives_and_sixes3_Y([], St1) :-
+    true |
+    St1 = [].
+test_fives_and_sixes3_Y([S|Ss], St1) :-
+    true |
+    call_fresh(Y, ( fives_and_sixes(Y), take(4) ), S, S1),
+    St1 = [S1| thunk(S0, test_fives_and_sixes3_Y(Ss, S0))].
+
+five_or_six(X, Sub0, Sub2) :-
+    disj(unify(X, 5),
+         unify(X, 6), Sub0, Sub2).
+fives(X, Sub0, Sub2) :-
+    disj(unify(X, 5), fives(X), Sub0, Sub2).
+sixes(X, Sub0, Sub2) :-
+    disj(unify(X, 6), sixes(X), Sub0, Sub2).
+fives_and_sixes(X, Sub0, Sub2) :-
+    disj(fives(X), sixes(X), Sub0, Sub2).
+
+% ------------------------------
+% pretty-print
+% ------------------------------
+pp(X) :- pp(0, X, St, [nl]), outstream(St).
+pp(N, [A|B], St1, St2) :- call(( pp(N, '['), p_nl,
+                                 pp(N + 1, A),
+                                 pp_rest(N + 1, B), p_nl,
+                                 pp(N, ']') ),
+                               St1, St2).
+otherwise.
+pp(N, X, St1, St3) :- true | pp_space(N, St1, St2), p_write(X, St2, St3).
+
+pp_space(N, St1, St2) :- N =:= 0 | St1 = St2.
+otherwise.
+pp_space(N, St1, St3) :- true | N1 := N - 1,
+                                St1 = [write(' ') | St2],
+                                pp_space(N1, St2, St3).
+
+pp_rest(N, [], St1, St2) :- true | St1 = St2.
+pp_rest(N, [A|B], St1, St2) :- call(( p_write(','), p_nl,
+                                      pp(N, A),
+                                      pp_rest(N, B) ),
+                                    St1, St2).
+otherwise.
+pp_rest(N, X, St1, St2) :- pp(N, X, St1, St2).
+
+p_nl(St1, St2) :- true | St1 = [nl | St2].
+p_write(state(Sub, C), St1, St2) :- true | call(( p_write('state('),
+                                                  p_write(Sub),
+                                                  p_write(','),
+                                                  p_write(C),
+                                                  p_write(')') ),
+                                                St1, St2).
+p_write(A=B, St1, St2) :- true | call(( p_write(A),
+                                        p_write('='),
+                                        p_write(B) ),
+                                      St1, St2).
+p_write([A|B], St1, St2) :- true | call(( p_write('['),
+                                          p_write(A),
+                                          p_write_rest(B),
+                                          p_write(']') ),
+                                        St1, St2).
+otherwise.
+p_write(A, St1, St2) :- true | St1 = [ write(A) | St2].
+
+p_write_rest([], St1, St2) :-
+    true | St1 = St2.
+p_write_rest([A|B], St1, St2) :-
+    true | call(( p_write(','),
+                  p_write(A),
+                  p_write_rest(B) ),
+                St1, St2).
+otherwise.
+p_write_rest(X, St1, St2) :-
+    true | St1 = [ write(X) | St2].

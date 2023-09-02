@@ -8,7 +8,8 @@ CXX=g++
 CXXFLAGS=--std=c++11 -Wall -g -I.
 
 TARGETS=sample/hello sample/test sample/tarai sample/tarai_reordered \
-	sample/primes sample/hanoi sample/queen sample/qsort sample/fibonacci
+	sample/primes sample/hanoi sample/queen sample/qsort sample/fibonacci \
+	sample/microkanren
 
 all:: $(TARGETS)
 
@@ -80,3 +81,10 @@ sample/fibonacci.cc: $(GIR_TO_CC) $(BUILTIN_GIR) sample/fibonacci.gir
 	$(GIR_TO_CC) $(BUILTIN_GIR) sample/fibonacci.gir -o sample/fibonacci.cc
 sample/fibonacci.gir: $(GHC_TO_GIR) sample/fibonacci.ghc
 	$(GHC_TO_GIR) sample/fibonacci.ghc -o sample/fibonacci.gir
+
+sample/microkanren: sample/microkanren.cc ghc.h
+	$(CXX) $(CXXFLAGS) sample/microkanren.cc -o sample/microkanren
+sample/microkanren.cc: $(GIR_TO_CC) $(BUILTIN_GIR) sample/microkanren.gir
+	$(GIR_TO_CC) $(BUILTIN_GIR) sample/microkanren.gir -o sample/microkanren.cc
+sample/microkanren.gir: $(GHC_TO_GIR) sample/microkanren.ghc
+	$(GHC_TO_GIR) sample/microkanren.ghc -o sample/microkanren.gir

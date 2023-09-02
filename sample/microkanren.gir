@@ -1,0 +1,1385 @@
+label(empty_state/1).
+  goal(empty_state/1).
+  requires(3).
+  try_guard_else_suspend.
+  % head(empty_state(S0)).
+  % guard(true).
+  activate.
+  % body(S0=state([],0)).
+    get_structure(state/2,reg(in,1)).
+      unify_nil.
+      unify_constant(0).
+  proceed.
+label(var/3).
+  goal(var/3).
+  requires(9).
+  try_guard_else_suspend.
+  % head(var(Var,state(Sub,C0),State2)).
+    check_structure(state/2,reg(in,2)).
+      read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(C:=C0+1).
+  par(6).
+    out_value(reg(x,5),reg(out,1)).
+    out_variable(reg(x,5),reg(out,2)).
+    call('__inc__'/2).
+  % body(Var=var(C)).
+    get_structure(var/1,reg(in,1)).
+      unify_value(reg(x,5)).
+  % body(State2=state(Sub,C)).
+    get_structure(state/2,reg(in,3)).
+      unify_value(reg(x,4)).
+      unify_value(reg(x,5)).
+  proceed.
+label(walk/3).
+  goal(walk/3).
+  requires(10).
+  try_guard_else(label(walk/3-2)).
+  % head(walk(var(C),Sub,V)).
+    check_structure(var/1,reg(in,1)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(seek(var(C),Sub,V0)).
+  par(6).
+    out_structure(var/1,reg(out,1)).
+      write_value(reg(x,4)).
+    out_value(reg(in,2),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(seek/3).
+  % body(continue_walk_if_seek_success(var(C),V0,Sub,V)).
+  tail(6).
+    out_structure(var/1,reg(out,1)).
+      write_value(reg(x,4)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(in,2),reg(out,3)).
+    out_value(reg(in,3),reg(out,4)).
+    execute(continue_walk_if_seek_success/4).
+label(walk/3-2).
+  otherwise.
+  % head(walk(U,_616,V)).
+  % guard(true).
+  activate.
+  % body(V=U).
+    get_value(reg(in,1),reg(in,3)).
+  proceed.
+label(seek/3).
+  goal(seek/3).
+  requires(8).
+  try_guard_else(label(seek/3-2)).
+  % head(seek(_756,[],V0)).
+    check_nil(reg(in,2)).
+  % guard(true).
+  activate.
+  % body(V0=fail).
+    get_constant(fail,reg(in,3)).
+  proceed.
+label(seek/3-2).
+  try_guard_else(label(seek/3-3)).
+  % head(seek(Var,[Var=V1|_908],V0)).
+    check_list(reg(in,2)).
+      read_structure((=)/2).
+      read_value(reg(in,1)).
+      read_variable(reg(x,4)).
+      read_void.
+  % guard(true).
+  activate.
+  % body(V0=success(V1)).
+    get_structure(success/1,reg(in,3)).
+      unify_value(reg(x,4)).
+  proceed.
+label(seek/3-3).
+  otherwise.
+  % head(seek(Var,[_1218|Sub],V0)).
+    check_list(reg(in,2)).
+      read_void.
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(seek(Var,Sub,V0)).
+  tail(5).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(seek/3).
+label(continue_walk_if_seek_success/4).
+  goal(continue_walk_if_seek_success/4).
+  requires(10).
+  try_guard_else(label(continue_walk_if_seek_success/4-2)).
+  % head(continue_walk_if_seek_success(U,success(V0),Sub,V)).
+    check_structure(success/1,reg(in,2)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(walk(V0,Sub,V)).
+  tail(6).
+    out_value(reg(x,5),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(walk/3).
+label(continue_walk_if_seek_success/4-2).
+  try_guard_else_suspend.
+  % head(continue_walk_if_seek_success(U,fail,_1648,V)).
+    check_constant(fail,reg(in,2)).
+  % guard(true).
+  activate.
+  % body(U=V).
+    get_value(reg(in,4),reg(in,1)).
+  proceed.
+label(unify/4).
+  goal(unify/4).
+  requires(10).
+  try_guard_else_suspend.
+  % head(unify(U0,V0,St0,Str)).
+  % guard(true).
+  activate.
+  % body(Str=thunk(Str1,delayed_unify(U0,V0,St0,Str1))).
+    get_structure(thunk/2,reg(in,4)).
+      unify_variable(reg(x,5)).
+      unify_structure(delayed_unify/4).
+      unify_value(reg(in,1)).
+      unify_value(reg(in,2)).
+      unify_value(reg(in,3)).
+      unify_value(reg(x,5)).
+  proceed.
+label(delayed_unify/4).
+  goal(delayed_unify/4).
+  requires(13).
+  try_guard_else_suspend.
+  % head(delayed_unify(U0,V0,state(Sub0,C),Str)).
+    check_structure(state/2,reg(in,3)).
+      read_variable(reg(x,6)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(walk(U0,Sub0,U1)).
+  par(8).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(x,6),reg(out,2)).
+    out_variable(reg(x,7),reg(out,3)).
+    spawn(walk/3).
+  % body(walk(V0,Sub0,V1)).
+  par(9).
+    out_value(reg(in,2),reg(out,1)).
+    out_value(reg(x,6),reg(out,2)).
+    out_variable(reg(x,8),reg(out,3)).
+    spawn(walk/3).
+  % body(unification(U1,V1,Sub0,Sub)).
+  par(9).
+    out_value(reg(x,7),reg(out,1)).
+    out_value(reg(x,8),reg(out,2)).
+    out_value(reg(x,6),reg(out,3)).
+    out_variable(reg(x,6),reg(out,4)).
+    spawn(unification/4).
+  % body(put_result_state_if_success(Sub,state(Sub,C),Str)).
+  tail(9).
+    out_value(reg(x,6),reg(out,1)).
+    out_structure(state/2,reg(out,2)).
+      write_value(reg(x,6)).
+      write_value(reg(x,5)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(put_result_state_if_success/3).
+label(put_result_state_if_success/3).
+  goal(put_result_state_if_success/3).
+  requires(7).
+  try_guard_else(label(put_result_state_if_success/3-2)).
+  % head(put_result_state_if_success([],_2560,Str)).
+    check_nil(reg(in,1)).
+  % guard(true).
+  activate.
+  % body(Str=[]).
+    get_nil(reg(in,3)).
+  proceed.
+label(put_result_state_if_success/3-2).
+  try_guard_else_suspend.
+  % head(put_result_state_if_success([_2864|_2866],State,Str)).
+    check_list(reg(in,1)).
+      read_void.
+      read_void.
+  % guard(true).
+  activate.
+  % body(Str=[State]).
+    get_list(reg(in,3)).
+      unify_value(reg(in,2)).
+      unify_nil.
+  proceed.
+label(unification/4).
+  goal(unification/4).
+  requires(12).
+  try_guard_else(label(unification/4-2)).
+  % head(unification(U,U,Sub0,Sub2)).
+    check_value(reg(in,1),reg(in,2)).
+  % guard(true).
+  activate.
+  % body(Sub2=Sub0).
+    get_value(reg(in,3),reg(in,4)).
+  proceed.
+label(unification/4-2).
+  try_guard_else(label(unification/4-3)).
+  % head(unification(VarU=ValU,VarV=ValU,Sub0,Sub2)).
+    check_structure((=)/2,reg(in,1)).
+      read_variable(reg(x,6)).
+      read_variable(reg(x,5)).
+    check_structure((=)/2,reg(in,2)).
+      read_variable(reg(x,7)).
+      read_value(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(unify(VarU,VarV,Sub0,Sub1)).
+  par(8).
+    out_value(reg(x,6),reg(out,1)).
+    out_value(reg(x,7),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    out_variable(reg(x,6),reg(out,4)).
+    spawn(unify/4).
+  % body(unify(ValU,ValV,Sub1,Sub2)).
+  tail(8).
+    out_value(reg(x,5),reg(out,1)).
+    out_variable(reg(x,5),reg(out,2)).
+    out_value(reg(x,6),reg(out,3)).
+    out_value(reg(in,4),reg(out,4)).
+    execute(unify/4).
+label(unification/4-3).
+  try_guard_else(label(unification/4-4)).
+  % head(unification(var(C),var(C),Sub0,Sub2)).
+    check_structure(var/1,reg(in,1)).
+      read_variable(reg(x,5)).
+    check_structure(var/1,reg(in,2)).
+      read_value(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(Sub2=Sub0).
+    get_value(reg(in,3),reg(in,4)).
+  proceed.
+label(unification/4-4).
+  otherwise.
+  % head(unification(U,V,Sub0,Sub2)).
+  % guard(true).
+  activate.
+  % body(unification2(U,V,Sub0,Sub2)).
+  tail(8).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    out_value(reg(in,4),reg(out,4)).
+    execute(unification2/4).
+label(unification2/4).
+  goal(unification2/4).
+  requires(10).
+  try_guard_else(label(unification2/4-2)).
+  % head(unification2(var(C),V,Sub0,Sub2)).
+    check_structure(var/1,reg(in,1)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(Sub2=[var(C)=V|Sub0]).
+    get_list(reg(in,4)).
+      unify_structure((=)/2).
+      unify_structure(var/1).
+      unify_value(reg(x,5)).
+      unify_value(reg(in,2)).
+      unify_value(reg(in,3)).
+  proceed.
+label(unification2/4-2).
+  try_guard_else(label(unification2/4-3)).
+  % head(unification2(U,var(C),Sub0,Sub2)).
+    check_structure(var/1,reg(in,2)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(Sub2=[var(C)=U|Sub0]).
+    get_list(reg(in,4)).
+      unify_structure((=)/2).
+      unify_structure(var/1).
+      unify_value(reg(x,5)).
+      unify_value(reg(in,1)).
+      unify_value(reg(in,3)).
+  proceed.
+label(unification2/4-3).
+  otherwise.
+  % head(unification2(_6674,_6676,_6678,Sub2)).
+  % guard(true).
+  activate.
+  % body(Sub2=[]).
+    get_nil(reg(in,4)).
+  proceed.
+label(call_fresh/4).
+  goal(call_fresh/4).
+  requires(10).
+  try_guard_else_suspend.
+  % head(call_fresh(X,Goal,St0,Str)).
+  % guard(true).
+  activate.
+  % body(var(X,St0,St)).
+  par(6).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(var/3).
+  % body(call(Goal,St,Str)).
+  tail(6).
+    out_value(reg(in,2),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(call/3).
+label(disj/4).
+  goal(disj/4).
+  requires(10).
+  try_guard_else_suspend.
+  % head(disj(G1,G2,St0,Str)).
+  % guard(true).
+  activate.
+  % body(Str=thunk(Str0,delayed_disj(G1,G2,St0,Str0))).
+    get_structure(thunk/2,reg(in,4)).
+      unify_variable(reg(x,5)).
+      unify_structure(delayed_disj/4).
+      unify_value(reg(in,1)).
+      unify_value(reg(in,2)).
+      unify_value(reg(in,3)).
+      unify_value(reg(x,5)).
+  proceed.
+label(delayed_disj/4).
+  goal(delayed_disj/4).
+  requires(11).
+  try_guard_else_suspend.
+  % head(delayed_disj(G1,G2,St0,Str)).
+  % guard(true).
+  activate.
+  % body(call(G1,St0,Str1)).
+  par(6).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(call/3).
+  % body(call(G2,St0,Str2)).
+  par(7).
+    out_value(reg(in,2),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,6),reg(out,3)).
+    spawn(call/3).
+  % body(mplus(Str1,Str2,Str)).
+  tail(7).
+    out_value(reg(x,5),reg(out,1)).
+    out_value(reg(x,6),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(mplus/3).
+label(conj/4).
+  goal(conj/4).
+  requires(10).
+  try_guard_else_suspend.
+  % head(conj(G1,G2,St0,Str)).
+  % guard(true).
+  activate.
+  % body(Str=thunk(Str0,delayed_conj(G1,G2,St0,Str0))).
+    get_structure(thunk/2,reg(in,4)).
+      unify_variable(reg(x,5)).
+      unify_structure(delayed_conj/4).
+      unify_value(reg(in,1)).
+      unify_value(reg(in,2)).
+      unify_value(reg(in,3)).
+      unify_value(reg(x,5)).
+  proceed.
+label(delayed_conj/4).
+  goal(delayed_conj/4).
+  requires(10).
+  try_guard_else_suspend.
+  % head(delayed_conj(G1,G2,St0,Str)).
+  % guard(true).
+  activate.
+  % body(call(G1,St0,St1)).
+  par(6).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(call/3).
+  % body(bind(St1,G2,Str)).
+  tail(6).
+    out_value(reg(x,5),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(bind/3).
+label(mplus/3).
+  goal(mplus/3).
+  requires(10).
+  try_guard_else(label(mplus/3-2)).
+  % head(mplus([],S2,Str)).
+    check_nil(reg(in,1)).
+  % guard(true).
+  activate.
+  % body(Str=S2).
+    get_value(reg(in,2),reg(in,3)).
+  proceed.
+label(mplus/3-2).
+  try_guard_else(label(mplus/3-3)).
+  % head(mplus(thunk(X1,P1),S2,Str)).
+    check_structure(thunk/2,reg(in,1)).
+      read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(Str=thunk(Str0,delayed_mplus(P1,X1,S2,Str0))).
+    get_structure(thunk/2,reg(in,3)).
+      unify_variable(reg(x,6)).
+      unify_structure(delayed_mplus/4).
+      unify_value(reg(x,5)).
+      unify_value(reg(x,4)).
+      unify_value(reg(in,2)).
+      unify_value(reg(x,6)).
+  proceed.
+label(mplus/3-3).
+  try_guard_else_suspend.
+  % head(mplus([S|S1],S2,Str)).
+    check_list(reg(in,1)).
+      read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(mplus(S1,S2,Sts)).
+  par(7).
+    out_value(reg(x,5),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(mplus/3).
+  % body(Str=[S|Sts]).
+    get_list(reg(in,3)).
+      unify_value(reg(x,4)).
+      unify_value(reg(x,5)).
+  proceed.
+label(delayed_mplus/4).
+  goal(delayed_mplus/4).
+  requires(9).
+  try_guard_else_suspend.
+  % head(delayed_mplus(P1,X1,S2,Str)).
+  % guard(true).
+  activate.
+  % body(call(P1)).
+  par(6).
+    out_value(reg(in,1),reg(out,1)).
+    spawn(call/1).
+  % body(mplus(S2,X1,Str)).
+  tail(6).
+    out_value(reg(in,3),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(mplus/3).
+label(bind/3).
+  goal(bind/3).
+  requires(10).
+  try_guard_else(label(bind/3-2)).
+  % head(bind([],_13122,Str)).
+    check_nil(reg(in,1)).
+  % guard(true).
+  activate.
+  % body(Str=[]).
+    get_nil(reg(in,3)).
+  proceed.
+label(bind/3-2).
+  try_guard_else(label(bind/3-3)).
+  % head(bind(thunk(X,P),G,Str)).
+    check_structure(thunk/2,reg(in,1)).
+      read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(Str=thunk(Str0,delayed_bind(P,X,G,Str0))).
+    get_structure(thunk/2,reg(in,3)).
+      unify_variable(reg(x,6)).
+      unify_structure(delayed_bind/4).
+      unify_value(reg(x,5)).
+      unify_value(reg(x,4)).
+      unify_value(reg(in,2)).
+      unify_value(reg(x,6)).
+  proceed.
+label(bind/3-3).
+  try_guard_else_suspend.
+  % head(bind([S|Ss],Goal,Str)).
+    check_list(reg(in,1)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call(Goal,S,Str1)).
+  par(7).
+    out_value(reg(in,2),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(call/3).
+  % body(bind(Ss,Goal,Str2)).
+  par(7).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_variable(reg(x,4),reg(out,3)).
+    spawn(bind/3).
+  % body(mplus(Str1,Str2,Str)).
+  tail(7).
+    out_value(reg(x,5),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(mplus/3).
+label(delayed_bind/4).
+  goal(delayed_bind/4).
+  requires(9).
+  try_guard_else_suspend.
+  % head(delayed_bind(P,X,G,Str2)).
+  % guard(true).
+  activate.
+  % body(call(P)).
+  par(6).
+    out_value(reg(in,1),reg(out,1)).
+    spawn(call/1).
+  % body(bind(X,G,Str2)).
+  tail(6).
+    out_value(reg(in,2),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(bind/3).
+label(pull/2).
+  goal(pull/2).
+  requires(7).
+  try_guard_else(label(pull/2-2)).
+  % head(pull(thunk(X,P),V)).
+    check_structure(thunk/2,reg(in,1)).
+      read_variable(reg(x,3)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call(P)).
+  par(5).
+    out_value(reg(x,4),reg(out,1)).
+    spawn(call/1).
+  % body(pull(X,V)).
+  tail(5).
+    out_value(reg(x,3),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    execute(pull/2).
+label(pull/2-2).
+  otherwise.
+  % head(pull(T,V)).
+  % guard(true).
+  activate.
+  % body(V=T).
+    get_value(reg(in,1),reg(in,2)).
+  proceed.
+label(take_all/2).
+  goal(take_all/2).
+  requires(6).
+  try_guard_else_suspend.
+  % head(take_all(T,V)).
+  % guard(true).
+  activate.
+  % body(pull(T,T1)).
+  par(4).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,3),reg(out,2)).
+    spawn(pull/2).
+  % body(take_all_aux(T1,V)).
+  tail(4).
+    out_value(reg(x,3),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    execute(take_all_aux/2).
+label(take_all_aux/2).
+  goal(take_all_aux/2).
+  requires(9).
+  try_guard_else(label(take_all_aux/2-2)).
+  % head(take_all_aux([],V)).
+    check_nil(reg(in,1)).
+  % guard(true).
+  activate.
+  % body(V=[]).
+    get_nil(reg(in,2)).
+  proceed.
+label(take_all_aux/2-2).
+  try_guard_else_suspend.
+  % head(take_all_aux([T|Ts],V)).
+    check_list(reg(in,1)).
+      read_variable(reg(x,4)).
+      read_variable(reg(x,3)).
+  % guard(true).
+  activate.
+  % body(V=[V1|V2]).
+    get_list(reg(in,2)).
+      unify_variable(reg(x,6)).
+      unify_variable(reg(x,5)).
+  % body(pull(T,V1)).
+  par(7).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(x,6),reg(out,2)).
+    spawn(pull/2).
+  % body(take_all(Ts,V2)).
+  tail(7).
+    out_value(reg(x,3),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
+    execute(take_all/2).
+label(take/3).
+  goal(take/3).
+  requires(8).
+  try_guard_else(label(take/3-2)).
+  % head(take(0,T,V)).
+    check_constant(0,reg(in,1)).
+  % guard(true).
+  activate.
+  % body(V=[]).
+    get_nil(reg(in,3)).
+  proceed.
+label(take/3-2).
+  try_guard_else_suspend.
+  % head(take(N,T,V)).
+  % guard(true).
+  activate.
+  % body(pull(T,T1)).
+  par(5).
+    out_value(reg(in,2),reg(out,1)).
+    out_variable(reg(x,4),reg(out,2)).
+    spawn(pull/2).
+  % body(take_aux(N,T1,V)).
+  tail(5).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(take_aux/3).
+label(take_aux/3).
+  goal(take_aux/3).
+  requires(10).
+  try_guard_else(label(take_aux/3-2)).
+  % head(take_aux(_23578,[],V)).
+    check_nil(reg(in,2)).
+  % guard(true).
+  activate.
+  % body(V=[]).
+    get_nil(reg(in,3)).
+  proceed.
+label(take_aux/3-2).
+  try_guard_else_suspend.
+  % head(take_aux(N,[T1|Ts],V)).
+    check_list(reg(in,2)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(pull(T1,V1)).
+  par(6).
+    out_value(reg(x,5),reg(out,1)).
+    out_variable(reg(x,5),reg(out,2)).
+    spawn(pull/2).
+  % body(N1:=N-1).
+  par(7).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,6),reg(out,2)).
+    call('__dec__'/2).
+  % body(take(N1,Ts,V2)).
+  par(7).
+    out_value(reg(x,6),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
+    out_variable(reg(x,4),reg(out,3)).
+    spawn(take/3).
+  % body(V=[V1|V2]).
+    get_list(reg(in,3)).
+      unify_value(reg(x,5)).
+      unify_value(reg(x,4)).
+  proceed.
+label(main/1).
+  goal(main/1).
+  requires(3).
+  try_guard_else_suspend.
+  % head(main(_25632)).
+  % guard(true).
+  activate.
+  % body(test_five_or_six).
+  par(3).
+    spawn(test_five_or_six/0).
+  % body(test_fives).
+  par(3).
+    spawn(test_fives/0).
+  % body(test_sixes).
+  par(3).
+    spawn(test_sixes/0).
+  % body(test_fives_and_sixes).
+  par(3).
+    spawn(test_fives_and_sixes/0).
+  % body(test_fives_and_sixes2).
+  par(3).
+    spawn(test_fives_and_sixes2/0).
+  % body(test_fives_and_sixes3).
+  tail(3).
+    execute(test_fives_and_sixes3/0).
+label(test_five_or_six/0).
+  goal(test_five_or_six/0).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_five_or_six).
+  % guard(true).
+  activate.
+  % body(empty_state(S0)).
+  par(2).
+    out_variable(reg(x,1),reg(out,1)).
+    spawn(empty_state/1).
+  % body(call_fresh(X,(five_or_six(X),take_all),S0,S2)).
+  par(3).
+    out_variable(reg(x,2),reg(out,1)).
+    out_structure((',')/2,reg(out,2)).
+      write_structure(five_or_six/1).
+      write_value(reg(x,2)).
+      write_constant(take_all).
+    out_value(reg(x,1),reg(out,3)).
+    out_variable(reg(x,1),reg(out,4)).
+    spawn(call_fresh/4).
+  % body(pp(0,S2,P,[nl])).
+  par(3).
+    out_constant(0,reg(out,1)).
+    out_value(reg(x,1),reg(out,2)).
+    out_variable(reg(x,1),reg(out,3)).
+    out_list(reg(out,4)).
+      write_constant(nl).
+      write_nil.
+    spawn(pp/4).
+  % body(outstream([writeln(five_or_six(X), take_all),writeln( -> )|P])).
+  tail(3).
+    out_list(reg(out,1)).
+      write_structure(writeln/1).
+      write_constant('five_or_six(X), take_all').
+      write_list.
+      write_structure(writeln/1).
+      write_constant(' -> ').
+      write_value(reg(x,1)).
+    execute(outstream/1).
+label(test_fives/0).
+  goal(test_fives/0).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_fives).
+  % guard(true).
+  activate.
+  % body(empty_state(S0)).
+  par(2).
+    out_variable(reg(x,1),reg(out,1)).
+    spawn(empty_state/1).
+  % body(call_fresh(X,(fives(X),take(10)),S0,S2)).
+  par(3).
+    out_variable(reg(x,2),reg(out,1)).
+    out_structure((',')/2,reg(out,2)).
+      write_structure(fives/1).
+      write_value(reg(x,2)).
+      write_structure(take/1).
+      write_constant(10).
+    out_value(reg(x,1),reg(out,3)).
+    out_variable(reg(x,1),reg(out,4)).
+    spawn(call_fresh/4).
+  % body(pp(0,S2,P,[nl])).
+  par(3).
+    out_constant(0,reg(out,1)).
+    out_value(reg(x,1),reg(out,2)).
+    out_variable(reg(x,1),reg(out,3)).
+    out_list(reg(out,4)).
+      write_constant(nl).
+      write_nil.
+    spawn(pp/4).
+  % body(outstream([writeln(fives(X), take(10)),writeln( -> )|P])).
+  tail(3).
+    out_list(reg(out,1)).
+      write_structure(writeln/1).
+      write_constant('fives(X), take(10)').
+      write_list.
+      write_structure(writeln/1).
+      write_constant(' -> ').
+      write_value(reg(x,1)).
+    execute(outstream/1).
+label(test_sixes/0).
+  goal(test_sixes/0).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_sixes).
+  % guard(true).
+  activate.
+  % body(empty_state(S0)).
+  par(2).
+    out_variable(reg(x,1),reg(out,1)).
+    spawn(empty_state/1).
+  % body(call_fresh(X,(sixes(X),take(10)),S0,S2)).
+  par(3).
+    out_variable(reg(x,2),reg(out,1)).
+    out_structure((',')/2,reg(out,2)).
+      write_structure(sixes/1).
+      write_value(reg(x,2)).
+      write_structure(take/1).
+      write_constant(10).
+    out_value(reg(x,1),reg(out,3)).
+    out_variable(reg(x,1),reg(out,4)).
+    spawn(call_fresh/4).
+  % body(pp(0,S2,P,[nl])).
+  par(3).
+    out_constant(0,reg(out,1)).
+    out_value(reg(x,1),reg(out,2)).
+    out_variable(reg(x,1),reg(out,3)).
+    out_list(reg(out,4)).
+      write_constant(nl).
+      write_nil.
+    spawn(pp/4).
+  % body(outstream([writeln(sixes(X), take(10)),writeln( -> )|P])).
+  tail(3).
+    out_list(reg(out,1)).
+      write_structure(writeln/1).
+      write_constant('sixes(X), take(10)').
+      write_list.
+      write_structure(writeln/1).
+      write_constant(' -> ').
+      write_value(reg(x,1)).
+    execute(outstream/1).
+label(test_fives_and_sixes/0).
+  goal(test_fives_and_sixes/0).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_fives_and_sixes).
+  % guard(true).
+  activate.
+  % body(empty_state(S0)).
+  par(2).
+    out_variable(reg(x,1),reg(out,1)).
+    spawn(empty_state/1).
+  % body(call_fresh(X,(fives_and_sixes(X),take(10)),S0,S2)).
+  par(3).
+    out_variable(reg(x,2),reg(out,1)).
+    out_structure((',')/2,reg(out,2)).
+      write_structure(fives_and_sixes/1).
+      write_value(reg(x,2)).
+      write_structure(take/1).
+      write_constant(10).
+    out_value(reg(x,1),reg(out,3)).
+    out_variable(reg(x,1),reg(out,4)).
+    spawn(call_fresh/4).
+  % body(pp(0,S2,P,[nl])).
+  par(3).
+    out_constant(0,reg(out,1)).
+    out_value(reg(x,1),reg(out,2)).
+    out_variable(reg(x,1),reg(out,3)).
+    out_list(reg(out,4)).
+      write_constant(nl).
+      write_nil.
+    spawn(pp/4).
+  % body(outstream([writeln(fives_and_sixes(X), take(10)),writeln( -> )|P])).
+  tail(3).
+    out_list(reg(out,1)).
+      write_structure(writeln/1).
+      write_constant('fives_and_sixes(X), take(10)').
+      write_list.
+      write_structure(writeln/1).
+      write_constant(' -> ').
+      write_value(reg(x,1)).
+    execute(outstream/1).
+label(test_fives_and_sixes2/0).
+  goal(test_fives_and_sixes2/0).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_fives_and_sixes2).
+  % guard(true).
+  activate.
+  % body(empty_state(S0)).
+  par(2).
+    out_variable(reg(x,1),reg(out,1)).
+    spawn(empty_state/1).
+  % body(call_fresh(X,(conj(fives_and_sixes(X),sixes(X)),take(10)),S0,S2)).
+  par(3).
+    out_variable(reg(x,2),reg(out,1)).
+    out_structure((',')/2,reg(out,2)).
+      write_structure(conj/2).
+      write_structure(fives_and_sixes/1).
+      write_value(reg(x,2)).
+      write_structure(sixes/1).
+      write_value(reg(x,2)).
+      write_structure(take/1).
+      write_constant(10).
+    out_value(reg(x,1),reg(out,3)).
+    out_variable(reg(x,1),reg(out,4)).
+    spawn(call_fresh/4).
+  % body(pp(0,S2,P,[nl])).
+  par(3).
+    out_constant(0,reg(out,1)).
+    out_value(reg(x,1),reg(out,2)).
+    out_variable(reg(x,1),reg(out,3)).
+    out_list(reg(out,4)).
+      write_constant(nl).
+      write_nil.
+    spawn(pp/4).
+  % body(outstream([writeln(conj(fives_and_sixes(X), sixes(X)), take(10)),writeln( -> )|P])).
+  tail(3).
+    out_list(reg(out,1)).
+      write_structure(writeln/1).
+      write_constant('conj(fives_and_sixes(X), sixes(X)), take(10)').
+      write_list.
+      write_structure(writeln/1).
+      write_constant(' -> ').
+      write_value(reg(x,1)).
+    execute(outstream/1).
+label(test_fives_and_sixes3/0).
+  goal(test_fives_and_sixes3/0).
+  requires(7).
+  try_guard_else_suspend.
+  % head(test_fives_and_sixes3).
+  % guard(true).
+  activate.
+  % body(empty_state(S0)).
+  par(2).
+    out_variable(reg(x,1),reg(out,1)).
+    spawn(empty_state/1).
+  % body(call_fresh(X,(fives_and_sixes(X),test_fives_and_sixes3_Y,take(4)),S0,S2)).
+  par(3).
+    out_variable(reg(x,2),reg(out,1)).
+    out_structure((',')/2,reg(out,2)).
+      write_structure(fives_and_sixes/1).
+      write_value(reg(x,2)).
+      write_structure((',')/2).
+      write_constant(test_fives_and_sixes3_Y).
+      write_structure(take/1).
+      write_constant(4).
+    out_value(reg(x,1),reg(out,3)).
+    out_variable(reg(x,1),reg(out,4)).
+    spawn(call_fresh/4).
+  % body(pp(0,S2,P,[nl])).
+  par(3).
+    out_constant(0,reg(out,1)).
+    out_value(reg(x,1),reg(out,2)).
+    out_variable(reg(x,1),reg(out,3)).
+    out_list(reg(out,4)).
+      write_constant(nl).
+      write_nil.
+    spawn(pp/4).
+  % body(outstream([write((fives_and_sixes(X), take(4)), ),writeln((fives_and_sixes(Y), take(4))),writeln( -> )|P])).
+  tail(3).
+    out_list(reg(out,1)).
+      write_structure(write/1).
+      write_constant('(fives_and_sixes(X), take(4)), ').
+      write_list.
+      write_structure(writeln/1).
+      write_constant('(fives_and_sixes(Y), take(4))').
+      write_list.
+      write_structure(writeln/1).
+      write_constant(' -> ').
+      write_value(reg(x,1)).
+    execute(outstream/1).
+label(test_fives_and_sixes3_Y/2).
+  goal(test_fives_and_sixes3_Y/2).
+  requires(10).
+  try_guard_else(label(test_fives_and_sixes3_Y/2-2)).
+  % head(test_fives_and_sixes3_Y(thunk(St0,P),St1)).
+    check_structure(thunk/2,reg(in,1)).
+      read_variable(reg(x,3)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call(P)).
+  par(5).
+    out_value(reg(x,4),reg(out,1)).
+    spawn(call/1).
+  % body(test_fives_and_sixes3_Y(St0,St1)).
+  tail(5).
+    out_value(reg(x,3),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    execute(test_fives_and_sixes3_Y/2).
+label(test_fives_and_sixes3_Y/2-2).
+  try_guard_else(label(test_fives_and_sixes3_Y/2-3)).
+  % head(test_fives_and_sixes3_Y([],St1)).
+    check_nil(reg(in,1)).
+  % guard(true).
+  activate.
+  % body(St1=[]).
+    get_nil(reg(in,2)).
+  proceed.
+label(test_fives_and_sixes3_Y/2-3).
+  try_guard_else_suspend.
+  % head(test_fives_and_sixes3_Y([S|Ss],St1)).
+    check_list(reg(in,1)).
+      read_variable(reg(x,4)).
+      read_variable(reg(x,3)).
+  % guard(true).
+  activate.
+  % body(call_fresh(Y,(fives_and_sixes(Y),take(4)),S,S1)).
+  par(6).
+    out_variable(reg(x,5),reg(out,1)).
+    out_structure((',')/2,reg(out,2)).
+      write_structure(fives_and_sixes/1).
+      write_value(reg(x,5)).
+      write_structure(take/1).
+      write_constant(4).
+    out_value(reg(x,4),reg(out,3)).
+    out_variable(reg(x,4),reg(out,4)).
+    spawn(call_fresh/4).
+  % body(St1=[S1|thunk(S0,test_fives_and_sixes3_Y(Ss,S0))]).
+    get_list(reg(in,2)).
+      unify_value(reg(x,4)).
+      unify_structure(thunk/2).
+      unify_variable(reg(x,4)).
+      unify_structure(test_fives_and_sixes3_Y/2).
+      unify_value(reg(x,3)).
+      unify_value(reg(x,4)).
+  proceed.
+label(five_or_six/3).
+  goal(five_or_six/3).
+  requires(8).
+  try_guard_else_suspend.
+  % head(five_or_six(X,Sub0,Sub2)).
+  % guard(true).
+  activate.
+  % body(disj(unify(X,5),unify(X,6),Sub0,Sub2)).
+  tail(5).
+    out_structure(unify/2,reg(out,1)).
+      write_value(reg(in,1)).
+      write_constant(5).
+    out_structure(unify/2,reg(out,2)).
+      write_value(reg(in,1)).
+      write_constant(6).
+    out_value(reg(in,2),reg(out,3)).
+    out_value(reg(in,3),reg(out,4)).
+    execute(disj/4).
+label(fives/3).
+  goal(fives/3).
+  requires(8).
+  try_guard_else_suspend.
+  % head(fives(X,Sub0,Sub2)).
+  % guard(true).
+  activate.
+  % body(disj(unify(X,5),fives(X),Sub0,Sub2)).
+  tail(5).
+    out_structure(unify/2,reg(out,1)).
+      write_value(reg(in,1)).
+      write_constant(5).
+    out_structure(fives/1,reg(out,2)).
+      write_value(reg(in,1)).
+    out_value(reg(in,2),reg(out,3)).
+    out_value(reg(in,3),reg(out,4)).
+    execute(disj/4).
+label(sixes/3).
+  goal(sixes/3).
+  requires(8).
+  try_guard_else_suspend.
+  % head(sixes(X,Sub0,Sub2)).
+  % guard(true).
+  activate.
+  % body(disj(unify(X,6),sixes(X),Sub0,Sub2)).
+  tail(5).
+    out_structure(unify/2,reg(out,1)).
+      write_value(reg(in,1)).
+      write_constant(6).
+    out_structure(sixes/1,reg(out,2)).
+      write_value(reg(in,1)).
+    out_value(reg(in,2),reg(out,3)).
+    out_value(reg(in,3),reg(out,4)).
+    execute(disj/4).
+label(fives_and_sixes/3).
+  goal(fives_and_sixes/3).
+  requires(8).
+  try_guard_else_suspend.
+  % head(fives_and_sixes(X,Sub0,Sub2)).
+  % guard(true).
+  activate.
+  % body(disj(fives(X),sixes(X),Sub0,Sub2)).
+  tail(5).
+    out_structure(fives/1,reg(out,1)).
+      write_value(reg(in,1)).
+    out_structure(sixes/1,reg(out,2)).
+      write_value(reg(in,1)).
+    out_value(reg(in,2),reg(out,3)).
+    out_value(reg(in,3),reg(out,4)).
+    execute(disj/4).
+label(pp/1).
+  goal(pp/1).
+  requires(7).
+  try_guard_else_suspend.
+  % head(pp(X)).
+  % guard(true).
+  activate.
+  % body(pp(0,X,St,[nl])).
+  par(3).
+    out_constant(0,reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    out_variable(reg(x,2),reg(out,3)).
+    out_list(reg(out,4)).
+      write_constant(nl).
+      write_nil.
+    spawn(pp/4).
+  % body(outstream(St)).
+  tail(3).
+    out_value(reg(x,2),reg(out,1)).
+    execute(outstream/1).
+label(pp/4).
+  goal(pp/4).
+  requires(11).
+  try_guard_else(label(pp/4-2)).
+  % head(pp(N,[A|B],St1,St2)).
+    check_list(reg(in,2)).
+      read_variable(reg(x,6)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(call((pp(N,[),p_nl,pp(N+1,A),pp_rest(N+1,B),p_nl,pp(N,])),St1,St2)).
+  tail(7).
+    out_structure((',')/2,reg(out,1)).
+      write_structure(pp/2).
+      write_value(reg(in,1)).
+      write_constant('[').
+      write_structure((',')/2).
+      write_constant(p_nl).
+      write_structure((',')/2).
+      write_structure(pp/2).
+      write_structure((+)/2).
+      write_value(reg(in,1)).
+      write_constant(1).
+      write_value(reg(x,6)).
+      write_structure((',')/2).
+      write_structure(pp_rest/2).
+      write_structure((+)/2).
+      write_value(reg(in,1)).
+      write_constant(1).
+      write_value(reg(x,5)).
+      write_structure((',')/2).
+      write_constant(p_nl).
+      write_structure(pp/2).
+      write_value(reg(in,1)).
+      write_constant(']').
+    out_value(reg(in,3),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(call/3).
+label(pp/4-2).
+  otherwise.
+  % head(pp(N,X,St1,St3)).
+  % guard(true).
+  activate.
+  % body(pp_space(N,St1,St2)).
+  par(7).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(x,5),reg(out,3)).
+    spawn(pp_space/3).
+  % body(p_write(X,St2,St3)).
+  tail(7).
+    out_value(reg(in,2),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(p_write/3).
+label(pp_space/3).
+  goal(pp_space/3).
+  requires(9).
+  try_guard_else(label(pp_space/3-2)).
+  % head(pp_space(N,St1,St2)).
+  % guard(N=:=0).
+  seq(5).
+    out_variable(reg(x,4),reg(out,1)).
+    out_constant(0,reg(out,2)).
+    call((:=)/2).
+  seq(5).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
+    call((=:=)/2).
+  activate.
+  % body(St1=St2).
+    get_value(reg(in,3),reg(in,2)).
+  proceed.
+label(pp_space/3-2).
+  otherwise.
+  % head(pp_space(N,St1,St3)).
+  % guard(true).
+  activate.
+  % body(N1:=N-1).
+  par(5).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(x,4),reg(out,2)).
+    call('__dec__'/2).
+  % body(St1=[write( )|St2]).
+    get_list(reg(in,2)).
+      unify_structure(write/1).
+      unify_constant(' ').
+      unify_variable(reg(x,5)).
+  % body(pp_space(N1,St2,St3)).
+  tail(6).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(pp_space/3).
+label(pp_rest/4).
+  goal(pp_rest/4).
+  requires(11).
+  try_guard_else(label(pp_rest/4-2)).
+  % head(pp_rest(N,[],St1,St2)).
+    check_nil(reg(in,2)).
+  % guard(true).
+  activate.
+  % body(St1=St2).
+    get_value(reg(in,4),reg(in,3)).
+  proceed.
+label(pp_rest/4-2).
+  try_guard_else(label(pp_rest/4-3)).
+  % head(pp_rest(N,[A|B],St1,St2)).
+    check_list(reg(in,2)).
+      read_variable(reg(x,6)).
+      read_variable(reg(x,5)).
+  % guard(true).
+  activate.
+  % body(call((p_write(,),p_nl,pp(N,A),pp_rest(N,B)),St1,St2)).
+  tail(7).
+    out_structure((',')/2,reg(out,1)).
+      write_structure(p_write/1).
+      write_constant(',').
+      write_structure((',')/2).
+      write_constant(p_nl).
+      write_structure((',')/2).
+      write_structure(pp/2).
+      write_value(reg(in,1)).
+      write_value(reg(x,6)).
+      write_structure(pp_rest/2).
+      write_value(reg(in,1)).
+      write_value(reg(x,5)).
+    out_value(reg(in,3),reg(out,2)).
+    out_value(reg(in,4),reg(out,3)).
+    execute(call/3).
+label(pp_rest/4-3).
+  otherwise.
+  % head(pp_rest(N,X,St1,St2)).
+  % guard(true).
+  activate.
+  % body(pp(N,X,St1,St2)).
+  tail(7).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    out_value(reg(in,4),reg(out,4)).
+    execute(pp/4).
+label(p_nl/2).
+  goal(p_nl/2).
+  requires(5).
+  try_guard_else_suspend.
+  % head(p_nl(St1,St2)).
+  % guard(true).
+  activate.
+  % body(St1=[nl|St2]).
+    get_list(reg(in,1)).
+      unify_constant(nl).
+      unify_value(reg(in,2)).
+  proceed.
+label(p_write/3).
+  goal(p_write/3).
+  requires(9).
+  try_guard_else(label(p_write/3-2)).
+  % head(p_write(state(Sub,C),St1,St2)).
+    check_structure(state/2,reg(in,1)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call((p_write(state(),p_write(Sub),p_write(,),p_write(C),p_write())),St1,St2)).
+  tail(6).
+    out_structure((',')/2,reg(out,1)).
+      write_structure(p_write/1).
+      write_constant('state(').
+      write_structure((',')/2).
+      write_structure(p_write/1).
+      write_value(reg(x,5)).
+      write_structure((',')/2).
+      write_structure(p_write/1).
+      write_constant(',').
+      write_structure((',')/2).
+      write_structure(p_write/1).
+      write_value(reg(x,4)).
+      write_structure(p_write/1).
+      write_constant(')').
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(call/3).
+label(p_write/3-2).
+  try_guard_else(label(p_write/3-3)).
+  % head(p_write(A=B,St1,St2)).
+    check_structure((=)/2,reg(in,1)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call((p_write(A),p_write(=),p_write(B)),St1,St2)).
+  tail(6).
+    out_structure((',')/2,reg(out,1)).
+      write_structure(p_write/1).
+      write_value(reg(x,5)).
+      write_structure((',')/2).
+      write_structure(p_write/1).
+      write_constant(=).
+      write_structure(p_write/1).
+      write_value(reg(x,4)).
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(call/3).
+label(p_write/3-3).
+  try_guard_else(label(p_write/3-4)).
+  % head(p_write([A|B],St1,St2)).
+    check_list(reg(in,1)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call((p_write([),p_write(A),p_write_rest(B),p_write(])),St1,St2)).
+  tail(6).
+    out_structure((',')/2,reg(out,1)).
+      write_structure(p_write/1).
+      write_constant('[').
+      write_structure((',')/2).
+      write_structure(p_write/1).
+      write_value(reg(x,5)).
+      write_structure((',')/2).
+      write_structure(p_write_rest/1).
+      write_value(reg(x,4)).
+      write_structure(p_write/1).
+      write_constant(']').
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(call/3).
+label(p_write/3-4).
+  otherwise.
+  % head(p_write(A,St1,St2)).
+  % guard(true).
+  activate.
+  % body(St1=[write(A)|St2]).
+    get_list(reg(in,2)).
+      unify_structure(write/1).
+      unify_value(reg(in,1)).
+      unify_value(reg(in,3)).
+  proceed.
+label(p_write_rest/3).
+  goal(p_write_rest/3).
+  requires(9).
+  try_guard_else(label(p_write_rest/3-2)).
+  % head(p_write_rest([],St1,St2)).
+    check_nil(reg(in,1)).
+  % guard(true).
+  activate.
+  % body(St1=St2).
+    get_value(reg(in,3),reg(in,2)).
+  proceed.
+label(p_write_rest/3-2).
+  try_guard_else(label(p_write_rest/3-3)).
+  % head(p_write_rest([A|B],St1,St2)).
+    check_list(reg(in,1)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,4)).
+  % guard(true).
+  activate.
+  % body(call((p_write(,),p_write(A),p_write_rest(B)),St1,St2)).
+  tail(6).
+    out_structure((',')/2,reg(out,1)).
+      write_structure(p_write/1).
+      write_constant(',').
+      write_structure((',')/2).
+      write_structure(p_write/1).
+      write_value(reg(x,5)).
+      write_structure(p_write_rest/1).
+      write_value(reg(x,4)).
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    execute(call/3).
+label(p_write_rest/3-3).
+  otherwise.
+  % head(p_write_rest(X,St1,St2)).
+  % guard(true).
+  activate.
+  % body(St1=[write(X)|St2]).
+    get_list(reg(in,2)).
+      unify_structure(write/1).
+      unify_value(reg(in,1)).
+      unify_value(reg(in,3)).
+  proceed.
