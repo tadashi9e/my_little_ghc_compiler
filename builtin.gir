@@ -343,7 +343,7 @@ label('__atom_concat_3__'/3).
   inline('  MACRO_proceed;').
 label(atom_codes/2).
   goal(atom_codes/2).
-  requires(8).
+  requires(6).
   try_guard_else(label(atom_codes/2-2)).
   % head(atom_codes(A,Cs)).
   % guard(atom(A)).
@@ -358,18 +358,16 @@ label(atom_codes/2).
     execute('__atom_to_codes__'/2).
 label(atom_codes/2-2).
   try_guard_else_suspend.
-  % head(atom_codes(A,[C|Cs])).
+  % head(atom_codes(A,Cs)).
+  % guard(Cs=[_6956|_6958]).
     check_list(reg(in,2)).
-      read_variable(reg(x,3)).
-      read_variable(reg(x,4)).
-  % guard(true).
+      read_void.
+      read_void.
   activate.
-  % body(__codes_to_atom__(A,[C|Cs],)).
-  tail(5).
+  % body(__codes_to_atom__(A,Cs,)).
+  tail(4).
     out_value(reg(in,1),reg(out,1)).
-    out_list(reg(out,2)).
-      write_value(reg(x,3)).
-      write_value(reg(x,4)).
+    out_value(reg(in,2),reg(out,2)).
     out_constant('',reg(out,3)).
     execute('__codes_to_atom__'/3).
 label('__atom_to_codes__'/2).
@@ -411,10 +409,13 @@ label('__codes_to_atom__'/3-2).
     check_list(reg(in,2)).
       read_variable(reg(x,5)).
       read_variable(reg(x,4)).
-  % guard(integer(C)).
+  % guard((integer(C),atom(Ac))).
   seq(6).
     out_value(reg(x,5),reg(out,1)).
     call(integer/1).
+  seq(6).
+    out_value(reg(in,3),reg(out,1)).
+    call(atom/1).
   activate.
   % body(__atom_code_concat__(Ac,C,Ac2)).
   par(6).
@@ -442,20 +443,7 @@ label('__atom_code_concat__'/3).
   inline('      MACRO_fail;').
   inline('    }').
   inline('  }').
-label(inline/1).
-  goal(inline/1).
-  requires(3).
-  try_guard_else(label(inline/1-2)).
-  % head(inline(  MACRO_proceed;)).
-    check_constant('  MACRO_proceed;',reg(in,1)).
-  activate.
-  proceed.
-label(inline/1-2).
-  try_guard_else_suspend.
-  % head(inline(  MACRO_proceed;)).
-    check_constant('  MACRO_proceed;',reg(in,1)).
-  activate.
-  proceed.
+  inline('  MACRO_proceed;').
 label(atom_chars/2).
   goal(atom_chars/2).
   requires(8).
@@ -552,7 +540,10 @@ label('__chars_to_atom__'/3-2).
     check_list(reg(in,2)).
       read_variable(reg(x,5)).
       read_variable(reg(x,4)).
-  % guard(true).
+  % guard(atom(Ac)).
+  seq(6).
+    out_value(reg(in,3),reg(out,1)).
+    call(atom/1).
   activate.
   % body(atom_concat(Ac,C,Ac2)).
   par(6).
@@ -667,10 +658,10 @@ label(outstream/2-2).
   % guard(true).
   activate.
   % body(write(Stream,P)).
-  par(6).
+  seq(6).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
-    spawn(write/2).
+    call(write/2).
   % body(outstream(Cmds)).
   tail(6).
     out_value(reg(in,2),reg(out,1)).
@@ -683,9 +674,9 @@ label(outstream/2-3).
   % guard(true).
   activate.
   % body(write(P)).
-  par(6).
+  seq(6).
     out_value(reg(x,3),reg(out,1)).
-    spawn(write/1).
+    call(write/1).
   % body(outstream(Cmds)).
   tail(6).
     out_value(reg(in,2),reg(out,1)).
@@ -699,10 +690,10 @@ label(outstream/2-4).
   % guard(true).
   activate.
   % body(writeln(Stream,P)).
-  par(6).
+  seq(6).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
-    spawn(writeln/2).
+    call(writeln/2).
   % body(outstream(Cmds)).
   tail(6).
     out_value(reg(in,2),reg(out,1)).
@@ -715,9 +706,9 @@ label(outstream/2-5).
   % guard(true).
   activate.
   % body(writeln(P)).
-  par(6).
+  seq(6).
     out_value(reg(x,3),reg(out,1)).
-    spawn(writeln/1).
+    call(writeln/1).
   % body(outstream(Cmds)).
   tail(6).
     out_value(reg(in,2),reg(out,1)).
@@ -730,9 +721,9 @@ label(outstream/2-6).
   % guard(true).
   activate.
   % body(nl(Stream)).
-  par(6).
+  seq(6).
     out_value(reg(x,3),reg(out,1)).
-    spawn(nl/1).
+    call(nl/1).
   % body(outstream(Cmds)).
   tail(6).
     out_value(reg(in,2),reg(out,1)).
@@ -744,8 +735,8 @@ label(outstream/2-7).
   % guard(true).
   activate.
   % body(nl).
-  par(6).
-    spawn(nl/0).
+  seq(6).
+    call(nl/0).
   % body(outstream(Cmds)).
   tail(6).
     out_value(reg(in,2),reg(out,1)).
@@ -1178,6 +1169,14 @@ label('__open__'/4).
   inline('      }').
   inline('    }').
   inline('  }').
+label(inline/1).
+  goal(inline/1).
+  requires(3).
+  try_guard_else_suspend.
+  % head(inline(  MACRO_proceed;)).
+    check_constant('  MACRO_proceed;',reg(in,1)).
+  activate.
+  proceed.
 label('__close__'/1).
   goal('__close__'/1).
   requires(3).
@@ -1210,10 +1209,10 @@ label(writeln/2).
   % guard(true).
   activate.
   % body(write(Stream,X)).
-  par(4).
+  seq(4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    spawn(write/2).
+    call(write/2).
   % body(nl(Stream)).
   tail(4).
     out_value(reg(in,1),reg(out,1)).
@@ -1397,7 +1396,7 @@ label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
   requires(5).
   try_guard_else(label('__write_functor_args__'/2-2)).
-  % head(__write_functor_args__(_77616,[])).
+  % head(__write_functor_args__(_76702,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1427,7 +1426,7 @@ label('__write_functor_args2__'/2).
   goal('__write_functor_args2__'/2).
   requires(7).
   try_guard_else(label('__write_functor_args2__'/2-2)).
-  % head(__write_functor_args2__(_82830,[])).
+  % head(__write_functor_args2__(_81898,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1506,7 +1505,7 @@ label('__write_list_tail__'/2).
     execute('__write__'/2).
 label('__write_list_tail__'/2-2).
   try_guard_else(label('__write_list_tail__'/2-3)).
-  % head(__write_list_tail__(_91818,[])).
+  % head(__write_list_tail__(_90856,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1908,15 +1907,15 @@ label('__add__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(5).
+  seq(5).
     out_variable(reg(x,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(B1:=B).
-  par(6).
+  seq(6).
     out_variable(reg(x,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__iadd__(A1,B1,C)).
   tail(6).
     out_value(reg(x,4),reg(out,1)).
@@ -1948,15 +1947,15 @@ label('__sub__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(5).
+  seq(5).
     out_variable(reg(x,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(B1:=B).
-  par(6).
+  seq(6).
     out_variable(reg(x,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__isub__(A1,B1,C)).
   tail(6).
     out_value(reg(x,4),reg(out,1)).
@@ -1988,15 +1987,15 @@ label('__mul__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(5).
+  seq(5).
     out_variable(reg(x,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(B1:=B).
-  par(6).
+  seq(6).
     out_variable(reg(x,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__imul__(A1,B1,C)).
   tail(6).
     out_value(reg(x,4),reg(out,1)).
@@ -2028,15 +2027,15 @@ label('__div__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(5).
+  seq(5).
     out_variable(reg(x,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(B1:=B).
-  par(6).
+  seq(6).
     out_variable(reg(x,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__idiv__(A1,B1,C)).
   tail(6).
     out_value(reg(x,4),reg(out,1)).
@@ -2068,15 +2067,15 @@ label('__mod__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(5).
+  seq(5).
     out_variable(reg(x,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(B1:=B).
-  par(6).
+  seq(6).
     out_variable(reg(x,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__imod__(A1,B1,C)).
   tail(6).
     out_value(reg(x,4),reg(out,1)).
@@ -2104,10 +2103,10 @@ label('__neg__'/2-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(4).
+  seq(4).
     out_variable(reg(x,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__ineg__(A1,C)).
   tail(4).
     out_value(reg(x,3),reg(out,1)).
@@ -2209,10 +2208,10 @@ label('__inc__'/2-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(4).
+  seq(4).
     out_variable(reg(x,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__iinc__(A1,B)).
   tail(4).
     out_value(reg(x,3),reg(out,1)).
@@ -2239,10 +2238,10 @@ label('__dec__'/2-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  par(4).
+  seq(4).
     out_variable(reg(x,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    spawn((:=)/2).
+    call((:=)/2).
   % body(__idec__(A1,B)).
   tail(4).
     out_value(reg(x,3),reg(out,1)).
@@ -2283,6 +2282,15 @@ label(append/3).
   proceed.
 label(append/3-2).
   try_guard_else(label(append/3-3)).
+  % head(append(Xs,[],Zs)).
+    check_nil(reg(in,2)).
+  % guard(true).
+  activate.
+  % body(Xs=Zs).
+    get_value(reg(in,3),reg(in,1)).
+  proceed.
+label(append/3-3).
+  try_guard_else(label(append/3-4)).
   % head(append([X|Xs],Ys,[X|Zs])).
     check_list(reg(in,1)).
       read_variable(reg(x,5)).
@@ -2298,8 +2306,8 @@ label(append/3-2).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
     execute(append/3).
-label(append/3-3).
-  try_guard_else(label(append/3-4)).
+label(append/3-4).
+  try_guard_else(label(append/3-5)).
   % head(append([X|Xs],Ys,Zs)).
     check_list(reg(in,1)).
       read_variable(reg(x,5)).
@@ -2316,30 +2324,33 @@ label(append/3-3).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
     execute(append/3).
-label(append/3-4).
+label(append/3-5).
   try_guard_else_suspend.
   % head(append(Xs,Ys,Zs)).
-  % guard(var(Xs)).
-  seq(6).
-    out_value(reg(in,1),reg(out,1)).
-    call(var/1).
+  % guard((Ys=[_242680|_242682],Zs=[_242694|_242696])).
+    check_list(reg(in,2)).
+      read_void.
+      read_void.
+    check_list(reg(in,3)).
+      read_void.
+      read_void.
   activate.
   % body(reverse(Ys,Yr)).
-  par(6).
+  seq(6).
     out_value(reg(in,2),reg(out,1)).
     out_variable(reg(x,4),reg(out,2)).
-    spawn(reverse/2).
+    call(reverse/2).
   % body(reverse(Zs,Zr)).
-  par(6).
+  seq(6).
     out_value(reg(in,3),reg(out,1)).
     out_variable(reg(x,5),reg(out,2)).
-    spawn(reverse/2).
+    call(reverse/2).
   % body(append(Yr,Xr,Zr)).
-  par(6).
+  seq(6).
     out_value(reg(x,4),reg(out,1)).
     out_variable(reg(x,4),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
-    spawn(append/3).
+    call(append/3).
   % body(reverse(Xr,Xs)).
   tail(6).
     out_value(reg(x,4),reg(out,1)).
@@ -2440,7 +2451,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_262438],E)).
+  % head(__nth0__(0,[Y|_264108],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2452,7 +2463,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_268600|Ys],E)).
+  % head(__nth0__(N,[_270282|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -2473,7 +2484,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_271760],E,Ac)).
+  % head(__nth0_rev__(N,[E|_273448],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2484,7 +2495,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_278014|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_279714|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).

@@ -104,6 +104,7 @@ inline Q deref(Q q) {
   }
   return q;
 }
+
 // Replace SUS -> SUS link to REF -> SUS link
 // to avoid non-self-referencing SUS link.
 // SUS -> SUS link support make dereference performance degradation.
@@ -834,6 +835,11 @@ struct VM : std::enable_shared_from_this<VM> {
       std::cerr << &reg[i] << " reg[" << std::setw(3) << i << "] : "
                 << to_str(reg[i]) << std::endl;
     }
+    std::cerr << "wait_list: ";
+    for (Q q : wait_list) {
+      std::cerr << to_str(q) << ",";
+    }
+    std::cerr << std::endl;
     for (size_t
            i = 0; i < std::max(required, static_cast<size_t>(10)); ++i) {
       std::cerr << &in[i] << " IN[" << std::setw(3) << i << "] : "
@@ -896,7 +902,7 @@ struct VM : std::enable_shared_from_this<VM> {
       const int arity = atom_arity_of(g);
       in[0] = g;
       for (int i = 1; i <= arity; ++i) {
-        in[i] = deref(goal[2 + i].load());
+        in[i] = goal[2 + i].load();
       }
       Context& context = contexts.back();
       context.pc_continue = -1;
@@ -912,6 +918,20 @@ struct VM : std::enable_shared_from_this<VM> {
       }
     }
   }
+  void spawn(int target_pc, Q goal) {
+    const int arity = atom_arity_of(goal);
+    const size_t h = heap_publishing(5 + arity);
+    heap[h + 0].store(tagptr<TAG_REF>(&heap[h + 0]));
+    heap[h + 1].store(tagptr<TAG_REF>(&heap[h + 2]));
+    heap[h + 2].store(tagvalue<TAG_INT>(0));
+    heap[h + 3].store(tagvalue<TAG_INT>(target_pc));
+    for (int i = 0; i <= arity; ++i) {
+      heap[h + 4 + i].store(ref_of(out[i]));
+    }
+    heap_published(5 + arity);
+    A* lst = &heap[h + 0];
+    Scheduler::getInstance().enqueue_list(lst);
+  }
   void create_new_window(size_t n) {
     out = &in[n];
     next_context.in_offset = out - &reg[0];
@@ -925,15 +945,15 @@ struct VM : std::enable_shared_from_this<VM> {
       out = &reg[next_context.in_offset];
     }
   }
-  void switch_next_window(int target, int return_pc) {
+  void switch_next_window(int target_pc, int return_pc) {
     contexts.back().pc_continue = return_pc;
     const int status = contexts.back().status;
     next_context.status =
       (status != ST_ACTIVE) ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;
-    next_context.pc_continue = target;
+    next_context.pc_continue = target_pc;
     next_context.pc_on_error = -1;
     in = out;
-    pc = target;
+    pc = target_pc;
     contexts.push_back(next_context);
   }
   bool switch_prev_window() {
@@ -1037,7 +1057,7 @@ struct VM : std::enable_shared_from_this<VM> {
         heap[h + 0].store(tagvalue<TAG_INT>(0));
         heap[h + 1].store(tagvalue<TAG_INT>(contexts.back().pc_goal));
         for (int i = 0; i <= arity; ++i) {
-          heap[h + 2 + i].store(in[i]);
+          heap[h + 2 + i].store(ref_of(in[i]));
         }
         heap_published(3 + arity);
         for (Q q : wait_list) {
@@ -1127,7 +1147,7 @@ struct VM : std::enable_shared_from_this<VM> {
     const int arity = atom_arity_of(g);
     in[0] = g;
     for (int i = 1; i <= arity; ++i) {
-      in[i] = deref(goal[2 + i].load());
+      in[i] = goal[2 + i].load();
     }
     Context& context = contexts.back();
     context.pc_continue = -1;
@@ -1315,25 +1335,28 @@ class RuntimeError: public std::runtime_error {
   }
 };
 
-#define MACRO_goal(pc, goal)                                     \
-  ++vm->inference_count;                                         \
-  vm->contexts.back().pc_goal = pc;                              \
+#define MACRO_goal(pc, goal)                      \
+  ++vm->inference_count;                          \
+  vm->contexts.back().pc_goal = pc;               \
+  if (vm->contexts.back().status == ST_ACTIVE) {  \
+    vm->contexts.back().status = ST_IN_GUARD;     \
+  }                                               \
   vm->in[0] = (goal)
 
-#define MACRO_requires(n)                                 \
-  vm->require(n);                                         \
+#define MACRO_requires(n)                         \
+  vm->require(n);                                 \
   vm->contexts.back().push_pos = n + 1
 #define MACRO_fail vm->fail(); continue
-#define MACRO_wait(Ai)                                \
-  {                                                   \
-    const Q q = deref(vm->in[Ai]);                    \
-    const TAG_T t = tag_of(q);                        \
-    if (t == TAG_REF || t == TAG_SUS) {               \
-      vm->add_wait_list(q);                           \
-      vm->fail();                                     \
-      continue;                                       \
-    }                                                 \
-    vm->in[Ai] = ref_of(q);                           \
+#define MACRO_wait(Ai)                            \
+  {                                               \
+    const Q q = deref(vm->in[Ai]);                \
+    const TAG_T t = tag_of(q);                    \
+    if (t == TAG_REF || t == TAG_SUS) {           \
+      vm->add_wait_list(q);                       \
+      vm->fail();                                 \
+      continue;                                   \
+    }                                             \
+    vm->in[Ai] = ref_of(q);                       \
   }
 #define MACRO_wait_for(tag, Ai)                   \
   {                                               \
@@ -1350,53 +1373,77 @@ class RuntimeError: public std::runtime_error {
     vm->in[Ai] = ref_of(q);                       \
   }
 
-#define MACRO_try_guard_else(jump_to)                                   \
+#define MACRO_try_guard_else(jump_to)             \
+  if (vm->contexts.back().status == ST_ACTIVE) {  \
+    vm->contexts.back().status = ST_IN_GUARD;     \
+  }                                               \
   vm->contexts.back().pc_on_error = (jump_to)
-#define MACRO_try_guard_else_suspend                       \
+  
+#define MACRO_try_guard_else_suspend              \
+  if (vm->contexts.back().status == ST_ACTIVE) {  \
+    vm->contexts.back().status = ST_IN_GUARD;     \
+  }                                               \
   vm->contexts.back().pc_on_error = -2
-#define MACRO_otherwise                      \
-  if (!vm->wait_list.empty()) {              \
-    vm->contexts.back().pc_on_error = -2;    \
-    vm->fail();                              \
-    continue;                                \
+  
+#define MACRO_otherwise                             \
+  if (vm->contexts.back().status == ST_ACTIVE) {    \
+    vm->contexts.back().status = ST_IN_GUARD;       \
+  }                                                 \
+  if (!vm->wait_list.empty()) {                     \
+    vm->contexts.back().pc_on_error = -2;           \
+    vm->fail();                                     \
+    continue;                                       \
   }
 
 // call 呼び出しに備えて次レジスタウィンドウをセットアップする。
 // out レジスタ位置を次レジスタウィンドウ上に設定する。
-#define MACRO_seq(N)                                \
-  vm->create_new_window(N)
+#define MACRO_seq(O)                            \
+  vm->create_new_window(O)
 
 // レジスタウィンドウを進め、target を呼びだす。
 // このとき、return_pc を戻り先アドレスとする。
-#define MACRO_call(target, return_pc)                          \
-  vm->switch_next_window(target, return_pc);                   \
+#define MACRO_call(target_pc, return_pc, goal)    \
+  vm->out[0] = (goal);                            \
+  vm->switch_next_window(target_pc, return_pc);   \
   continue
 
 // spawn 呼び出しに備えて新しいコンテキストを生成する。
 // out レジスタ位置を新しいコンテキスト上に設定する。
-#define MACRO_par(N)                              \
-  vm->create_new_window(N)
+#define MACRO_par(O)                            \
+  vm->create_new_window(O)
 
+#if 1
 // 新しいコンテストの実行開始位置を start_from に設定する。
 // 新しいコンテキストをコンテキストキューに投入する。
-#define MACRO_spawn(target, return_pc)                          \
-  vm->switch_next_window(target, return_pc);                   \
+#define MACRO_spawn(target_pc, return_pc, goal)   \
+  vm->switch_next_window(target_pc, return_pc);   \
   continue
+#else
+#define MACRO_spawn(target_pc, return_pc, goal)     \
+  vm->out[0] = (goal);                              \
+  if (vm->contexts.back().status == ST_ACTIVE) {    \
+    vm->spawn(target_pc, goal);                     \
+    vm->pc = return_pc;                             \
+  } else {                                          \
+    vm->switch_next_window(target_pc, return_pc);   \
+  }                                                 \
+  continue
+#endif
 
 // jump 呼び出しに備えて out レジスタ位置を設定する。
-#define MACRO_tail(N)                             \
-  vm->out = &vm->in[N]
+#define MACRO_tail(O)                           \
+  vm->out = &vm->in[O]
 // out レジスタの内容を in レジスタにコピーし、
 // 制御を jump_to に移す。
-#define MACRO_execute(jump_to, arity)                       \
-  for (int i = 1; i <= (arity); ++i) {                      \
-    vm->in[i] = vm->out[i];                                 \
-  }                                                         \
-  vm->pc = (jump_to);                                       \
-  vm->contexts.back().pc_continue = -1;                     \
-  vm->contexts.back().status =                              \
-    (vm->contexts.back().status != ST_ACTIVE)               \
-    ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;                    \
+#define MACRO_execute(jump_to, arity)             \
+  for (int i = 1; i <= (arity); ++i) {            \
+    vm->in[i] = ref_of(vm->out[i]);               \
+  }                                               \
+  vm->pc = (jump_to);                             \
+  vm->contexts.back().pc_continue = -1;           \
+  vm->contexts.back().status =                    \
+    (vm->contexts.back().status != ST_ACTIVE)     \
+    ? ST_SUBGOAL_IN_GUARD : ST_IN_GUARD;          \
   continue
 
 #define MACRO_activate                          \
@@ -1418,13 +1465,13 @@ class RuntimeError: public std::runtime_error {
     vm->heap_published(1);                      \
   }
 
-#define MACRO_set_value(Vn, Ai)                             \
-  {                                                         \
-    const Q q = ref_of(deref(vm->in[Vn]));                  \
-    vm->in[Vn] = q;                                         \
-    vm->in[Ai] = q;                                         \
+#define MACRO_set_value(Vn, Ai)                 \
+  {                                             \
+    const Q q = ref_of(deref(vm->in[Vn]));      \
+    vm->in[Vn] = q;                             \
+    vm->in[Ai] = q;                             \
   }
-#define MACRO_set_constant(C, Ai)                           \
+#define MACRO_set_constant(C, Ai)               \
   vm->in[Ai] = (C)
 #define MACRO_set_nil(Ai)                  \
   vm->in[Ai] = tagptr<TAG_NIL, Q>(0)

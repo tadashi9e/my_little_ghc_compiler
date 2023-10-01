@@ -193,7 +193,7 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
     inline('  MACRO_proceed;').
 
 atom_codes(A, Cs) :- atom(A) | '__atom_to_codes__'(A, Cs).
-atom_codes(A, [C|Cs]) :- '__codes_to_atom__'(A, [C|Cs], '').
+atom_codes(A, Cs) :- Cs = [_|_] | '__codes_to_atom__'(A, Cs, '').
 '__atom_to_codes__'(A, Cs) :-
     inline('  MACRO_activate;'),
     inline('  {'),
@@ -216,7 +216,7 @@ atom_codes(A, [C|Cs]) :- '__codes_to_atom__'(A, [C|Cs], '').
     inline('  MACRO_proceed;').
 '__codes_to_atom__'(A, [], Ac) :- A = Ac.
 '__codes_to_atom__'(A, [C|Cs], Ac) :-
-    integer(C) |
+    integer(C), atom(Ac) |
     '__atom_code_concat__'(Ac, C, Ac2),
     '__codes_to_atom__'(A, Cs, Ac2).
 '__atom_code_concat__'(A, C, A2) :-
@@ -230,7 +230,7 @@ atom_codes(A, [C|Cs]) :- '__codes_to_atom__'(A, [C|Cs], '').
     inline('    if (!vm->unify(to_atom(s.c_str(), 0), vm->in[3])) {'),
     inline('      MACRO_fail;'),
     inline('    }'),
-    inline('  }').
+    inline('  }'),
     inline('  MACRO_proceed;').
 atom_chars(A, Cs) :- atom(A) | '__atom_to_chars__'(A, Cs).
 atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
@@ -284,6 +284,7 @@ atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
     inline('  MACRO_proceed;').
 '__chars_to_atom__'(A, [], Ac) :- A = Ac.
 '__chars_to_atom__'(A, [C|Cs], Ac) :-
+    atom(Ac) |
     atom_concat(Ac, C, Ac2),
     '__chars_to_atom__'(A, Cs, Ac2).
 
@@ -314,12 +315,12 @@ outstream([]).
 outstream([C|Cs]) :- outstream(C, Cs).
 outstream(open(File, Mode, Stream), Cmds) :-
     open(File, Mode, Stream), outstream(Cmds).
-outstream(write(Stream, P), Cmds) :- write(Stream, P), outstream(Cmds).
-outstream(write(P), Cmds) :- write(P), outstream(Cmds).
-outstream(writeln(Stream, P), Cmds) :- writeln(Stream, P), outstream(Cmds).
-outstream(writeln(P), Cmds) :- writeln(P), outstream(Cmds).
-outstream(nl(Stream), Cmds) :- nl(Stream), outstream(Cmds).
-outstream(nl, Cmds) :- nl, outstream(Cmds).
+outstream(write(Stream, P), Cmds) :- write(Stream, P) -> outstream(Cmds).
+outstream(write(P), Cmds) :- write(P) -> outstream(Cmds).
+outstream(writeln(Stream, P), Cmds) :- writeln(Stream, P) -> outstream(Cmds).
+outstream(writeln(P), Cmds) :- writeln(P) -> outstream(Cmds).
+outstream(nl(Stream), Cmds) :- nl(Stream) -> outstream(Cmds).
+outstream(nl, Cmds) :- nl -> outstream(Cmds).
 
 open(Src, Opts, Stream) :-
     '__open_opt_string_to_integer__'(Opts, OFlag, OMode),
@@ -413,7 +414,7 @@ close(Stream) :-
     inline('  MACRO_proceed;').
 
 writeln(X) :- write(X) -> nl.
-writeln(Stream, X) :- write(Stream, X), nl(Stream).
+writeln(Stream, X) :- write(Stream, X) -> nl(Stream).
 
 nl :- nl(1).
 nl(Stream) :- integer(Stream) | '__nl__'(Stream).
@@ -663,27 +664,27 @@ C := -A :- '__neg__'(A, C).
 
 '__add__'(A, B, C) :- integer(A), integer(B) | '__iadd__'(A, B, C).
 otherwise.
-'__add__'(A, B, C) :- A1 := A, B1 := B, '__iadd__'(A1, B1, C).
+'__add__'(A, B, C) :- A1 := A, B1 := B -> '__iadd__'(A1, B1, C).
 
 '__sub__'(A, B, C) :- integer(A), integer(B) | '__isub__'(A, B, C).
 otherwise.
-'__sub__'(A, B, C) :- A1 := A, B1 := B, '__isub__'(A1, B1, C).
+'__sub__'(A, B, C) :- A1 := A, B1 := B -> '__isub__'(A1, B1, C).
 
 '__mul__'(A, B, C) :- integer(A), integer(B) | '__imul__'(A, B, C).
 otherwise.
-'__mul__'(A, B, C) :- A1 := A, B1 := B, '__imul__'(A1, B1, C).
+'__mul__'(A, B, C) :- A1 := A, B1 := B -> '__imul__'(A1, B1, C).
 
 '__div__'(A, B, C) :- integer(A), integer(B) | '__idiv__'(A, B, C).
 otherwise.
-'__div__'(A, B, C) :- A1 := A, B1 := B, '__idiv__'(A1, B1, C).
+'__div__'(A, B, C) :- A1 := A, B1 := B -> '__idiv__'(A1, B1, C).
 
 '__mod__'(A, B, C) :- integer(A), integer(B) | '__imod__'(A, B, C).
 otherwise.
-'__mod__'(A, B, C) :- A1 := A, B1 := B, '__imod__'(A1, B1, C).
+'__mod__'(A, B, C) :- A1 := A, B1 := B -> '__imod__'(A1, B1, C).
 
 '__neg__'(A, C) :- integer(A)| '__ineg__'(A, C).
 otherwise.
-'__neg__'(A, C) :- A1 := A, '__ineg__'(A1, C).
+'__neg__'(A, C) :- A1 := A -> '__ineg__'(A1, C).
 
 '__ineg__'(A, B) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
@@ -751,10 +752,10 @@ otherwise.
 
 '__inc__'(A, B) :- integer(A) | '__iinc__'(A, B).
 otherwise.
-'__inc__'(A, B) :- A1 := A, '__iinc__'(A1, B).
+'__inc__'(A, B) :- A1 := A -> '__iinc__'(A1, B).
 '__dec__'(A, B) :- integer(A) | '__idec__'(A, B).
 otherwise.
-'__dec__'(A, B) :- A1 := A, '__idec__'(A1, B).
+'__dec__'(A, B) :- A1 := A -> '__idec__'(A1, B).
 
 '__iinc__'(A, B) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
@@ -775,12 +776,13 @@ otherwise.
     inline('  }'),
     inline('  MACRO_proceed;').
 
-append([], Ys, Zs) :- Zs = Ys.
+append([], Ys, Zs) :- true | Zs = Ys.
+append(Xs, [], Zs) :- true | Xs = Zs.
 append([X|Xs], Ys, [X|Zs]) :- append(Xs, Ys, Zs).
 append([X|Xs], Ys, Zs) :- Zs = [X|Zs2], append(Xs, Ys, Zs2).
 append(Xs, Ys, Zs) :-
-    var(Xs) |
-    reverse(Ys, Yr), reverse(Zs, Zr), append(Yr, Xr, Zr), reverse(Xr, Xs).
+    Ys = [_|_], Zs = [_|_] |
+    reverse(Ys, Yr), reverse(Zs, Zr), append(Yr, Xr, Zr) -> reverse(Xr, Xs).
 
 reverse(Xs, Ys) :- var(Ys) | '__reverse__'(Xs, Ys, []).
 reverse(Xs, Ys) :- var(Xs) | '__reverse__'(Ys, Xs, []).

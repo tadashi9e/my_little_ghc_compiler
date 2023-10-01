@@ -5,7 +5,8 @@
 
 main([_,Arg]) :-
     atom_number(Arg, N),
-    time(go(N, X)),
+    wait_time(X),
+    go(N, X),
     outstream(Os), report_results(Os-[], X).
 otherwise.
 main([Prog]) :-

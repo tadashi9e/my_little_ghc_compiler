@@ -1,207 +1,274 @@
 % -*- coding:utf-8-unix; mode:prolog -*-
-test_call3 :- call(test_call3(a), X, A),
-              call(test_call3(b), A, B),
-              call(test_call3(c), B, C),
-              call(test_call3, C, []),
-              writeln(X).
-test_call3(C, U, V) :-
+test_call3(Outs, Outs2) :- call(test_call3_aux(a), X, A),
+                           call(test_call3_aux(b), A, B),
+                           call(test_call3_aux(c), B, C),
+                           call(test_call3_aux, C, []),
+                           Outs = [writeln(X) | Outs2].
+test_call3_aux(C, U, V) :-
     U = [C|V].
-test_call3(U, V) :-
+test_call3_aux(U, V) :-
     U = [done|V].
-test_otherwise :- test_otherwise_aux(X), X = 1.
-test_otherwise_aux(X) :- X = 0 | writeln('test failed').
+test_otherwise(Outs, Outs2) :-
+    test_otherwise_aux(X, Outs, Outs2), X = 1.
+test_otherwise_aux(X, Outs, Outs2) :-
+    X = 0 | Outs = [writeln('test failed') | Outs2].
 otherwise.
-test_otherwise_aux(_) :- writeln('test success').
+test_otherwise_aux(_, Outs, Outs2) :-
+    Outs = [writeln('test success') | Outs2].
 
-test_write_var :- writeln(Var).
-test_write_atom :- writeln(atom).
-test_write_list :- writeln([1,2,3,4,5|_]).
-test_write_structure :- writeln(some(structure, and, arguments)).
+test_write_var(Outs, Outs2) :- Outs = [writeln(Var) | Outs2].
+test_write_atom(Outs, Outs2) :- Outs = [writeln(atom) | Outs2].
+test_write_list(Outs, Outs2) :- Outs = [writeln([1,2,3,4,5|_]) | Outs2].
+test_write_structure(Outs, Outs2) :-
+    Outs = [writeln(some(structure, and, arguments)) | Outs2].
 
-test_get_structure :- X = 1 + 2 -> writeln(X).
-test_set_structure :- 1 + 2 = X -> writeln(X).
-test_get_list :- X = [1, 2, 3] -> writeln(X).
-test_set_list :- [1, 2, 3] = X -> writeln(X).
+test_get_structure(Outs, Outs2) :- X = 1 + 2 -> Outs = [writeln(X) | Outs2].
+test_set_structure(Outs, Outs2) :- 1 + 2 = X -> Outs = [writeln(X) | Outs2].
+test_get_list(Outs, Outs2) :- X = [1, 2, 3] -> Outs = [writeln(X) | Outs2].
+test_set_list(Outs, Outs2) :- [1, 2, 3] = X -> Outs = [writeln(X) | Outs2].
 
-test_check_constant :- test_check_constant_aux(1).
-test_check_constant_aux(0) :- writeln('test failed(0)').
-test_check_constant_aux(1) :- writeln('test success(1)').
+test_check_constant(Outs, Outs2) :- test_check_constant_aux(1, Outs, Outs2).
+test_check_constant_aux(0, Outs, Outs2) :-
+    Outs = [writeln('test failed(0)') | Outs2].
+test_check_constant_aux(1, Outs, Outs2) :-
+    Outs = [writeln('test success(1)') | Outs2].
 otherwise.
-test_check_constant_aux(_) :- writeln('test failed(otherwise)').
+test_check_constant_aux(_, Outs, Outs2) :-
+    Outs = [writeln('test failed(otherwise)') | Outs2].
 
-test_check_list :- test_check_list_aux([a,b]).
-test_check_list_aux([x,y]) :- writeln('test failed([x,y])').
-test_check_list_aux([a,b]) :- writeln('test success([a,b])').
+test_check_list(Outs, Outs2) :- test_check_list_aux([a,b], Outs, Outs2).
+test_check_list_aux([x,y], Outs, Outs2) :-
+    Outs = [writeln('test failed([x,y])') | Outs2].
+test_check_list_aux([a,b], Outs, Outs2) :-
+    Outs = [writeln('test success([a,b])') | Outs2].
 otherwise.
-test_check_list_aux(_) :- writeln('test failed(otherwise)').
+test_check_list_aux(_, Outs, Outs2) :-
+    Outs = [writeln('test failed(otherwise)') | Outs2].
 
-test_check_nil :- test_check_nil_aux([]).
-test_check_nil_aux([a,b]) :- writeln('test failed([a,b])').
-test_check_nil_aux([]) :- writeln('test success([])').
+test_check_nil(Outs, Outs2) :- test_check_nil_aux([], Outs, Outs2).
+test_check_nil_aux([a,b], Outs, Outs2) :-
+    Outs = [writeln('test failed([a,b])') | Outs2].
+test_check_nil_aux([], Outs, Outs2) :-
+    Outs = [writeln('test success([])') | Outs2].
 otherwise.
-test_check_nil_aux(_) :- writeln('test failed(otherwise)').
+test_check_nil_aux(_, Outs, Outs2) :-
+    Outs = [writeln('test failed(otherwise)') | Outs2].
 
-test_check_structure :- test_check_structure_aux(fun(a,b)).
-test_check_structure_aux(fun(x,y)) :- writeln('test failed(fun(x,y))').
-test_check_structure_aux(fun(a,b)) :- writeln('test success(fun(a,b))').
+test_check_structure(Outs, Outs2) :-
+    test_check_structure_aux(fun(a,b), Outs, Outs2).
+test_check_structure_aux(fun(x,y), Outs, Outs2) :-
+    Outs = [writeln('test failed(fun(x,y))') | Outs2].
+test_check_structure_aux(fun(a,b), Outs, Outs2) :-
+    Outs = [writeln('test success(fun(a,b))') | Outs2].
 otherwise.
-test_check_structure_aux(_) :- writeln('test failed(otherwise)').
+test_check_structure_aux(_, Outs, Outs2) :-
+    Outs = [writeln('test failed(otherwise)') | Outs2].
 
-test_wait_var :- wait_var(X), write_var(X).
-wait_var(X) :- wait(X) | writeln(X).
+test_wait_var(Outs, Outs2) :-
+    wait_var(X, Outs, Outs2), write_var(X).
+wait_var(X, Outs, Outs2) :- wait(X) | Outs = [writeln(X) | Outs2].
 write_var(X) :- X = 'fire'.
 
-test_atom_concat :-
-    test_atom_concat_1,
-    test_atom_concat_2,
-    test_atom_concat_3.
+test_atom_concat(Outs, Outs3) :-
+    test_atom_concat_1(Outs, Outs1),
+    test_atom_concat_2(Outs1, Outs2),
+    test_atom_concat_3(Outs2, Outs3).
 
-test_atom_concat_1 :-
-    atom_concat(abc, def, ABCDEF),
-    write('abc + def = '), write('['), write(ABCDEF), writeln(']').
-test_atom_concat_2 :-
-    atom_concat(abc, DEF, abcdef),
-    write('abc + ['), write(DEF), writeln('] = abcdef').
-test_atom_concat_3 :-
-    atom_concat(ABC, def, abcdef),
-    write('['), write(ABC), writeln('] + def = abcdef').
+test_atom_concat_1(Outs, Outs2) :-
+    atom_concat(abc, def, ABCDEF)
+    ->
+    Outs = [write('abc + def = '), write('['), write(ABCDEF), writeln(']')
+            | Outs2].
+test_atom_concat_2(Outs, Outs2) :-
+    atom_concat(abc, DEF, abcdef)
+    ->
+    Outs = [write('abc + ['), write(DEF), writeln('] = abcdef')
+           | Outs2].
+test_atom_concat_3(Outs, Outs2) :-
+    atom_concat(ABC, def, abcdef)
+    ->
+    Outs = [write('['), write(ABC), writeln('] + def = abcdef')
+           | Outs2].
 
-test_atom_chars :-
-    test_atom_chars1,
-    test_atom_chars2.
-test_atom_chars1 :-
+test_atom_chars(Outs, Outs2) :-
+    test_atom_chars1(Outs, Outs1),
+    test_atom_chars2(Outs1, Outs2).
+test_atom_chars1(Outs, Outs2) :-
     A = 'abcdefgあいうえお漢字☺🍺',
-    atom_chars(A, Cs),
-    write(A), write(' -> '), writeln(Cs).
-test_atom_chars2 :-
+    atom_chars(A, Cs)
+    ->
+    Outs = [write(A), write(' -> '), writeln(Cs) | Outs2].
+test_atom_chars2(Outs, Outs2) :-
     Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    atom_chars(A, Cs),
-    write(A), write(' <- '), writeln(Cs).
+    atom_chars(A, Cs)
+    ->
+    Outs = [write(A), write(' <- '), writeln(Cs) | Outs2].
 
-test_atom_codes :-
-    test_atom_codes1,
-    test_atom_codes2.
-test_atom_codes1 :-
+test_atom_codes(Outs, Outs2) :-
+    test_atom_codes1(Outs, Outs1),
+    test_atom_codes2(Outs1, Outs2).
+test_atom_codes1(Outs, Outs2) :-
     A = 'abcdefgあいうえお漢字☺🍺',
-    atom_codes(A, Cs),
-    write(A), write(' -> '), writeln(Cs).
-test_atom_codes2 :-
+    atom_codes(A, Cs)
+    ->
+    Outs = [write(A), write(' -> '), writeln(Cs) | Outs2].
+test_atom_codes2(Outs, Outs2) :-
     Cs = [97,98,99,100,101,102,103,
           227,129,130,227,129,132,227,129,134,227,129,136,227,129,138,
           230,188,162,229,173,151,
           226,152,186,
           240,159,141,186],
-    atom_codes(A, Cs),
-    write(A), write(' <- '), writeln(Cs).
+    atom_codes(A, Cs)
+    ->
+    Outs = [write(A), write(' <- '), writeln(Cs) | Outs2].
 
-test_append :-
-    test_append1,
-    test_append2,
-    test_append3.
-test_append1 :-
+test_append(Outs, Outs3) :-
+    test_append1(Outs, Outs1),
+    test_append2(Outs1, Outs2),
+    test_append3(Outs2, Outs3).
+test_append1(Outs, Outs2) :-
     Xs = [a, b, c, d, e, f, g],
     Ys = [あ,い,う,え,お,漢,字,☺,🍺],
-    append(Xs, Ys, Zs),
-    write(Xs), write(+), write(Ys), write('=['), write(Zs), writeln(']').
-test_append2 :-
+    append(Xs, Ys, Zs)
+    ->
+    Outs = [write(Xs), write(+), write(Ys), write('=['), write(Zs), writeln(']')
+           | Outs2].
+test_append2(Outs, Outs2) :-
     Xs = [a, b, c, d, e, f, g],
     Zs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    append(Xs, Ys, Zs),
-    write(Xs), write(+), write('['), write(Ys), write(']='), writeln(Zs).
-test_append3 :-
+    append(Xs, Ys, Zs)
+    ->
+    Outs = [write(Xs), write(+), write('['), write(Ys), write(']='), writeln(Zs)
+           | Outs2].
+test_append3(Outs, Outs2) :-
     Ys = [あ,い,う,え,お,漢,字,☺,🍺],
     Zs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    append(Xs, Ys, Zs),
-    write('['), write(Xs), write(']+'), write(Ys), write(=), writeln(Zs).
+    append(Xs, Ys, Zs)
+    ->
+    Outs = [write('['), write(Xs), write(']+'), write(Ys), write(=), writeln(Zs)
+            | Outs2].
 
-test_reverse :-
+test_reverse(Outs, Outs2) :-
     Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    reverse(Cs, Rs),
-    writeln(Rs).
-test_nth0 :-
-    test_nth0_,
-    test_nth0_rev_.
-test_nth0_ :-
+    reverse(Cs, Rs) -> Outs = [writeln(Rs) | Outs2].
+test_nth0(Outs, Outs2) :-
+    test_nth0_(Outs, Outs1),
+    test_nth0_rev_(Outs1, Outs2).
+test_nth0_(Outs, Outs2) :-
     Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    nth0(0, Cs, E0), write(' 0: ['), write(E0),
-    nth0(1, Cs, E1), write('] 1: ['), write(E1),
-    nth0(2, Cs, E2), write('] 2: ['), write(E2),
-    nth0(3, Cs, E3), write('] 3: ['), write(E3),
-    nth0(4, Cs, E4), write('] 4: ['), write(E4),
-    nth0(5, Cs, E5), write('] 5: ['), write(E5), writeln(']').
-test_nth0_rev_ :-
+    nth0(0, Cs, E0),
+    nth0(1, Cs, E1),
+    nth0(2, Cs, E2),
+    nth0(3, Cs, E3),
+    nth0(4, Cs, E4),
+    nth0(5, Cs, E5)
+    ->
+    Outs = [write(' 0: ['), write(E0),
+            write('] 1: ['), write(E1),
+            write('] 2: ['), write(E2),
+            write('] 3: ['), write(E3),
+            write('] 4: ['), write(E4),
+            write('] 5: ['), write(E5), writeln(']')
+            | Outs2].
+test_nth0_rev_(Outs, Outs2) :-
     Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    nth0(N0, Cs, a), write(' ['), write(N0), write(']: a'),
-    nth0(N1, Cs, b), write(' ['), write(N1), write(']: b'),
-    nth0(N2, Cs, c), write(' ['), write(N2), write(']: c'),
-    nth0(N3, Cs, d), write(' ['), write(N3), write(']: d'),
-    nth0(N4, Cs, e), write(' ['), write(N4), write(']: e'),
-    nth0(N5, Cs, f), write(' ['), write(N5), writeln(']: f').
-test_nth1 :-
-    test_nth1_,
-    test_nth1_rev_.
-test_nth1_ :-
+    nth0(N0, Cs, a),
+    nth0(N1, Cs, b),
+    nth0(N2, Cs, c),
+    nth0(N3, Cs, d),
+    nth0(N4, Cs, e),
+    nth0(N5, Cs, f)
+    ->
+    Outs = [write(' ['), write(N0), write(']: a'),
+            write(' ['), write(N1), write(']: b'),
+            write(' ['), write(N2), write(']: c'),
+            write(' ['), write(N3), write(']: d'),
+            write(' ['), write(N4), write(']: e'),
+            write(' ['), write(N5), writeln(']: f')
+            | Outs2].
+test_nth1(Outs, Outs2) :-
+    test_nth1_(Outs, Outs1),
+    test_nth1_rev_(Outs1, Outs2).
+test_nth1_(Outs, Outs2) :-
     Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    nth1(1, Cs, E1), write(' 1: ['), write(E1),
-    nth1(2, Cs, E2), write('] 2: ['), write(E2),
-    nth1(3, Cs, E3), write('] 3: ['), write(E3),
-    nth1(4, Cs, E4), write('] 4: ['), write(E4),
-    nth1(5, Cs, E5), write('] 5: ['), write(E5), writeln(']').
-test_nth1_rev_ :-
+    nth1(1, Cs, E1),
+    nth1(2, Cs, E2),
+    nth1(3, Cs, E3),
+    nth1(4, Cs, E4),
+    nth1(5, Cs, E5)
+    ->
+    Outs = [write(' 1: ['), write(E1),
+            write('] 2: ['), write(E2),
+            write('] 3: ['), write(E3),
+            write('] 4: ['), write(E4),
+            write('] 5: ['), write(E5), writeln(']')
+            | Outs2].
+test_nth1_rev_(Outs, Outs2) :-
     Cs = [a, b, c, d, e, f, g, あ,い,う,え,お,漢,字,☺,🍺],
-    nth1(N1, Cs, a), write(' ['), write(N1), write(']: a'),
-    nth1(N2, Cs, b), write(' ['), write(N2), write(']: b'),
-    nth1(N3, Cs, c), write(' ['), write(N3), write(']: c'),
-    nth1(N4, Cs, d), write(' ['), write(N4), write(']: d'),
-    nth1(N5, Cs, e), write(' ['), write(N5), writeln(']: e').
-
-test_splice_suspension :-
-    test_splice_suspension1(X1),
-    test_splice_suspension1(X2),
-    test_splice_suspension1(X3),
+    nth1(N1, Cs, a),
+    nth1(N2, Cs, b),
+    nth1(N3, Cs, c),
+    nth1(N4, Cs, d),
+    nth1(N5, Cs, e)
+    ->
+    Outs = [write(' ['), write(N1), write(']: a'),
+            write(' ['), write(N2), write(']: b'),
+            write(' ['), write(N3), write(']: c'),
+            write(' ['), write(N4), write(']: d'),
+            write(' ['), write(N5), writeln(']: e')
+            | Outs2].
+test_splice_suspension(Outs, Outs3) :-
+    test_splice_suspension1(X1, Outs, Outs1),
+    test_splice_suspension1(X2, Outs1, Outs2),
+    test_splice_suspension1(X3, Outs2, Outs3),
     X1 = X2,
     X2 = X3,
     dump_to_dot('dump/splice.dot'),
     X1 = 'test_splice_suspension'.
-test_splice_suspension1(X) :- wait(X) | writeln(X).
+test_splice_suspension1(X, Outs, Outs2) :-
+    wait(X) | Outs = [writeln(X) | Outs2].
 
-test_calc :-
-    writeln('xxx0'),
+test_calc(Outs, Outs2) :-
     X2 := X - 2,
-    writeln('xxx1'),
-    writeln(X2 := X - 1),
+    test_calc_report(X2, writeln(X2 := X - 1), Outs, Outs1),
     dump_to_dot('dump/calc.dot'),
     X1 := X + 2,
-    writeln(X1 := X + 1),
-    writeln('xxx'),
+    test_calc_report(X1, writeln(X1 := X + 1), Outs1, Outs2),
     X = 10.
+test_calc_report(X, P, Outs, Outs2) :- wait(X) | Outs = [P | Outs2].
 
-do_test(X) :- write(X) -> writeln(': ') -> time(X).
+% ----------------------------------------------------------------------
+
+do_test(X, Outs, Outs2) :-
+    Outs = [write(X),
+            writeln(': ') | Outs1],
+    call(X, Outs1, Outs2).
 
 main(_) :-
-    do_test(test_call3),
-    do_test(test_otherwise),
-    do_test(test_write_var),
-    do_test(test_write_atom),
-    do_test(test_write_list),
-    do_test(test_write_structure),
-    do_test(test_get_structure),
-    do_test(test_set_structure),
-    do_test(test_get_list),
-    do_test(test_set_list),
-    do_test(test_check_constant),
-    do_test(test_check_list),
-    do_test(test_check_nil),
-    do_test(test_check_structure),
-    do_test(test_wait_var),
-    do_test(test_atom_concat),
-    do_test(test_atom_chars),
-    do_test(test_atom_codes),
-    do_test(test_append),
-    do_test(test_reverse),
-    do_test(test_nth0),
-    do_test(test_nth1),
-    do_test(test_splice_suspension),
-    do_test(test_calc)
-    -> inference_count(Infer),
-       write('total_inferences='), writeln(Infer).
+    outstream(Outs),
+    call((do_test(test_call3),
+          do_test(test_otherwise),
+          do_test(test_write_var),
+          do_test(test_write_atom),
+          do_test(test_write_list),
+          do_test(test_write_structure),
+          do_test(test_get_structure),
+          do_test(test_set_structure),
+          do_test(test_get_list),
+          do_test(test_set_list),
+          do_test(test_check_constant),
+          do_test(test_check_list),
+          do_test(test_check_nil),
+          do_test(test_check_structure),
+          do_test(test_wait_var),
+          do_test(test_atom_concat),
+          do_test(test_atom_chars),
+          do_test(test_atom_codes),
+          do_test(test_append),
+          do_test(test_reverse),
+          do_test(test_nth0),
+          do_test(test_nth1),
+          do_test(test_splice_suspension),
+          do_test(test_calc)), Outs, Out2)
+    -> inference_count(Infer)
+    -> Out2 = [write('total_inferences='), writeln(Infer)].
