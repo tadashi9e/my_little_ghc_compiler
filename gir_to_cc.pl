@@ -185,9 +185,9 @@ translate1(_, otherwise, otherwise).
 translate1(_, trust_me, trust_me).
 translate1(_, activate, activate).
 translate1(_, proceed, proceed).
-translate1(_, seq(Out), seq(Out)).
-translate1(_, par(Out), par(Out)).
-translate1(_, tail(Out), tail(Out)).
+translate1(_, seq(Arity, Out), seq(Arity, Out)).
+translate1(_, par(Arity, Out), par(Arity, Out)).
+translate1(_, tail(Arity, Out), tail(Arity, Out)).
 translate1(_, wait(Ai), wait(A)) :- to_reg(Ai, A).
 translate1(Ctx, check_structure(F / N, Ai), check_structure(atom(AtomID), A)) :-
     append_atom(Ctx, F / N, AtomID), to_reg(Ai, A).

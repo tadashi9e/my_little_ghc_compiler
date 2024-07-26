@@ -1,12 +1,12 @@
 label(qsort/2).
   goal(qsort/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(qsort(Xs,Ys)).
   % guard(true).
   activate.
   % body(qsort(Xs,Ys,[])).
-  tail(4).
+  tail(3,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_nil(reg(out,3)).
@@ -17,29 +17,29 @@ label(qsort/3).
   try_guard_else(label(qsort/3-2)).
   % head(qsort([X|Xs],Ys0,Ys3)).
     check_list(reg(in,1)).
+      read_variable(reg(x,6)).
       read_variable(reg(x,4)).
-      read_variable(reg(x,5)).
   % guard(true).
   activate.
   % body(part(Xs,X,S,L)).
-  par(7).
-    out_value(reg(x,5),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
-    out_variable(reg(x,6),reg(out,3)).
-    out_variable(reg(x,5),reg(out,4)).
+  par(4,7).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(x,6),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
+    out_variable(reg(y,5),reg(out,4)).
     spawn(part/4).
   % body(qsort(S,Ys0,[X|Ys2])).
-  par(7).
-    out_value(reg(x,6),reg(out,1)).
+  par(3,7).
+    out_value(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_list(reg(out,3)).
-      write_value(reg(x,4)).
-      write_variable(reg(x,4)).
+      write_value(reg(x,6)).
+      write_variable(reg(x,6)).
     spawn(qsort/3).
   % body(qsort(L,Ys2,Ys3)).
-  tail(7).
-    out_value(reg(x,5),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
+  tail(3,7).
+    out_value(reg(y,5),reg(out,1)).
+    out_value(reg(x,6),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute(qsort/3).
 label(qsort/3-2).
@@ -60,7 +60,7 @@ label(part/4).
       read_variable(reg(x,6)).
       read_variable(reg(x,5)).
   % guard(A<X).
-  seq(7).
+  seq(2,7).
     out_value(reg(in,2),reg(out,1)).
     out_value(reg(x,6),reg(out,2)).
     call((<)/2).
@@ -70,7 +70,7 @@ label(part/4).
       unify_value(reg(x,6)).
       unify_variable(reg(x,6)).
   % body(part(Xs,A,S,L1)).
-  tail(7).
+  tail(4,7).
     out_value(reg(x,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -83,7 +83,7 @@ label(part/4-2).
       read_variable(reg(x,6)).
       read_variable(reg(x,5)).
   % guard(A>=X).
-  seq(7).
+  seq(2,7).
     out_value(reg(in,2),reg(out,1)).
     out_value(reg(x,6),reg(out,2)).
     call((>=)/2).
@@ -93,7 +93,7 @@ label(part/4-2).
       unify_value(reg(x,6)).
       unify_variable(reg(x,6)).
   % body(part(Xs,A,S1,L)).
-  tail(7).
+  tail(4,7).
     out_value(reg(x,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(x,6),reg(out,3)).
@@ -112,7 +112,7 @@ label(part/4-3).
   proceed.
 label(atom_number_list/2).
   goal(atom_number_list/2).
-  requires(7).
+  requires(8).
   try_guard_else(label(atom_number_list/2-2)).
   % head(atom_number_list([],Ns)).
     check_nil(reg(in,1)).
@@ -125,23 +125,23 @@ label(atom_number_list/2-2).
   try_guard_else_suspend.
   % head(atom_number_list([A|As],Ns)).
     check_list(reg(in,1)).
-      read_variable(reg(x,4)).
       read_variable(reg(x,3)).
+      read_variable(reg(x,4)).
   % guard(true).
   activate.
   % body(atom_number(A,N)).
-  par(5).
-    out_value(reg(x,4),reg(out,1)).
-    out_variable(reg(x,4),reg(out,2)).
+  par(2,5).
+    out_value(reg(x,3),reg(out,1)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(atom_number/2).
   % body(Ns=[N|Ns2]).
     get_list(reg(in,2)).
-      unify_value(reg(x,4)).
-      unify_variable(reg(x,4)).
+      unify_value(reg(y,3)).
+      unify_variable(reg(x,5)).
   % body(atom_number_list(As,Ns2)).
-  tail(5).
-    out_value(reg(x,3),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
+  tail(2,6).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
     execute(atom_number_list/2).
 label(printstream/1).
   goal(printstream/1).
@@ -151,13 +151,13 @@ label(printstream/1).
   % guard(true).
   activate.
   % body(outstream(Stream)).
-  par(3).
-    out_variable(reg(x,2),reg(out,1)).
+  par(1,3).
+    out_variable(reg(y,2),reg(out,1)).
     spawn(outstream/1).
   % body(printstream(Ns,Stream)).
-  tail(3).
+  tail(2,3).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,2),reg(out,2)).
+    out_value(reg(y,2),reg(out,2)).
     execute(printstream/2).
 label(printstream/2).
   goal(printstream/2).
@@ -185,7 +185,7 @@ label(printstream/2-2).
       unify_value(reg(x,4)).
       unify_variable(reg(x,4)).
   % body(printstream_rest(Ns,Stream2)).
-  tail(5).
+  tail(2,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     execute(printstream_rest/2).
@@ -220,7 +220,7 @@ label(printstream_rest/2-2).
       unify_value(reg(x,4)).
       unify_variable(reg(x,4)).
   % body(printstream_rest(Ns,Stream2)).
-  tail(5).
+  tail(2,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     execute(printstream_rest/2).
@@ -235,35 +235,35 @@ label(main/1).
   % guard(true).
   activate.
   % body(atom_number_list(Args,Ns)).
-  par(3).
+  par(2,3).
     out_value(reg(x,2),reg(out,1)).
-    out_variable(reg(x,2),reg(out,2)).
+    out_variable(reg(y,2),reg(out,2)).
     spawn(atom_number_list/2).
   % body(printstream(SortedNs)).
-  par(4).
-    out_variable(reg(x,3),reg(out,1)).
+  par(1,4).
+    out_variable(reg(y,3),reg(out,1)).
     spawn(printstream/1).
   % body(qsort(Ns,SortedNs)).
-  tail(4).
-    out_value(reg(x,2),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  tail(2,4).
+    out_value(reg(y,2),reg(out,1)).
+    out_value(reg(y,3),reg(out,2)).
     execute(qsort/2).
 label(main/1-2).
   otherwise.
   % head(main([Prog])).
     check_list(reg(in,1)).
-      read_variable(reg(x,2)).
+      read_variable(reg(x,4)).
       read_nil.
   % guard(true).
   activate.
   % body(outstream([write(usage: ),write(Prog),write( <Numbers...>),nl])).
-  tail(4).
+  tail(1,5).
     out_list(reg(out,1)).
       write_structure(write/1).
       write_constant('usage: ').
       write_list.
       write_structure(write/1).
-      write_value(reg(x,2)).
+      write_value(reg(x,4)).
       write_list.
       write_structure(write/1).
       write_constant(' <Numbers...>').

@@ -15,11 +15,11 @@ label(call/1).
   % guard(true).
   activate.
   % body(call(G1)).
-  par(4).
+  par(1,4).
     out_value(reg(x,3),reg(out,1)).
     spawn(call/1).
   % body(call(G2)).
-  tail(4).
+  tail(1,4).
     out_value(reg(x,2),reg(out,1)).
     execute(call/1).
 label(call/1-2).
@@ -28,12 +28,12 @@ label(call/1-2).
   % guard(true).
   activate.
   % body(__call__(Goal)).
-  tail(4).
+  tail(1,4).
     out_value(reg(in,1),reg(out,1)).
     execute('__call__'/1).
 label('__call__'/1).
   goal('__call__'/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_wait(reg::in(1));').
   inline('  {').
   inline('    const Q q = vm->in[1];').
@@ -52,7 +52,7 @@ label('__call__'/1).
   inline('        continue;').
   inline('      }').
   inline('      const int arity = atom_arity_of(g);').
-  inline('      MACRO_tail(2);').
+  inline('      MACRO_tail(arity, 2);').
   inline('      for (int i = 1; i <= arity; ++i) {').
   inline('        MACRO_out_constant(structure[i].load(), reg::out(i));').
   inline('      }').
@@ -67,20 +67,20 @@ label(call/3).
   try_guard_else(label(call/3-2)).
   % head(call((G1,G2),U,V)).
     check_structure((',')/2,reg(in,1)).
-      read_variable(reg(x,5)).
       read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
   % guard(true).
   activate.
   % body(call(G1,U,U0)).
-  par(6).
-    out_value(reg(x,5),reg(out,1)).
+  par(3,6).
+    out_value(reg(x,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_variable(reg(y,4),reg(out,3)).
     spawn(call/3).
   % body(call(G2,U0,V)).
-  tail(6).
-    out_value(reg(x,4),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
+  tail(3,6).
+    out_value(reg(x,5),reg(out,1)).
+    out_value(reg(y,4),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute(call/3).
 label(call/3-2).
@@ -89,14 +89,14 @@ label(call/3-2).
   % guard(true).
   activate.
   % body(__call__(Goal,U,V)).
-  tail(6).
+  tail(3,6).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__call__'/3).
 label('__call__'/3).
   goal('__call__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_wait(reg::in(1));').
   inline('  {').
   inline('    const Q q = vm->in[1];').
@@ -108,7 +108,7 @@ label('__call__'/3).
   inline('      const std::string s = atom_str_of(q);').
   inline('      const Q g = to_atom(s.c_str(), 2);').
   inline('      const int pc = prog->query_entry_point(g);').
-  inline('      MACRO_tail(4);').
+  inline('      MACRO_tail(2, 4);').
   inline('      MACRO_out_constant(u, reg::out(1));').
   inline('      MACRO_out_constant(v, reg::out(2));').
   inline('      MACRO_execute(pc, 2);').
@@ -124,7 +124,7 @@ label('__call__'/3).
   inline('        vm->fail();').
   inline('        continue;').
   inline('      }').
-  inline('      MACRO_tail(2);').
+  inline('      MACRO_tail(arity, 2);').
   inline('      for (int i = 1; i <= arity; ++i) {').
   inline('        MACRO_out_constant(structure[i].load(), reg::out(i));').
   inline('      }').
@@ -143,20 +143,20 @@ label(time/1).
   % guard(true).
   activate.
   % body(__time_pre__(Start,InferenceCount,ResumeCount)).
-  seq(5).
-    out_variable(reg(x,2),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+  seq(3,5).
+    out_variable(reg(y,2),reg(out,1)).
+    out_variable(reg(y,3),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
     call('__time_pre__'/3).
   % body(call(Goal)).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(call/1).
   % body(__time_post__(Start,InferenceCount,ResumeCount)).
-  tail(5).
-    out_value(reg(x,2),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_value(reg(x,4),reg(out,3)).
+  tail(3,5).
+    out_value(reg(y,2),reg(out,1)).
+    out_value(reg(y,3),reg(out,2)).
+    out_value(reg(y,4),reg(out,3)).
     execute('__time_post__'/3).
 label(wait_time/1).
   goal(wait_time/1).
@@ -166,17 +166,17 @@ label(wait_time/1).
   % guard(true).
   activate.
   % body(__time_pre__(Start,InferenceCount,ResumeCount)).
-  par(5).
-    out_variable(reg(x,2),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+  par(3,5).
+    out_variable(reg(y,2),reg(out,1)).
+    out_variable(reg(y,3),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
     spawn('__time_pre__'/3).
   % body(__wait_time__(Var,Start,InferenceCount,ResumeCount)).
-  tail(5).
+  tail(4,5).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,2),reg(out,2)).
-    out_value(reg(x,3),reg(out,3)).
-    out_value(reg(x,4),reg(out,4)).
+    out_value(reg(y,2),reg(out,2)).
+    out_value(reg(y,3),reg(out,3)).
+    out_value(reg(y,4),reg(out,4)).
     execute('__wait_time__'/4).
 label('__wait_time__'/4).
   goal('__wait_time__'/4).
@@ -187,14 +187,14 @@ label('__wait_time__'/4).
   wait(reg(in,1)).
   activate.
   % body(__time_post__(Start,InferenceCount,ResumeCount)).
-  tail(6).
+  tail(3,6).
     out_value(reg(in,2),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
     out_value(reg(in,4),reg(out,3)).
     execute('__time_post__'/3).
 label('__time_pre__'/3).
   goal('__time_pre__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);').
@@ -205,7 +205,7 @@ label('__time_pre__'/3).
   inline('  MACRO_proceed;').
 label('__time_post__'/3).
   goal('__time_post__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);').
@@ -224,19 +224,19 @@ label('__time_post__'/3).
   inline('  MACRO_proceed;').
 label(atom_concat/3).
   goal(atom_concat/3).
-  requires(7).
+  requires(8).
   try_guard_else(label(atom_concat/3-2)).
   % head(atom_concat(A,B,C)).
   % guard((atom(A),atom(B))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(atom/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(atom/1).
   activate.
   % body(__atom_concat_1__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -245,15 +245,15 @@ label(atom_concat/3-2).
   try_guard_else(label(atom_concat/3-3)).
   % head(atom_concat(A,B,C)).
   % guard((atom(A),atom(C))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(atom/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,3),reg(out,1)).
     call(atom/1).
   activate.
   % body(__atom_concat_2__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -262,22 +262,22 @@ label(atom_concat/3-3).
   try_guard_else_suspend.
   % head(atom_concat(A,B,C)).
   % guard((atom(B),atom(C))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(atom/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,3),reg(out,1)).
     call(atom/1).
   activate.
   % body(__atom_concat_3__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__atom_concat_3__'/3).
 label('__atom_concat_1__'/3).
   goal('__atom_concat_1__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q1 = vm->in[1];').
@@ -293,7 +293,7 @@ label('__atom_concat_1__'/3).
   inline('  MACRO_proceed;').
 label('__atom_concat_2__'/3).
   goal('__atom_concat_2__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q1 = vm->in[1];').
@@ -318,7 +318,7 @@ label('__atom_concat_2__'/3).
   inline('  MACRO_proceed;').
 label('__atom_concat_3__'/3).
   goal('__atom_concat_3__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q2 = vm->in[2];').
@@ -343,16 +343,16 @@ label('__atom_concat_3__'/3).
   inline('  MACRO_proceed;').
 label(atom_codes/2).
   goal(atom_codes/2).
-  requires(6).
+  requires(7).
   try_guard_else(label(atom_codes/2-2)).
   % head(atom_codes(A,Cs)).
   % guard(atom(A)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(atom/1).
   activate.
   % body(__atom_to_codes__(A,Cs)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__atom_to_codes__'/2).
@@ -365,14 +365,14 @@ label(atom_codes/2-2).
       read_void.
   activate.
   % body(__codes_to_atom__(A,Cs,)).
-  tail(4).
+  tail(3,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_constant('',reg(out,3)).
     execute('__codes_to_atom__'/3).
 label('__atom_to_codes__'/2).
   goal('__atom_to_codes__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q = vm->in[1];').
@@ -407,31 +407,31 @@ label('__codes_to_atom__'/3-2).
   try_guard_else_suspend.
   % head(__codes_to_atom__(A,[C|Cs],Ac)).
     check_list(reg(in,2)).
-      read_variable(reg(x,5)).
       read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
   % guard((integer(C),atom(Ac))).
-  seq(6).
-    out_value(reg(x,5),reg(out,1)).
+  seq(1,6).
+    out_value(reg(x,4),reg(out,1)).
     call(integer/1).
-  seq(6).
+  seq(1,6).
     out_value(reg(in,3),reg(out,1)).
     call(atom/1).
   activate.
   % body(__atom_code_concat__(Ac,C,Ac2)).
-  par(6).
+  par(3,6).
     out_value(reg(in,3),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_value(reg(x,4),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
     spawn('__atom_code_concat__'/3).
   % body(__codes_to_atom__(A,Cs,Ac2)).
-  tail(6).
+  tail(3,6).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
-    out_value(reg(x,5),reg(out,3)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(y,4),reg(out,3)).
     execute('__codes_to_atom__'/3).
 label('__atom_code_concat__'/3).
   goal('__atom_code_concat__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q1 = vm->in[1];').
@@ -450,12 +450,12 @@ label(atom_chars/2).
   try_guard_else(label(atom_chars/2-2)).
   % head(atom_chars(A,Cs)).
   % guard(atom(A)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(atom/1).
   activate.
   % body(__atom_to_chars__(A,Cs)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__atom_to_chars__'/2).
@@ -468,14 +468,14 @@ label(atom_chars/2-2).
   % guard(true).
   activate.
   % body(__chars_to_atom__(A,Cs,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(x,3),reg(out,3)).
     execute('__chars_to_atom__'/3).
 label('__atom_to_chars__'/2).
   goal('__atom_to_chars__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q = vm->in[1];').
@@ -538,37 +538,37 @@ label('__chars_to_atom__'/3-2).
   try_guard_else_suspend.
   % head(__chars_to_atom__(A,[C|Cs],Ac)).
     check_list(reg(in,2)).
-      read_variable(reg(x,5)).
       read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
   % guard(atom(Ac)).
-  seq(6).
+  seq(1,6).
     out_value(reg(in,3),reg(out,1)).
     call(atom/1).
   activate.
   % body(atom_concat(Ac,C,Ac2)).
-  par(6).
+  par(3,6).
     out_value(reg(in,3),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_value(reg(x,4),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
     spawn(atom_concat/3).
   % body(__chars_to_atom__(A,Cs,Ac2)).
-  tail(6).
+  tail(3,6).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
-    out_value(reg(x,5),reg(out,3)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(y,4),reg(out,3)).
     execute('__chars_to_atom__'/3).
 label(atom_number/2).
   goal(atom_number/2).
-  requires(5).
+  requires(6).
   try_guard_else(label(atom_number/2-2)).
   % head(atom_number(A,N)).
   % guard(atom(A)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(atom/1).
   activate.
   % body(__atom_to_number__(A,N)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__atom_to_number__'/2).
@@ -576,18 +576,18 @@ label(atom_number/2-2).
   try_guard_else_suspend.
   % head(atom_number(A,N)).
   % guard(integer(N)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
   % body(__number_to_atom__(A,N)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__number_to_atom__'/2).
 label('__atom_to_number__'/2).
   goal('__atom_to_number__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q = vm->in[1];').
@@ -598,7 +598,7 @@ label('__atom_to_number__'/2).
   inline('  MACRO_proceed;').
 label('__number_to_atom__'/2).
   goal('__number_to_atom__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q = vm->in[2];').
@@ -624,7 +624,7 @@ label(outstream/1-2).
   % guard(true).
   activate.
   % body(outstream(C,Cs)).
-  tail(4).
+  tail(2,4).
     out_value(reg(x,2),reg(out,1)).
     out_value(reg(x,3),reg(out,2)).
     execute(outstream/2).
@@ -640,13 +640,13 @@ label(outstream/2).
   % guard(true).
   activate.
   % body(open(File,Mode,Stream)).
-  par(6).
+  par(3,6).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
     spawn(open/3).
   % body(outstream(Cmds)).
-  tail(6).
+  tail(1,6).
     out_value(reg(in,2),reg(out,1)).
     execute(outstream/1).
 label(outstream/2-2).
@@ -658,12 +658,12 @@ label(outstream/2-2).
   % guard(true).
   activate.
   % body(write(Stream,P)).
-  seq(6).
+  seq(2,6).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     call(write/2).
   % body(outstream(Cmds)).
-  tail(6).
+  tail(1,6).
     out_value(reg(in,2),reg(out,1)).
     execute(outstream/1).
 label(outstream/2-3).
@@ -674,11 +674,11 @@ label(outstream/2-3).
   % guard(true).
   activate.
   % body(write(P)).
-  seq(6).
+  seq(1,6).
     out_value(reg(x,3),reg(out,1)).
     call(write/1).
   % body(outstream(Cmds)).
-  tail(6).
+  tail(1,6).
     out_value(reg(in,2),reg(out,1)).
     execute(outstream/1).
 label(outstream/2-4).
@@ -690,12 +690,12 @@ label(outstream/2-4).
   % guard(true).
   activate.
   % body(writeln(Stream,P)).
-  seq(6).
+  seq(2,6).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     call(writeln/2).
   % body(outstream(Cmds)).
-  tail(6).
+  tail(1,6).
     out_value(reg(in,2),reg(out,1)).
     execute(outstream/1).
 label(outstream/2-5).
@@ -706,11 +706,11 @@ label(outstream/2-5).
   % guard(true).
   activate.
   % body(writeln(P)).
-  seq(6).
+  seq(1,6).
     out_value(reg(x,3),reg(out,1)).
     call(writeln/1).
   % body(outstream(Cmds)).
-  tail(6).
+  tail(1,6).
     out_value(reg(in,2),reg(out,1)).
     execute(outstream/1).
 label(outstream/2-6).
@@ -721,11 +721,11 @@ label(outstream/2-6).
   % guard(true).
   activate.
   % body(nl(Stream)).
-  seq(6).
+  seq(1,6).
     out_value(reg(x,3),reg(out,1)).
     call(nl/1).
   % body(outstream(Cmds)).
-  tail(6).
+  tail(1,6).
     out_value(reg(in,2),reg(out,1)).
     execute(outstream/1).
 label(outstream/2-7).
@@ -735,10 +735,10 @@ label(outstream/2-7).
   % guard(true).
   activate.
   % body(nl).
-  seq(6).
+  seq(0,6).
     call(nl/0).
   % body(outstream(Cmds)).
-  tail(6).
+  tail(1,6).
     out_value(reg(in,2),reg(out,1)).
     execute(outstream/1).
 label(open/3).
@@ -749,38 +749,38 @@ label(open/3).
   % guard(true).
   activate.
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode)).
-  par(6).
+  par(3,6).
     out_value(reg(in,2),reg(out,1)).
-    out_variable(reg(x,4),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_variable(reg(y,4),reg(out,2)).
+    out_variable(reg(y,5),reg(out,3)).
     spawn('__open_opt_string_to_integer__'/3).
   % body(__open__(Src,OFlag,OMode,Stream)).
-  tail(6).
+  tail(4,6).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
-    out_value(reg(x,5),reg(out,3)).
+    out_value(reg(y,4),reg(out,2)).
+    out_value(reg(y,5),reg(out,3)).
     out_value(reg(in,3),reg(out,4)).
     execute('__open__'/4).
 label(close/1).
   goal(close/1).
-  requires(3).
+  requires(4).
   try_guard_else_suspend.
   % head(close(Stream)).
   % guard(true).
   activate.
   % body(__close__(Stream)).
-  tail(3).
+  tail(1,3).
     out_value(reg(in,1),reg(out,1)).
     execute('__close__'/1).
 label('__open_opt_string_to_integer__'/3).
   goal('__open_opt_string_to_integer__'/3).
-  requires(9).
+  requires(11).
   try_guard_else_suspend.
   % head(__open_opt_string_to_integer__(Opts,OFlag,OMode)).
   % guard(true).
   activate.
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,0,0)).
-  tail(5).
+  tail(5,6).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -789,7 +789,7 @@ label('__open_opt_string_to_integer__'/3).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5).
   goal('__open_opt_string_to_integer__'/5).
-  requires(13).
+  requires(27).
   try_guard_else(label('__open_opt_string_to_integer__'/5-2)).
   % head(__open_opt_string_to_integer__([],OFlag,OMode,Ac1,Ac2)).
     check_nil(reg(in,1)).
@@ -809,7 +809,7 @@ label('__open_opt_string_to_integer__'/5-2).
   % guard(true).
   activate.
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac2)).
-  tail(7).
+  tail(5,7).
     out_value(reg(x,6),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -821,20 +821,20 @@ label('__open_opt_string_to_integer__'/5-3).
   % head(__open_opt_string_to_integer__([wronly|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(wronly).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,7)).
   % guard(true).
   activate.
   % body(Ac11:=Ac1+1).
-  par(8).
+  par(2,8).
     out_value(reg(in,4),reg(out,1)).
-    out_variable(reg(x,7),reg(out,2)).
+    out_variable(reg(y,6),reg(out,2)).
     call('__inc__'/2).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,8).
+    out_value(reg(x,7),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(x,7),reg(out,4)).
+    out_value(reg(y,6),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-4).
@@ -842,21 +842,21 @@ label('__open_opt_string_to_integer__'/5-4).
   % head(__open_opt_string_to_integer__([rdwr|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(rdwr).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,8)).
   % guard(true).
   activate.
   % body(Ac11:=Ac1+2).
-  par(8).
+  par(3,9).
     out_value(reg(in,4),reg(out,1)).
     out_constant(2,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,7),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,9).
+    out_value(reg(x,8),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(x,7),reg(out,4)).
+    out_value(reg(y,7),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-5).
@@ -864,21 +864,21 @@ label('__open_opt_string_to_integer__'/5-5).
   % head(__open_opt_string_to_integer__([creat|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(creat).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,9)).
   % guard(true).
   activate.
   % body(Ac11:=Ac1+64).
-  par(8).
+  par(3,10).
     out_value(reg(in,4),reg(out,1)).
     out_constant(64,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,8),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,10).
+    out_value(reg(x,9),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(x,7),reg(out,4)).
+    out_value(reg(y,8),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-6).
@@ -886,21 +886,21 @@ label('__open_opt_string_to_integer__'/5-6).
   % head(__open_opt_string_to_integer__([excl|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(excl).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,10)).
   % guard(true).
   activate.
   % body(Ac11:=Ac1+128).
-  par(8).
+  par(3,11).
     out_value(reg(in,4),reg(out,1)).
     out_constant(128,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,9),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,11).
+    out_value(reg(x,10),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(x,7),reg(out,4)).
+    out_value(reg(y,9),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-7).
@@ -908,21 +908,21 @@ label('__open_opt_string_to_integer__'/5-7).
   % head(__open_opt_string_to_integer__([trunc|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(trunc).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,11)).
   % guard(true).
   activate.
   % body(Ac11:=Ac1+512).
-  par(8).
+  par(3,12).
     out_value(reg(in,4),reg(out,1)).
     out_constant(512,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,10),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,12).
+    out_value(reg(x,11),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(x,7),reg(out,4)).
+    out_value(reg(y,10),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-8).
@@ -930,21 +930,21 @@ label('__open_opt_string_to_integer__'/5-8).
   % head(__open_opt_string_to_integer__([append|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(append).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,12)).
   % guard(true).
   activate.
   % body(Ac11:=Ac1+1024).
-  par(8).
+  par(3,13).
     out_value(reg(in,4),reg(out,1)).
     out_constant(1024,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,11),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac11,Ac2)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,13).
+    out_value(reg(x,12),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(x,7),reg(out,4)).
+    out_value(reg(y,11),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-9).
@@ -952,201 +952,201 @@ label('__open_opt_string_to_integer__'/5-9).
   % head(__open_opt_string_to_integer__([rusr|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(rusr).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,13)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+256).
-  par(8).
+  par(3,14).
     out_value(reg(in,5),reg(out,1)).
     out_constant(256,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,12),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,14).
+    out_value(reg(x,13),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,12),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-10).
   try_guard_else(label('__open_opt_string_to_integer__'/5-11)).
   % head(__open_opt_string_to_integer__([wusr|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(wusr).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,14)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+128).
-  par(8).
+  par(3,15).
     out_value(reg(in,5),reg(out,1)).
     out_constant(128,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,13),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,15).
+    out_value(reg(x,14),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,13),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-11).
   try_guard_else(label('__open_opt_string_to_integer__'/5-12)).
   % head(__open_opt_string_to_integer__([xusr|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(xusr).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,15)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+64).
-  par(8).
+  par(3,16).
     out_value(reg(in,5),reg(out,1)).
     out_constant(64,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,14),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,16).
+    out_value(reg(x,15),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,14),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-12).
   try_guard_else(label('__open_opt_string_to_integer__'/5-13)).
   % head(__open_opt_string_to_integer__([rgrp|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(rgrp).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,16)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+32).
-  par(8).
+  par(3,17).
     out_value(reg(in,5),reg(out,1)).
     out_constant(32,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,15),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,17).
+    out_value(reg(x,16),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,15),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-13).
   try_guard_else(label('__open_opt_string_to_integer__'/5-14)).
   % head(__open_opt_string_to_integer__([wgrp|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(wgrp).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,17)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+16).
-  par(8).
+  par(3,18).
     out_value(reg(in,5),reg(out,1)).
     out_constant(16,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,16),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,18).
+    out_value(reg(x,17),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,16),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-14).
   try_guard_else(label('__open_opt_string_to_integer__'/5-15)).
   % head(__open_opt_string_to_integer__([xgrp|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(xgrp).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,18)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+8).
-  par(8).
+  par(3,19).
     out_value(reg(in,5),reg(out,1)).
     out_constant(8,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,17),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,19).
+    out_value(reg(x,18),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,17),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-15).
   try_guard_else(label('__open_opt_string_to_integer__'/5-16)).
   % head(__open_opt_string_to_integer__([roth|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(roth).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,19)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+4).
-  par(8).
+  par(3,20).
     out_value(reg(in,5),reg(out,1)).
     out_constant(4,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,18),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,20).
+    out_value(reg(x,19),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,18),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-16).
   try_guard_else(label('__open_opt_string_to_integer__'/5-17)).
   % head(__open_opt_string_to_integer__([woth|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(woth).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,20)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+2).
-  par(8).
+  par(3,21).
     out_value(reg(in,5),reg(out,1)).
     out_constant(2,reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_variable(reg(y,19),reg(out,3)).
     call('__add__'/3).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,21).
+    out_value(reg(x,20),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,19),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open_opt_string_to_integer__'/5-17).
   try_guard_else_suspend.
   % head(__open_opt_string_to_integer__([xoth|Opts],OFlag,OMode,Ac1,Ac2)).
     check_list(reg(in,1)).
       read_constant(xoth).
-      read_variable(reg(x,6)).
+      read_variable(reg(x,21)).
   % guard(true).
   activate.
   % body(Ac21:=Ac2+1).
-  par(8).
+  par(2,22).
     out_value(reg(in,5),reg(out,1)).
-    out_variable(reg(x,7),reg(out,2)).
+    out_variable(reg(y,20),reg(out,2)).
     call('__inc__'/2).
   % body(__open_opt_string_to_integer__(Opts,OFlag,OMode,Ac1,Ac21)).
-  tail(8).
-    out_value(reg(x,6),reg(out,1)).
+  tail(5,22).
+    out_value(reg(x,21),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
-    out_value(reg(x,7),reg(out,5)).
+    out_value(reg(y,20),reg(out,5)).
     execute('__open_opt_string_to_integer__'/5).
 label('__open__'/4).
   goal('__open__'/4).
-  requires(9).
+  requires(5).
   inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(3));').
@@ -1171,7 +1171,7 @@ label('__open__'/4).
   inline('  }').
 label(inline/1).
   goal(inline/1).
-  requires(3).
+  requires(2).
   try_guard_else_suspend.
   % head(inline(  MACRO_proceed;)).
     check_constant('  MACRO_proceed;',reg(in,1)).
@@ -1179,7 +1179,7 @@ label(inline/1).
   proceed.
 label('__close__'/1).
   goal('__close__'/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
   inline('  {').
@@ -1189,62 +1189,62 @@ label('__close__'/1).
   inline('  MACRO_proceed;').
 label(writeln/1).
   goal(writeln/1).
-  requires(3).
+  requires(4).
   try_guard_else_suspend.
   % head(writeln(X)).
   % guard(true).
   activate.
   % body(write(X)).
-  seq(3).
+  seq(1,3).
     out_value(reg(in,1),reg(out,1)).
     call(write/1).
   % body(nl).
-  tail(3).
+  tail(0,3).
     execute(nl/0).
 label(writeln/2).
   goal(writeln/2).
-  requires(5).
+  requires(6).
   try_guard_else_suspend.
   % head(writeln(Stream,X)).
   % guard(true).
   activate.
   % body(write(Stream,X)).
-  seq(4).
+  seq(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call(write/2).
   % body(nl(Stream)).
-  tail(4).
+  tail(1,4).
     out_value(reg(in,1),reg(out,1)).
     execute(nl/1).
 label(nl/0).
   goal(nl/0).
-  requires(2).
+  requires(3).
   try_guard_else_suspend.
   % head(nl).
   % guard(true).
   activate.
   % body(nl(1)).
-  tail(2).
+  tail(1,2).
     out_constant(1,reg(out,1)).
     execute(nl/1).
 label(nl/1).
   goal(nl/1).
-  requires(3).
+  requires(4).
   try_guard_else_suspend.
   % head(nl(Stream)).
   % guard(integer(Stream)).
-  seq(3).
+  seq(1,3).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
   activate.
   % body(__nl__(Stream)).
-  tail(3).
+  tail(1,3).
     out_value(reg(in,1),reg(out,1)).
     execute('__nl__'/1).
 label('__nl__'/1).
   goal('__nl__'/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
   inline('  {').
@@ -1262,28 +1262,28 @@ label('__nl__'/1).
   inline('  MACRO_proceed;').
 label(write/1).
   goal(write/1).
-  requires(4).
+  requires(5).
   try_guard_else_suspend.
   % head(write(X)).
   % guard(true).
   activate.
   % body(write(1,X)).
-  tail(3).
+  tail(2,3).
     out_constant(1,reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     execute(write/2).
 label(write/2).
   goal(write/2).
-  requires(5).
+  requires(6).
   try_guard_else_suspend.
   % head(write(Stream,X)).
   % guard(integer(Stream)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
   activate.
   % body(__write__(Stream,X)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__write__'/2).
@@ -1293,12 +1293,12 @@ label('__write__'/2).
   try_guard_else(label('__write__'/2-2)).
   % head(__write__(Stream,X)).
   % guard(atom(X)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,2),reg(out,1)).
     call(atom/1).
   activate.
   % body(__write_atom__(Stream,X)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__write_atom__'/2).
@@ -1306,12 +1306,12 @@ label('__write__'/2-2).
   try_guard_else(label('__write__'/2-3)).
   % head(__write__(Stream,X)).
   % guard(var(X)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,2),reg(out,1)).
     call(var/1).
   activate.
   % body(__write_var__(Stream,X)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__write_var__'/2).
@@ -1319,12 +1319,12 @@ label('__write__'/2-3).
   try_guard_else(label('__write__'/2-4)).
   % head(__write__(Stream,X)).
   % guard(integer(X)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
   % body(__write_number__(Stream,X)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__write_number__'/2).
@@ -1335,7 +1335,7 @@ label('__write__'/2-4).
   % guard(true).
   activate.
   % body(__write__(Stream,[])).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_constant('[]',reg(out,2)).
     execute('__write__'/2).
@@ -1348,22 +1348,22 @@ label('__write__'/2-5).
   % guard(true).
   activate.
   % body(__write__(Stream,[)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_constant('[',reg(out,2)).
     call('__write__'/2).
   % body(__write__(Stream,A)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     call('__write__'/2).
   % body(__write_list_tail__(Stream,B)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,3),reg(out,2)).
     call('__write_list_tail__'/2).
   % body(__write__(Stream,])).
-  tail(5).
+  tail(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_constant(']',reg(out,2)).
     execute('__write__'/2).
@@ -1371,30 +1371,30 @@ label('__write__'/2-6).
   try_guard_else_suspend.
   % head(__write__(Stream,X)).
   % guard(is_functor(X)).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(is_functor/1).
   activate.
   % body(X=..[F|Args]).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,2),reg(out,1)).
     out_list(reg(out,2)).
       write_variable(reg(x,4)).
       write_variable(reg(x,3)).
     call((=..)/2).
   % body(__write__(Stream,F)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     call('__write__'/2).
   % body(__write_functor_args__(Stream,Args)).
-  tail(5).
+  tail(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,3),reg(out,2)).
     execute('__write_functor_args__'/2).
 label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
-  requires(5).
+  requires(6).
   try_guard_else(label('__write_functor_args__'/2-2)).
   % head(__write_functor_args__(_76702,[])).
     check_nil(reg(in,2)).
@@ -1408,17 +1408,17 @@ label('__write_functor_args__'/2-2).
   % guard(true).
   activate.
   % body(__write__(Stream,()).
-  seq(4).
+  seq(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_constant('(',reg(out,2)).
     call('__write__'/2).
   % body(__write_functor_args2__(Stream,X)).
-  seq(4).
+  seq(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call('__write_functor_args2__'/2).
   % body(__write__(Stream,))).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_constant(')',reg(out,2)).
     execute('__write__'/2).
@@ -1441,12 +1441,12 @@ label('__write_functor_args2__'/2-2).
   % guard(true).
   activate.
   % body(__write__(Stream,A)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     call('__write__'/2).
   % body(__write_functor_tail__(Stream,B)).
-  tail(5).
+  tail(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,3),reg(out,2)).
     execute('__write_functor_tail__'/2).
@@ -1469,17 +1469,17 @@ label('__write_functor_tail__'/2-2).
   % guard(true).
   activate.
   % body(__write__(Stream,,)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_constant(',',reg(out,2)).
     call('__write__'/2).
   % body(__write__(Stream,A)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     call('__write__'/2).
   % body(__write_functor_tail__(Stream,B)).
-  tail(5).
+  tail(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,3),reg(out,2)).
     execute('__write_functor_tail__'/2).
@@ -1489,17 +1489,17 @@ label('__write_list_tail__'/2).
   try_guard_else(label('__write_list_tail__'/2-2)).
   % head(__write_list_tail__(Stream,X)).
   % guard(var(X)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,2),reg(out,1)).
     call(var/1).
   activate.
   % body(__write__(Stream,|)).
-  seq(4).
+  seq(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_constant('|',reg(out,2)).
     call('__write__'/2).
   % body(__write__(Stream,X)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__write__'/2).
@@ -1520,17 +1520,17 @@ label('__write_list_tail__'/2-3).
   % guard(true).
   activate.
   % body(__write__(Stream,,)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_constant(',',reg(out,2)).
     call('__write__'/2).
   % body(__write__(Stream,A)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     call('__write__'/2).
   % body(__write_list_tail__(Stream,B)).
-  tail(5).
+  tail(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,3),reg(out,2)).
     execute('__write_list_tail__'/2).
@@ -1540,18 +1540,18 @@ label('__write_list_tail__'/2-4).
   % guard(true).
   activate.
   % body(__write__(Stream,|)).
-  seq(5).
+  seq(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_constant('|',reg(out,2)).
     call('__write__'/2).
   % body(__write__(Stream,X)).
-  tail(5).
+  tail(2,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__write__'/2).
 label('__write_number__'/2).
   goal('__write_number__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q1 = vm->in[1];').
@@ -1570,7 +1570,7 @@ label('__write_number__'/2).
   inline('  MACRO_proceed;').
 label('__write_atom__'/2).
   goal('__write_atom__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q1 = vm->in[1];').
@@ -1588,7 +1588,7 @@ label('__write_atom__'/2).
   inline('  MACRO_proceed;').
 label('__write_var__'/2).
   goal('__write_var__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q1 = vm->in[1];').
@@ -1609,21 +1609,21 @@ label('__write_var__'/2).
   inline('  MACRO_proceed;').
 label(integer/1).
   goal(integer/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_return;').
 label(atom/1).
   goal(atom/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));').
   inline('  MACRO_return;').
 label(var/1).
   goal(var/1).
-  requires(3).
+  requires(2).
   inline('  {').
   inline('    const Q q = vm->in[1] = deref(vm->in[1]);').
   inline('    const TAG_T tag = tag_of(q);').
-  inline('    if (tag != TAG_REF && tag != TAG_SUS) {').
+  inline('    if (tag != TAG_LREF && tag != TAG_REF && tag != TAG_SUS) {').
   inline('      vm->fail();').
   inline('      continue;').
   inline('    }').
@@ -1631,7 +1631,7 @@ label(var/1).
   inline('  MACRO_return;').
 label(is_functor/1).
   goal(is_functor/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_wait_for(TAG_STR, reg::in(1));').
   inline('  {').
   inline('    const Q q = vm->in[1];').
@@ -1644,7 +1644,7 @@ label(is_functor/1).
   inline('  MACRO_return;').
 label((=..)/2).
   goal((=..)/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_STR, reg::in(1));').
   inline('  MACRO_activate;').
   inline('  {').
@@ -1667,7 +1667,7 @@ label((=..)/2).
   inline('  MACRO_proceed;').
 label((==)/2).
   goal((==)/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait(reg::in(1));').
   inline('  MACRO_wait(reg::in(2));').
   inline('  {').
@@ -1680,7 +1680,7 @@ label((==)/2).
   inline('  MACRO_return;').
 label((>=)/2).
   goal((>=)/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  {').
@@ -1693,7 +1693,7 @@ label((>=)/2).
   inline('  MACRO_return;').
 label((=<)/2).
   goal((=<)/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  {').
@@ -1706,7 +1706,7 @@ label((=<)/2).
   inline('  MACRO_return;').
 label((>)/2).
   goal((>)/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  {').
@@ -1719,7 +1719,7 @@ label((>)/2).
   inline('  MACRO_return;').
 label((<)/2).
   goal((<)/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  {').
@@ -1738,19 +1738,19 @@ label((=:=)/2).
   % guard(true).
   activate.
   % body(X1:=X).
-  par(4).
-    out_variable(reg(x,3),reg(out,1)).
+  par(2,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     spawn((:=)/2).
   % body(Y1:=Y).
-  par(5).
-    out_variable(reg(x,4),reg(out,1)).
+  par(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     spawn((:=)/2).
   % body(X1==Y1).
-  tail(5).
-    out_value(reg(x,3),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
+  tail(2,5).
+    out_value(reg(y,3),reg(out,1)).
+    out_value(reg(y,4),reg(out,2)).
     execute((==)/2).
 label((=\=)/2).
   goal((=\=)/2).
@@ -1760,23 +1760,23 @@ label((=\=)/2).
   % guard(true).
   activate.
   % body(X1:=X).
-  par(4).
-    out_variable(reg(x,3),reg(out,1)).
+  par(2,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     spawn((:=)/2).
   % body(Y1:=Y).
-  par(5).
-    out_variable(reg(x,4),reg(out,1)).
+  par(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     spawn((:=)/2).
   % body(__not_equal__(X1,Y1)).
-  tail(5).
-    out_value(reg(x,3),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
+  tail(2,5).
+    out_value(reg(y,3),reg(out,1)).
+    out_value(reg(y,4),reg(out,2)).
     execute('__not_equal__'/2).
 label('__not_equal__'/2).
   goal('__not_equal__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait(reg::in(1));').
   inline('  MACRO_wait(reg::in(2));').
   inline('  {').
@@ -1793,7 +1793,7 @@ label((:=)/2).
   try_guard_else(label((:=)/2-2)).
   % head(Y:=X).
   % guard(integer(X)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
@@ -1809,7 +1809,7 @@ label((:=)/2-2).
   % guard(true).
   activate.
   % body(__add__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
@@ -1823,7 +1823,7 @@ label((:=)/2-3).
   % guard(true).
   activate.
   % body(__sub__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
@@ -1837,7 +1837,7 @@ label((:=)/2-4).
   % guard(true).
   activate.
   % body(__mul__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
@@ -1851,7 +1851,7 @@ label((:=)/2-5).
   % guard(true).
   activate.
   % body(__div__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
@@ -1865,7 +1865,7 @@ label((:=)/2-6).
   % guard(true).
   activate.
   % body(__mod__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
@@ -1878,7 +1878,7 @@ label((:=)/2-7).
   % guard(true).
   activate.
   % body(__neg__(A,C)).
-  tail(5).
+  tail(2,5).
     out_value(reg(x,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     execute('__neg__'/2).
@@ -1888,15 +1888,15 @@ label('__add__'/3).
   try_guard_else(label('__add__'/3-2)).
   % head(__add__(A,B,C)).
   % guard((integer(A),integer(B))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
   % body(__iadd__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -1907,19 +1907,19 @@ label('__add__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(5).
-    out_variable(reg(x,4),reg(out,1)).
+  seq(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(B1:=B).
-  seq(6).
-    out_variable(reg(x,5),reg(out,1)).
+  seq(2,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call((:=)/2).
   % body(__iadd__(A1,B1,C)).
-  tail(6).
-    out_value(reg(x,4),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
+  tail(3,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(y,5),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__iadd__'/3).
 label('__sub__'/3).
@@ -1928,15 +1928,15 @@ label('__sub__'/3).
   try_guard_else(label('__sub__'/3-2)).
   % head(__sub__(A,B,C)).
   % guard((integer(A),integer(B))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
   % body(__isub__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -1947,19 +1947,19 @@ label('__sub__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(5).
-    out_variable(reg(x,4),reg(out,1)).
+  seq(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(B1:=B).
-  seq(6).
-    out_variable(reg(x,5),reg(out,1)).
+  seq(2,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call((:=)/2).
   % body(__isub__(A1,B1,C)).
-  tail(6).
-    out_value(reg(x,4),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
+  tail(3,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(y,5),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__isub__'/3).
 label('__mul__'/3).
@@ -1968,15 +1968,15 @@ label('__mul__'/3).
   try_guard_else(label('__mul__'/3-2)).
   % head(__mul__(A,B,C)).
   % guard((integer(A),integer(B))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
   % body(__imul__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -1987,19 +1987,19 @@ label('__mul__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(5).
-    out_variable(reg(x,4),reg(out,1)).
+  seq(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(B1:=B).
-  seq(6).
-    out_variable(reg(x,5),reg(out,1)).
+  seq(2,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call((:=)/2).
   % body(__imul__(A1,B1,C)).
-  tail(6).
-    out_value(reg(x,4),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
+  tail(3,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(y,5),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__imul__'/3).
 label('__div__'/3).
@@ -2008,15 +2008,15 @@ label('__div__'/3).
   try_guard_else(label('__div__'/3-2)).
   % head(__div__(A,B,C)).
   % guard((integer(A),integer(B))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
   % body(__idiv__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -2027,19 +2027,19 @@ label('__div__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(5).
-    out_variable(reg(x,4),reg(out,1)).
+  seq(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(B1:=B).
-  seq(6).
-    out_variable(reg(x,5),reg(out,1)).
+  seq(2,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call((:=)/2).
   % body(__idiv__(A1,B1,C)).
-  tail(6).
-    out_value(reg(x,4),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
+  tail(3,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(y,5),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__idiv__'/3).
 label('__mod__'/3).
@@ -2048,15 +2048,15 @@ label('__mod__'/3).
   try_guard_else(label('__mod__'/3-2)).
   % head(__mod__(A,B,C)).
   % guard((integer(A),integer(B))).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,2),reg(out,1)).
     call(integer/1).
   activate.
   % body(__imod__(A,B,C)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -2067,19 +2067,19 @@ label('__mod__'/3-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(5).
-    out_variable(reg(x,4),reg(out,1)).
+  seq(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(B1:=B).
-  seq(6).
-    out_variable(reg(x,5),reg(out,1)).
+  seq(2,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call((:=)/2).
   % body(__imod__(A1,B1,C)).
-  tail(6).
-    out_value(reg(x,4),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
+  tail(3,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(y,5),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__imod__'/3).
 label('__neg__'/2).
@@ -2088,12 +2088,12 @@ label('__neg__'/2).
   try_guard_else(label('__neg__'/2-2)).
   % head(__neg__(A,C)).
   % guard(integer(A)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
   activate.
   % body(__ineg__(A,C)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__ineg__'/2).
@@ -2103,18 +2103,18 @@ label('__neg__'/2-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(4).
-    out_variable(reg(x,3),reg(out,1)).
+  seq(2,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(__ineg__(A1,C)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,4).
+    out_value(reg(y,3),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__ineg__'/2).
 label('__ineg__'/2).
   goal('__ineg__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
   inline('  {').
@@ -2124,7 +2124,7 @@ label('__ineg__'/2).
   inline('  MACRO_proceed;').
 label('__iadd__'/3).
   goal('__iadd__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
@@ -2137,7 +2137,7 @@ label('__iadd__'/3).
   inline('  MACRO_proceed;').
 label('__isub__'/3).
   goal('__isub__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
@@ -2150,7 +2150,7 @@ label('__isub__'/3).
   inline('  MACRO_proceed;').
 label('__imul__'/3).
   goal('__imul__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
@@ -2163,7 +2163,7 @@ label('__imul__'/3).
   inline('  MACRO_proceed;').
 label('__idiv__'/3).
   goal('__idiv__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
@@ -2176,7 +2176,7 @@ label('__idiv__'/3).
   inline('  MACRO_proceed;').
 label('__imod__'/3).
   goal('__imod__'/3).
-  requires(7).
+  requires(4).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_wait_for(TAG_INT, reg::in(2));').
   inline('  MACRO_activate;').
@@ -2193,12 +2193,12 @@ label('__inc__'/2).
   try_guard_else(label('__inc__'/2-2)).
   % head(__inc__(A,B)).
   % guard(integer(A)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
   activate.
   % body(__iinc__(A,B)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__iinc__'/2).
@@ -2208,13 +2208,13 @@ label('__inc__'/2-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(4).
-    out_variable(reg(x,3),reg(out,1)).
+  seq(2,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(__iinc__(A1,B)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,4).
+    out_value(reg(y,3),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__iinc__'/2).
 label('__dec__'/2).
@@ -2223,12 +2223,12 @@ label('__dec__'/2).
   try_guard_else(label('__dec__'/2-2)).
   % head(__dec__(A,B)).
   % guard(integer(A)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(integer/1).
   activate.
   % body(__idec__(A,B)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__idec__'/2).
@@ -2238,18 +2238,18 @@ label('__dec__'/2-2).
   % guard(true).
   activate.
   % body(A1:=A).
-  seq(4).
-    out_variable(reg(x,3),reg(out,1)).
+  seq(2,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     call((:=)/2).
   % body(__idec__(A1,B)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,4).
+    out_value(reg(y,3),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__idec__'/2).
 label('__iinc__'/2).
   goal('__iinc__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
   inline('  {').
@@ -2260,7 +2260,7 @@ label('__iinc__'/2).
   inline('  MACRO_proceed;').
 label('__idec__'/2).
   goal('__idec__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_wait_for(TAG_INT, reg::in(1));').
   inline('  MACRO_activate;').
   inline('  {').
@@ -2271,7 +2271,7 @@ label('__idec__'/2).
   inline('  MACRO_proceed;').
 label(append/3).
   goal(append/3).
-  requires(9).
+  requires(10).
   try_guard_else(label(append/3-2)).
   % head(append([],Ys,Zs)).
     check_nil(reg(in,1)).
@@ -2301,7 +2301,7 @@ label(append/3-3).
   % guard(true).
   activate.
   % body(append(Xs,Ys,Zs)).
-  tail(6).
+  tail(3,6).
     out_value(reg(x,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
@@ -2319,7 +2319,7 @@ label(append/3-4).
       unify_value(reg(x,5)).
       unify_variable(reg(x,5)).
   % body(append(Xs,Ys,Zs2)).
-  tail(6).
+  tail(3,6).
     out_value(reg(x,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
@@ -2336,38 +2336,38 @@ label(append/3-5).
       read_void.
   activate.
   % body(reverse(Ys,Yr)).
-  seq(6).
+  seq(2,6).
     out_value(reg(in,2),reg(out,1)).
-    out_variable(reg(x,4),reg(out,2)).
+    out_variable(reg(y,4),reg(out,2)).
     call(reverse/2).
   % body(reverse(Zs,Zr)).
-  seq(6).
+  seq(2,6).
     out_value(reg(in,3),reg(out,1)).
-    out_variable(reg(x,5),reg(out,2)).
+    out_variable(reg(y,5),reg(out,2)).
     call(reverse/2).
   % body(append(Yr,Xr,Zr)).
-  seq(6).
-    out_value(reg(x,4),reg(out,1)).
-    out_variable(reg(x,4),reg(out,2)).
-    out_value(reg(x,5),reg(out,3)).
+  seq(3,7).
+    out_value(reg(y,4),reg(out,1)).
+    out_variable(reg(y,6),reg(out,2)).
+    out_value(reg(y,5),reg(out,3)).
     call(append/3).
   % body(reverse(Xr,Xs)).
-  tail(6).
-    out_value(reg(x,4),reg(out,1)).
+  tail(2,7).
+    out_value(reg(y,6),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     execute(reverse/2).
 label(reverse/2).
   goal(reverse/2).
-  requires(6).
+  requires(7).
   try_guard_else(label(reverse/2-2)).
   % head(reverse(Xs,Ys)).
   % guard(var(Ys)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,2),reg(out,1)).
     call(var/1).
   activate.
   % body(__reverse__(Xs,Ys,[])).
-  tail(4).
+  tail(3,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_nil(reg(out,3)).
@@ -2376,12 +2376,12 @@ label(reverse/2-2).
   try_guard_else_suspend.
   % head(reverse(Xs,Ys)).
   % guard(var(Xs)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(var/1).
   activate.
   % body(__reverse__(Ys,Xs,[])).
-  tail(4).
+  tail(3,4).
     out_value(reg(in,2),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_nil(reg(out,3)).
@@ -2411,23 +2411,23 @@ label('__reverse__'/3-2).
       unify_value(reg(x,6)).
       unify_value(reg(in,3)).
   % body(__reverse__(Xs,Ys,As2)).
-  tail(7).
+  tail(3,7).
     out_value(reg(x,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(x,5),reg(out,3)).
     execute('__reverse__'/3).
 label(nth0/3).
   goal(nth0/3).
-  requires(8).
+  requires(9).
   try_guard_else(label(nth0/3-2)).
   % head(nth0(N,Ls,E)).
   % guard(var(E)).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,3),reg(out,1)).
     call(var/1).
   activate.
   % body(__nth0__(N,Ls,E)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -2436,12 +2436,12 @@ label(nth0/3-2).
   try_guard_else_suspend.
   % head(nth0(N,Ls,E)).
   % guard(var(N)).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(var/1).
   activate.
   % body(__nth0_rev__(N,Ls,E,0)).
-  tail(5).
+  tail(4,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -2466,18 +2466,18 @@ label('__nth0__'/3-2).
   % head(__nth0__(N,[_270282|Ys],E)).
     check_list(reg(in,2)).
       read_void.
-      read_variable(reg(x,4)).
+      read_variable(reg(x,5)).
   % guard(true).
   activate.
   % body(N1:=N-1).
-  par(6).
+  par(2,6).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,5),reg(out,2)).
+    out_variable(reg(y,4),reg(out,2)).
     call('__dec__'/2).
   % body(__nth0__(N1,Ys,E)).
-  tail(6).
-    out_value(reg(x,5),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
+  tail(3,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__nth0__'/3).
 label('__nth0_rev__'/4).
@@ -2498,39 +2498,39 @@ label('__nth0_rev__'/4-2).
   % head(__nth0_rev__(N,[_279714|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
-      read_variable(reg(x,5)).
+      read_variable(reg(x,6)).
   % guard(true).
   activate.
   % body(Ac1:=Ac+1).
-  par(7).
+  par(2,7).
     out_value(reg(in,4),reg(out,1)).
-    out_variable(reg(x,6),reg(out,2)).
+    out_variable(reg(y,5),reg(out,2)).
     call('__inc__'/2).
   % body(__nth0_rev__(N,Ls,E,Ac1)).
-  tail(7).
+  tail(4,7).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(x,6),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(x,6),reg(out,4)).
+    out_value(reg(y,5),reg(out,4)).
     execute('__nth0_rev__'/4).
 label(nth1/3).
   goal(nth1/3).
-  requires(9).
+  requires(10).
   try_guard_else(label(nth1/3-2)).
   % head(nth1(N,Ls,E)).
   % guard(var(E)).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,3),reg(out,1)).
     call(var/1).
   activate.
   % body(N1:=N-1).
-  par(5).
+  par(2,5).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,4),reg(out,2)).
+    out_variable(reg(y,4),reg(out,2)).
     call('__dec__'/2).
   % body(__nth0__(N1,Ls,E)).
-  tail(5).
-    out_value(reg(x,4),reg(out,1)).
+  tail(3,5).
+    out_value(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute('__nth0__'/3).
@@ -2538,36 +2538,36 @@ label(nth1/3-2).
   try_guard_else_suspend.
   % head(nth1(N,Ls,E)).
   % guard(var(N)).
-  seq(5).
+  seq(1,5).
     out_value(reg(in,1),reg(out,1)).
     call(var/1).
   activate.
   % body(__nth0_rev__(N1,Ls,E,0)).
-  par(5).
-    out_variable(reg(x,4),reg(out,1)).
+  par(4,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_constant(0,reg(out,4)).
     spawn('__nth0_rev__'/4).
   % body(N:=N1+1).
-  tail(5).
-    out_value(reg(x,4),reg(out,1)).
+  tail(2,6).
+    out_value(reg(y,5),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     execute('__inc__'/2).
 label(inference_count/1).
   goal(inference_count/1).
-  requires(3).
+  requires(4).
   try_guard_else_suspend.
   % head(inference_count(Count)).
   % guard(true).
   activate.
   % body(__inference_count__(Count)).
-  tail(3).
+  tail(1,3).
     out_value(reg(in,1),reg(out,1)).
     execute('__inference_count__'/1).
 label('__inference_count__'/1).
   goal('__inference_count__'/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_activate;').
   inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1])) {').
   inline('    MACRO_fail;').
@@ -2575,18 +2575,18 @@ label('__inference_count__'/1).
   inline('  MACRO_proceed;').
 label(resume_count/1).
   goal(resume_count/1).
-  requires(3).
+  requires(4).
   try_guard_else_suspend.
   % head(resume_count(Count)).
   % guard(true).
   activate.
   % body(__resume_count__(Count)).
-  tail(3).
+  tail(1,3).
     out_value(reg(in,1),reg(out,1)).
     execute('__resume_count__'/1).
 label('__resume_count__'/1).
   goal('__resume_count__'/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_activate;').
   inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1])) {').
   inline('    MACRO_fail;').
@@ -2594,21 +2594,21 @@ label('__resume_count__'/1).
   inline('  MACRO_proceed;').
 label(dump_to_dot/1).
   goal(dump_to_dot/1).
-  requires(3).
+  requires(4).
   try_guard_else_suspend.
   % head(dump_to_dot(File)).
   % guard(atom(File)).
-  seq(3).
+  seq(1,3).
     out_value(reg(in,1),reg(out,1)).
     call(atom/1).
   activate.
   % body(__dump_to_dot__(File)).
-  tail(3).
+  tail(1,3).
     out_value(reg(in,1),reg(out,1)).
     execute('__dump_to_dot__'/1).
 label('__dump_to_dot__'/1).
   goal('__dump_to_dot__'/1).
-  requires(3).
+  requires(2).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q = vm->in[1];').
@@ -2618,22 +2618,22 @@ label('__dump_to_dot__'/1).
   inline('  MACRO_proceed;').
 label(dump_to_dot/2).
   goal(dump_to_dot/2).
-  requires(5).
+  requires(6).
   try_guard_else_suspend.
   % head(dump_to_dot(File,Var)).
   % guard(atom(File)).
-  seq(4).
+  seq(1,4).
     out_value(reg(in,1),reg(out,1)).
     call(atom/1).
   activate.
   % body(__dump_to_dot__(File,Var)).
-  tail(4).
+  tail(2,4).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute('__dump_to_dot__'/2).
 label('__dump_to_dot__'/2).
   goal('__dump_to_dot__'/2).
-  requires(5).
+  requires(3).
   inline('  MACRO_activate;').
   inline('  {').
   inline('    const Q q1 = vm->in[1];').

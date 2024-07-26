@@ -1,46 +1,46 @@
 label(test_call3/2).
   goal(test_call3/2).
-  requires(8).
+  requires(10).
   try_guard_else_suspend.
   % head(test_call3(Outs,Outs2)).
   % guard(true).
   activate.
   % body(call(test_call3_aux(a),X,A)).
-  par(5).
+  par(3,5).
     out_structure(test_call3_aux/1,reg(out,1)).
       write_constant(a).
-    out_variable(reg(x,3),reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+    out_variable(reg(y,3),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
     spawn(call/3).
   % body(call(test_call3_aux(b),A,B)).
-  par(5).
+  par(3,6).
     out_structure(test_call3_aux/1,reg(out,1)).
       write_constant(b).
-    out_value(reg(x,4),reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+    out_value(reg(y,4),reg(out,2)).
+    out_variable(reg(y,5),reg(out,3)).
     spawn(call/3).
   % body(call(test_call3_aux(c),B,C)).
-  par(5).
+  par(3,7).
     out_structure(test_call3_aux/1,reg(out,1)).
       write_constant(c).
-    out_value(reg(x,4),reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+    out_value(reg(y,5),reg(out,2)).
+    out_variable(reg(y,6),reg(out,3)).
     spawn(call/3).
   % body(call(test_call3_aux,C,[])).
-  par(5).
+  par(3,7).
     out_constant(test_call3_aux,reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
+    out_value(reg(y,6),reg(out,2)).
     out_nil(reg(out,3)).
     spawn(call/3).
   % body(Outs=[writeln(X)|Outs2]).
     get_list(reg(in,1)).
       unify_structure(writeln/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,3)).
       unify_value(reg(in,2)).
   proceed.
 label(test_call3_aux/3).
   goal(test_call3_aux/3).
-  requires(7).
+  requires(4).
   try_guard_else_suspend.
   % head(test_call3_aux(C,U,V)).
   % guard(true).
@@ -52,7 +52,7 @@ label(test_call3_aux/3).
   proceed.
 label(test_call3_aux/2).
   goal(test_call3_aux/2).
-  requires(5).
+  requires(3).
   try_guard_else_suspend.
   % head(test_call3_aux(U,V)).
   % guard(true).
@@ -70,17 +70,17 @@ label(test_otherwise/2).
   % guard(true).
   activate.
   % body(test_otherwise_aux(X,Outs,Outs2)).
-  par(4).
-    out_variable(reg(x,3),reg(out,1)).
+  par(3,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_value(reg(in,2),reg(out,3)).
     spawn(test_otherwise_aux/3).
   % body(X=1).
-    get_constant(1,reg(x,3)).
+    get_constant(1,reg(y,3)).
   proceed.
 label(test_otherwise_aux/3).
   goal(test_otherwise_aux/3).
-  requires(7).
+  requires(4).
   try_guard_else(label(test_otherwise_aux/3-2)).
   % head(test_otherwise_aux(X,Outs,Outs2)).
   % guard(X=0).
@@ -105,7 +105,7 @@ label(test_otherwise_aux/3-2).
   proceed.
 label(test_write_var/2).
   goal(test_write_var/2).
-  requires(6).
+  requires(3).
   try_guard_else_suspend.
   % head(test_write_var(Outs,Outs2)).
   % guard(true).
@@ -118,7 +118,7 @@ label(test_write_var/2).
   proceed.
 label(test_write_atom/2).
   goal(test_write_atom/2).
-  requires(5).
+  requires(3).
   try_guard_else_suspend.
   % head(test_write_atom(Outs,Outs2)).
   % guard(true).
@@ -131,7 +131,7 @@ label(test_write_atom/2).
   proceed.
 label(test_write_list/2).
   goal(test_write_list/2).
-  requires(5).
+  requires(3).
   try_guard_else_suspend.
   % head(test_write_list(Outs,Outs2)).
   % guard(true).
@@ -154,7 +154,7 @@ label(test_write_list/2).
   proceed.
 label(test_write_structure/2).
   goal(test_write_structure/2).
-  requires(5).
+  requires(3).
   try_guard_else_suspend.
   % head(test_write_structure(Outs,Outs2)).
   % guard(true).
@@ -170,7 +170,7 @@ label(test_write_structure/2).
   proceed.
 label(test_get_structure/2).
   goal(test_get_structure/2).
-  requires(6).
+  requires(3).
   try_guard_else_suspend.
   % head(test_get_structure(Outs,Outs2)).
   % guard(true).
@@ -188,7 +188,7 @@ label(test_get_structure/2).
   proceed.
 label(test_set_structure/2).
   goal(test_set_structure/2).
-  requires(7).
+  requires(4).
   try_guard_else_suspend.
   % head(test_set_structure(Outs,Outs2)).
   % guard(true).
@@ -206,7 +206,7 @@ label(test_set_structure/2).
   proceed.
 label(test_get_list/2).
   goal(test_get_list/2).
-  requires(6).
+  requires(3).
   try_guard_else_suspend.
   % head(test_get_list(Outs,Outs2)).
   % guard(true).
@@ -228,7 +228,7 @@ label(test_get_list/2).
   proceed.
 label(test_set_list/2).
   goal(test_set_list/2).
-  requires(7).
+  requires(4).
   try_guard_else_suspend.
   % head(test_set_list(Outs,Outs2)).
   % guard(true).
@@ -250,20 +250,20 @@ label(test_set_list/2).
   proceed.
 label(test_check_constant/2).
   goal(test_check_constant/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(test_check_constant(Outs,Outs2)).
   % guard(true).
   activate.
   % body(test_check_constant_aux(1,Outs,Outs2)).
-  tail(4).
+  tail(3,4).
     out_constant(1,reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_value(reg(in,2),reg(out,3)).
     execute(test_check_constant_aux/3).
 label(test_check_constant_aux/3).
   goal(test_check_constant_aux/3).
-  requires(7).
+  requires(4).
   try_guard_else(label(test_check_constant_aux/3-2)).
   % head(test_check_constant_aux(0,Outs,Outs2)).
     check_constant(0,reg(in,1)).
@@ -300,13 +300,13 @@ label(test_check_constant_aux/3-3).
   proceed.
 label(test_check_list/2).
   goal(test_check_list/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(test_check_list(Outs,Outs2)).
   % guard(true).
   activate.
   % body(test_check_list_aux([a,b],Outs,Outs2)).
-  tail(4).
+  tail(3,4).
     out_list(reg(out,1)).
       write_constant(a).
       write_list.
@@ -317,7 +317,7 @@ label(test_check_list/2).
     execute(test_check_list_aux/3).
 label(test_check_list_aux/3).
   goal(test_check_list_aux/3).
-  requires(7).
+  requires(4).
   try_guard_else(label(test_check_list_aux/3-2)).
   % head(test_check_list_aux([x,y],Outs,Outs2)).
     check_list(reg(in,1)).
@@ -362,20 +362,20 @@ label(test_check_list_aux/3-3).
   proceed.
 label(test_check_nil/2).
   goal(test_check_nil/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(test_check_nil(Outs,Outs2)).
   % guard(true).
   activate.
   % body(test_check_nil_aux([],Outs,Outs2)).
-  tail(4).
+  tail(3,4).
     out_nil(reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_value(reg(in,2),reg(out,3)).
     execute(test_check_nil_aux/3).
 label(test_check_nil_aux/3).
   goal(test_check_nil_aux/3).
-  requires(7).
+  requires(4).
   try_guard_else(label(test_check_nil_aux/3-2)).
   % head(test_check_nil_aux([a,b],Outs,Outs2)).
     check_list(reg(in,1)).
@@ -416,13 +416,13 @@ label(test_check_nil_aux/3-3).
   proceed.
 label(test_check_structure/2).
   goal(test_check_structure/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(test_check_structure(Outs,Outs2)).
   % guard(true).
   activate.
   % body(test_check_structure_aux(fun(a,b),Outs,Outs2)).
-  tail(4).
+  tail(3,4).
     out_structure(fun/2,reg(out,1)).
       write_constant(a).
       write_constant(b).
@@ -431,7 +431,7 @@ label(test_check_structure/2).
     execute(test_check_structure_aux/3).
 label(test_check_structure_aux/3).
   goal(test_check_structure_aux/3).
-  requires(7).
+  requires(4).
   try_guard_else(label(test_check_structure_aux/3-2)).
   % head(test_check_structure_aux(fun(x,y),Outs,Outs2)).
     check_structure(fun/2,reg(in,1)).
@@ -478,18 +478,18 @@ label(test_wait_var/2).
   % guard(true).
   activate.
   % body(wait_var(X,Outs,Outs2)).
-  par(4).
-    out_variable(reg(x,3),reg(out,1)).
+  par(3,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_value(reg(in,2),reg(out,3)).
     spawn(wait_var/3).
   % body(write_var(X)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(1,4).
+    out_value(reg(y,3),reg(out,1)).
     execute(write_var/1).
 label(wait_var/3).
   goal(wait_var/3).
-  requires(7).
+  requires(4).
   try_guard_else_suspend.
   % head(wait_var(X,Outs,Outs2)).
   % guard(wait(X)).
@@ -503,7 +503,7 @@ label(wait_var/3).
   proceed.
 label(write_var/1).
   goal(write_var/1).
-  requires(3).
+  requires(2).
   try_guard_else_suspend.
   % head(write_var(X)).
   % guard(true).
@@ -513,24 +513,24 @@ label(write_var/1).
   proceed.
 label(test_atom_concat/2).
   goal(test_atom_concat/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(test_atom_concat(Outs,Outs3)).
   % guard(true).
   activate.
   % body(test_atom_concat_1(Outs,Outs1)).
-  par(4).
+  par(2,4).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(test_atom_concat_1/2).
   % body(test_atom_concat_2(Outs1,Outs2)).
-  par(4).
-    out_value(reg(x,3),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+  par(2,5).
+    out_value(reg(y,3),reg(out,1)).
+    out_variable(reg(y,4),reg(out,2)).
     spawn(test_atom_concat_2/2).
   % body(test_atom_concat_3(Outs2,Outs3)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,5).
+    out_value(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute(test_atom_concat_3/2).
 label(test_atom_concat_1/2).
@@ -541,10 +541,10 @@ label(test_atom_concat_1/2).
   % guard(true).
   activate.
   % body(atom_concat(abc,def,ABCDEF)).
-  seq(4).
+  seq(3,4).
     out_constant(abc,reg(out,1)).
     out_constant(def,reg(out,2)).
-    out_variable(reg(x,3),reg(out,3)).
+    out_variable(reg(y,3),reg(out,3)).
     call(atom_concat/3).
   % body(Outs=[write(abc + def = ),write([),write(ABCDEF),writeln(])|Outs2]).
     get_list(reg(in,1)).
@@ -555,7 +555,7 @@ label(test_atom_concat_1/2).
       unify_constant('[').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant(']').
@@ -569,9 +569,9 @@ label(test_atom_concat_2/2).
   % guard(true).
   activate.
   % body(atom_concat(abc,DEF,abcdef)).
-  seq(4).
+  seq(3,4).
     out_constant(abc,reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     out_constant(abcdef,reg(out,3)).
     call(atom_concat/3).
   % body(Outs=[write(abc + [),write(DEF),writeln(] = abcdef)|Outs2]).
@@ -580,7 +580,7 @@ label(test_atom_concat_2/2).
       unify_constant('abc + [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant('] = abcdef').
@@ -594,8 +594,8 @@ label(test_atom_concat_3/2).
   % guard(true).
   activate.
   % body(atom_concat(ABC,def,abcdef)).
-  seq(4).
-    out_variable(reg(x,3),reg(out,1)).
+  seq(3,4).
+    out_variable(reg(y,3),reg(out,1)).
     out_constant(def,reg(out,2)).
     out_constant(abcdef,reg(out,3)).
     call(atom_concat/3).
@@ -605,7 +605,7 @@ label(test_atom_concat_3/2).
       unify_constant('[').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant('] + def = abcdef').
@@ -619,13 +619,13 @@ label(test_atom_chars/2).
   % guard(true).
   activate.
   % body(test_atom_chars1(Outs,Outs1)).
-  par(4).
+  par(2,4).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(test_atom_chars1/2).
   % body(test_atom_chars2(Outs1,Outs2)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,4).
+    out_value(reg(y,3),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute(test_atom_chars2/2).
 label(test_atom_chars1/2).
@@ -639,9 +639,9 @@ label(test_atom_chars1/2).
     set_variable(reg(x,4)).
     get_constant('abcdefgあいうえお漢字☺🍺',reg(x,4)).
   % body(atom_chars(A,Cs)).
-  seq(5).
+  seq(2,5).
     out_value(reg(x,4),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     call(atom_chars/2).
   % body(Outs=[write(A),write( -> ),writeln(Cs)|Outs2]).
     get_list(reg(in,1)).
@@ -652,7 +652,7 @@ label(test_atom_chars1/2).
       unify_constant(' -> ').
       unify_list.
       unify_structure(writeln/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,3)).
       unify_value(reg(in,2)).
   proceed.
 label(test_atom_chars2/2).
@@ -663,8 +663,8 @@ label(test_atom_chars2/2).
   % guard(true).
   activate.
   % body(Cs=[a,b,c,d,e,f,g,あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,4)).
+    get_list(reg(x,4)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -698,20 +698,20 @@ label(test_atom_chars2/2).
       unify_constant(🍺).
       unify_nil.
   % body(atom_chars(A,Cs)).
-  seq(5).
-    out_variable(reg(x,4),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(2,5).
+    out_variable(reg(y,3),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
     call(atom_chars/2).
   % body(Outs=[write(A),write( <- ),writeln(Cs)|Outs2]).
     get_list(reg(in,1)).
       unify_structure(write/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant(' <- ').
       unify_list.
       unify_structure(writeln/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(x,4)).
       unify_value(reg(in,2)).
   proceed.
 label(test_atom_codes/2).
@@ -722,13 +722,13 @@ label(test_atom_codes/2).
   % guard(true).
   activate.
   % body(test_atom_codes1(Outs,Outs1)).
-  par(4).
+  par(2,4).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(test_atom_codes1/2).
   % body(test_atom_codes2(Outs1,Outs2)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,4).
+    out_value(reg(y,3),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute(test_atom_codes2/2).
 label(test_atom_codes1/2).
@@ -742,9 +742,9 @@ label(test_atom_codes1/2).
     set_variable(reg(x,4)).
     get_constant('abcdefgあいうえお漢字☺🍺',reg(x,4)).
   % body(atom_codes(A,Cs)).
-  seq(5).
+  seq(2,5).
     out_value(reg(x,4),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     call(atom_codes/2).
   % body(Outs=[write(A),write( -> ),writeln(Cs)|Outs2]).
     get_list(reg(in,1)).
@@ -755,7 +755,7 @@ label(test_atom_codes1/2).
       unify_constant(' -> ').
       unify_list.
       unify_structure(writeln/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,3)).
       unify_value(reg(in,2)).
   proceed.
 label(test_atom_codes2/2).
@@ -766,8 +766,8 @@ label(test_atom_codes2/2).
   % guard(true).
   activate.
   % body(Cs=[97,98,99,100,101,102,103,227,129,130,227,129,132,227,129,134,227,129,136,227,129,138,230,188,162,229,173,151,226,152,186,240,159,141,186]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,4)).
+    get_list(reg(x,4)).
       unify_constant(97).
       unify_list.
       unify_constant(98).
@@ -839,42 +839,42 @@ label(test_atom_codes2/2).
       unify_constant(186).
       unify_nil.
   % body(atom_codes(A,Cs)).
-  seq(5).
-    out_variable(reg(x,4),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(2,5).
+    out_variable(reg(y,3),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
     call(atom_codes/2).
   % body(Outs=[write(A),write( <- ),writeln(Cs)|Outs2]).
     get_list(reg(in,1)).
       unify_structure(write/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant(' <- ').
       unify_list.
       unify_structure(writeln/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(x,4)).
       unify_value(reg(in,2)).
   proceed.
 label(test_append/2).
   goal(test_append/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(test_append(Outs,Outs3)).
   % guard(true).
   activate.
   % body(test_append1(Outs,Outs1)).
-  par(4).
+  par(2,4).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(test_append1/2).
   % body(test_append2(Outs1,Outs2)).
-  par(4).
-    out_value(reg(x,3),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+  par(2,5).
+    out_value(reg(y,3),reg(out,1)).
+    out_variable(reg(y,4),reg(out,2)).
     spawn(test_append2/2).
   % body(test_append3(Outs2,Outs3)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,5).
+    out_value(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute(test_append3/2).
 label(test_append1/2).
@@ -885,8 +885,8 @@ label(test_append1/2).
   % guard(true).
   activate.
   % body(Xs=[a,b,c,d,e,f,g]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,4)).
+    get_list(reg(x,4)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -902,8 +902,8 @@ label(test_append1/2).
       unify_constant(g).
       unify_nil.
   % body(Ys=[あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,4)).
-    get_list(reg(x,4)).
+    set_variable(reg(x,5)).
+    get_list(reg(x,5)).
       unify_constant(あ).
       unify_list.
       unify_constant(い).
@@ -923,27 +923,27 @@ label(test_append1/2).
       unify_constant(🍺).
       unify_nil.
   % body(append(Xs,Ys,Zs)).
-  seq(6).
-    out_value(reg(x,3),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+  seq(3,6).
+    out_value(reg(x,4),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
+    out_variable(reg(y,3),reg(out,3)).
     call(append/3).
   % body(Outs=[write(Xs),write(+),write(Ys),write(=[),write(Zs),writeln(])|Outs2]).
     get_list(reg(in,1)).
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(x,4)).
       unify_list.
       unify_structure(write/1).
       unify_constant(+).
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(x,5)).
       unify_list.
       unify_structure(write/1).
       unify_constant('=[').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,5)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant(']').
@@ -957,8 +957,8 @@ label(test_append2/2).
   % guard(true).
   activate.
   % body(Xs=[a,b,c,d,e,f,g]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,4)).
+    get_list(reg(x,4)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -974,8 +974,8 @@ label(test_append2/2).
       unify_constant(g).
       unify_nil.
   % body(Zs=[a,b,c,d,e,f,g,あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,4)).
-    get_list(reg(x,4)).
+    set_variable(reg(x,5)).
+    get_list(reg(x,5)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -1009,15 +1009,15 @@ label(test_append2/2).
       unify_constant(🍺).
       unify_nil.
   % body(append(Xs,Ys,Zs)).
-  seq(6).
-    out_value(reg(x,3),reg(out,1)).
-    out_variable(reg(x,5),reg(out,2)).
-    out_value(reg(x,4),reg(out,3)).
+  seq(3,6).
+    out_value(reg(x,4),reg(out,1)).
+    out_variable(reg(y,3),reg(out,2)).
+    out_value(reg(x,5),reg(out,3)).
     call(append/3).
   % body(Outs=[write(Xs),write(+),write([),write(Ys),write(]=),writeln(Zs)|Outs2]).
     get_list(reg(in,1)).
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(x,4)).
       unify_list.
       unify_structure(write/1).
       unify_constant(+).
@@ -1026,13 +1026,13 @@ label(test_append2/2).
       unify_constant('[').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,5)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']=').
       unify_list.
       unify_structure(writeln/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(x,5)).
       unify_value(reg(in,2)).
   proceed.
 label(test_append3/2).
@@ -1043,8 +1043,8 @@ label(test_append3/2).
   % guard(true).
   activate.
   % body(Ys=[あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,4)).
+    get_list(reg(x,4)).
       unify_constant(あ).
       unify_list.
       unify_constant(い).
@@ -1064,8 +1064,8 @@ label(test_append3/2).
       unify_constant(🍺).
       unify_nil.
   % body(Zs=[a,b,c,d,e,f,g,あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,4)).
-    get_list(reg(x,4)).
+    set_variable(reg(x,5)).
+    get_list(reg(x,5)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -1099,10 +1099,10 @@ label(test_append3/2).
       unify_constant(🍺).
       unify_nil.
   % body(append(Xs,Ys,Zs)).
-  seq(6).
-    out_variable(reg(x,5),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_value(reg(x,4),reg(out,3)).
+  seq(3,6).
+    out_variable(reg(y,3),reg(out,1)).
+    out_value(reg(x,4),reg(out,2)).
+    out_value(reg(x,5),reg(out,3)).
     call(append/3).
   % body(Outs=[write([),write(Xs),write(]+),write(Ys),write(=),writeln(Zs)|Outs2]).
     get_list(reg(in,1)).
@@ -1110,19 +1110,19 @@ label(test_append3/2).
       unify_constant('[').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,5)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']+').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(x,4)).
       unify_list.
       unify_structure(write/1).
       unify_constant(=).
       unify_list.
       unify_structure(writeln/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(x,5)).
       unify_value(reg(in,2)).
   proceed.
 label(test_reverse/2).
@@ -1168,14 +1168,14 @@ label(test_reverse/2).
       unify_constant(🍺).
       unify_nil.
   % body(reverse(Cs,Rs)).
-  seq(4).
+  seq(2,4).
     out_value(reg(x,3),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     call(reverse/2).
   % body(Outs=[writeln(Rs)|Outs2]).
     get_list(reg(in,1)).
       unify_structure(writeln/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,3)).
       unify_value(reg(in,2)).
   proceed.
 label(test_nth0/2).
@@ -1186,13 +1186,13 @@ label(test_nth0/2).
   % guard(true).
   activate.
   % body(test_nth0_(Outs,Outs1)).
-  par(4).
+  par(2,4).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(test_nth0_/2).
   % body(test_nth0_rev_(Outs1,Outs2)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,4).
+    out_value(reg(y,3),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute(test_nth0_rev_/2).
 label(test_nth0_/2).
@@ -1203,8 +1203,8 @@ label(test_nth0_/2).
   % guard(true).
   activate.
   % body(Cs=[a,b,c,d,e,f,g,あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,8)).
+    get_list(reg(x,8)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -1238,40 +1238,40 @@ label(test_nth0_/2).
       unify_constant(🍺).
       unify_nil.
   % body(nth0(0,Cs,E0)).
-  seq(5).
+  seq(3,9).
     out_constant(0,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+    out_value(reg(x,8),reg(out,2)).
+    out_variable(reg(y,3),reg(out,3)).
     call(nth0/3).
   % body(nth0(1,Cs,E1)).
-  seq(6).
+  seq(3,9).
     out_constant(1,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_value(reg(x,8),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
     call(nth0/3).
   % body(nth0(2,Cs,E2)).
-  seq(7).
+  seq(3,9).
     out_constant(2,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,6),reg(out,3)).
+    out_value(reg(x,8),reg(out,2)).
+    out_variable(reg(y,5),reg(out,3)).
     call(nth0/3).
   % body(nth0(3,Cs,E3)).
-  seq(8).
+  seq(3,9).
     out_constant(3,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_value(reg(x,8),reg(out,2)).
+    out_variable(reg(y,6),reg(out,3)).
     call(nth0/3).
   % body(nth0(4,Cs,E4)).
-  seq(9).
+  seq(3,9).
     out_constant(4,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,8),reg(out,3)).
+    out_value(reg(x,8),reg(out,2)).
+    out_variable(reg(y,7),reg(out,3)).
     call(nth0/3).
   % body(nth0(5,Cs,E5)).
-  seq(9).
+  seq(3,9).
     out_constant(5,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,3),reg(out,3)).
+    out_value(reg(x,8),reg(out,2)).
+    out_variable(reg(y,8),reg(out,3)).
     call(nth0/3).
   % body(Outs=[write( 0: [),write(E0),write(] 1: [),write(E1),write(] 2: [),write(E2),write(] 3: [),write(E3),write(] 4: [),write(E4),write(] 5: [),write(E5),writeln(])|Outs2]).
     get_list(reg(in,1)).
@@ -1279,37 +1279,37 @@ label(test_nth0_/2).
       unify_constant(' 0: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 1: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,5)).
+      unify_value(reg(y,4)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 2: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,6)).
+      unify_value(reg(y,5)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 3: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,7)).
+      unify_value(reg(y,6)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 4: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,8)).
+      unify_value(reg(y,7)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 5: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,8)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant(']').
@@ -1323,8 +1323,8 @@ label(test_nth0_rev_/2).
   % guard(true).
   activate.
   % body(Cs=[a,b,c,d,e,f,g,あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,9)).
+    get_list(reg(x,9)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -1358,39 +1358,39 @@ label(test_nth0_rev_/2).
       unify_constant(🍺).
       unify_nil.
   % body(nth0(N0,Cs,a)).
-  seq(10).
-    out_variable(reg(x,9),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,10).
+    out_variable(reg(y,3),reg(out,1)).
+    out_value(reg(x,9),reg(out,2)).
     out_constant(a,reg(out,3)).
     call(nth0/3).
   % body(nth0(N1,Cs,b)).
-  seq(10).
-    out_variable(reg(x,8),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,10).
+    out_variable(reg(y,4),reg(out,1)).
+    out_value(reg(x,9),reg(out,2)).
     out_constant(b,reg(out,3)).
     call(nth0/3).
   % body(nth0(N2,Cs,c)).
-  seq(10).
-    out_variable(reg(x,7),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,10).
+    out_variable(reg(y,5),reg(out,1)).
+    out_value(reg(x,9),reg(out,2)).
     out_constant(c,reg(out,3)).
     call(nth0/3).
   % body(nth0(N3,Cs,d)).
-  seq(10).
-    out_variable(reg(x,6),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,10).
+    out_variable(reg(y,6),reg(out,1)).
+    out_value(reg(x,9),reg(out,2)).
     out_constant(d,reg(out,3)).
     call(nth0/3).
   % body(nth0(N4,Cs,e)).
-  seq(10).
-    out_variable(reg(x,5),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,10).
+    out_variable(reg(y,7),reg(out,1)).
+    out_value(reg(x,9),reg(out,2)).
     out_constant(e,reg(out,3)).
     call(nth0/3).
   % body(nth0(N5,Cs,f)).
-  seq(10).
-    out_variable(reg(x,4),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,10).
+    out_variable(reg(y,8),reg(out,1)).
+    out_value(reg(x,9),reg(out,2)).
     out_constant(f,reg(out,3)).
     call(nth0/3).
   % body(Outs=[write( [),write(N0),write(]: a),write( [),write(N1),write(]: b),write( [),write(N2),write(]: c),write( [),write(N3),write(]: d),write( [),write(N4),write(]: e),write( [),write(N5),writeln(]: f)|Outs2]).
@@ -1399,7 +1399,7 @@ label(test_nth0_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,9)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: a').
@@ -1408,7 +1408,7 @@ label(test_nth0_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,8)).
+      unify_value(reg(y,4)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: b').
@@ -1417,7 +1417,7 @@ label(test_nth0_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,7)).
+      unify_value(reg(y,5)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: c').
@@ -1426,7 +1426,7 @@ label(test_nth0_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,6)).
+      unify_value(reg(y,6)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: d').
@@ -1435,7 +1435,7 @@ label(test_nth0_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,5)).
+      unify_value(reg(y,7)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: e').
@@ -1444,7 +1444,7 @@ label(test_nth0_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(y,8)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant(']: f').
@@ -1458,13 +1458,13 @@ label(test_nth1/2).
   % guard(true).
   activate.
   % body(test_nth1_(Outs,Outs1)).
-  par(4).
+  par(2,4).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(test_nth1_/2).
   % body(test_nth1_rev_(Outs1,Outs2)).
-  tail(4).
-    out_value(reg(x,3),reg(out,1)).
+  tail(2,4).
+    out_value(reg(y,3),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     execute(test_nth1_rev_/2).
 label(test_nth1_/2).
@@ -1475,8 +1475,8 @@ label(test_nth1_/2).
   % guard(true).
   activate.
   % body(Cs=[a,b,c,d,e,f,g,あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,7)).
+    get_list(reg(x,7)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -1510,34 +1510,34 @@ label(test_nth1_/2).
       unify_constant(🍺).
       unify_nil.
   % body(nth1(1,Cs,E1)).
-  seq(5).
+  seq(3,8).
     out_constant(1,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+    out_value(reg(x,7),reg(out,2)).
+    out_variable(reg(y,3),reg(out,3)).
     call(nth1/3).
   % body(nth1(2,Cs,E2)).
-  seq(6).
+  seq(3,8).
     out_constant(2,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_value(reg(x,7),reg(out,2)).
+    out_variable(reg(y,4),reg(out,3)).
     call(nth1/3).
   % body(nth1(3,Cs,E3)).
-  seq(7).
+  seq(3,8).
     out_constant(3,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,6),reg(out,3)).
+    out_value(reg(x,7),reg(out,2)).
+    out_variable(reg(y,5),reg(out,3)).
     call(nth1/3).
   % body(nth1(4,Cs,E4)).
-  seq(8).
+  seq(3,8).
     out_constant(4,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,7),reg(out,3)).
+    out_value(reg(x,7),reg(out,2)).
+    out_variable(reg(y,6),reg(out,3)).
     call(nth1/3).
   % body(nth1(5,Cs,E5)).
-  seq(8).
+  seq(3,8).
     out_constant(5,reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_variable(reg(x,3),reg(out,3)).
+    out_value(reg(x,7),reg(out,2)).
+    out_variable(reg(y,7),reg(out,3)).
     call(nth1/3).
   % body(Outs=[write( 1: [),write(E1),write(] 2: [),write(E2),write(] 3: [),write(E3),write(] 4: [),write(E4),write(] 5: [),write(E5),writeln(])|Outs2]).
     get_list(reg(in,1)).
@@ -1545,31 +1545,31 @@ label(test_nth1_/2).
       unify_constant(' 1: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 2: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,5)).
+      unify_value(reg(y,4)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 3: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,6)).
+      unify_value(reg(y,5)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 4: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,7)).
+      unify_value(reg(y,6)).
       unify_list.
       unify_structure(write/1).
       unify_constant('] 5: [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,3)).
+      unify_value(reg(y,7)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant(']').
@@ -1583,8 +1583,8 @@ label(test_nth1_rev_/2).
   % guard(true).
   activate.
   % body(Cs=[a,b,c,d,e,f,g,あ,い,う,え,お,漢,字,☺,🍺]).
-    set_variable(reg(x,3)).
-    get_list(reg(x,3)).
+    set_variable(reg(x,8)).
+    get_list(reg(x,8)).
       unify_constant(a).
       unify_list.
       unify_constant(b).
@@ -1618,33 +1618,33 @@ label(test_nth1_rev_/2).
       unify_constant(🍺).
       unify_nil.
   % body(nth1(N1,Cs,a)).
-  seq(9).
-    out_variable(reg(x,8),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,9).
+    out_variable(reg(y,3),reg(out,1)).
+    out_value(reg(x,8),reg(out,2)).
     out_constant(a,reg(out,3)).
     call(nth1/3).
   % body(nth1(N2,Cs,b)).
-  seq(9).
-    out_variable(reg(x,7),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,9).
+    out_variable(reg(y,4),reg(out,1)).
+    out_value(reg(x,8),reg(out,2)).
     out_constant(b,reg(out,3)).
     call(nth1/3).
   % body(nth1(N3,Cs,c)).
-  seq(9).
-    out_variable(reg(x,6),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,9).
+    out_variable(reg(y,5),reg(out,1)).
+    out_value(reg(x,8),reg(out,2)).
     out_constant(c,reg(out,3)).
     call(nth1/3).
   % body(nth1(N4,Cs,d)).
-  seq(9).
-    out_variable(reg(x,5),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,9).
+    out_variable(reg(y,6),reg(out,1)).
+    out_value(reg(x,8),reg(out,2)).
     out_constant(d,reg(out,3)).
     call(nth1/3).
   % body(nth1(N5,Cs,e)).
-  seq(9).
-    out_variable(reg(x,4),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  seq(3,9).
+    out_variable(reg(y,7),reg(out,1)).
+    out_value(reg(x,8),reg(out,2)).
     out_constant(e,reg(out,3)).
     call(nth1/3).
   % body(Outs=[write( [),write(N1),write(]: a),write( [),write(N2),write(]: b),write( [),write(N3),write(]: c),write( [),write(N4),write(]: d),write( [),write(N5),writeln(]: e)|Outs2]).
@@ -1653,7 +1653,7 @@ label(test_nth1_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,8)).
+      unify_value(reg(y,3)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: a').
@@ -1662,7 +1662,7 @@ label(test_nth1_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,7)).
+      unify_value(reg(y,4)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: b').
@@ -1671,7 +1671,7 @@ label(test_nth1_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,6)).
+      unify_value(reg(y,5)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: c').
@@ -1680,7 +1680,7 @@ label(test_nth1_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,5)).
+      unify_value(reg(y,6)).
       unify_list.
       unify_structure(write/1).
       unify_constant(']: d').
@@ -1689,7 +1689,7 @@ label(test_nth1_rev_/2).
       unify_constant(' [').
       unify_list.
       unify_structure(write/1).
-      unify_value(reg(x,4)).
+      unify_value(reg(y,7)).
       unify_list.
       unify_structure(writeln/1).
       unify_constant(']: e').
@@ -1697,43 +1697,43 @@ label(test_nth1_rev_/2).
   proceed.
 label(test_splice_suspension/2).
   goal(test_splice_suspension/2).
-  requires(10).
+  requires(11).
   try_guard_else_suspend.
   % head(test_splice_suspension(Outs,Outs3)).
   % guard(true).
   activate.
   % body(test_splice_suspension1(X1,Outs,Outs1)).
-  par(6).
-    out_variable(reg(x,3),reg(out,1)).
+  par(3,5).
+    out_variable(reg(y,3),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_variable(reg(y,4),reg(out,3)).
     spawn(test_splice_suspension1/3).
   % body(test_splice_suspension1(X2,Outs1,Outs2)).
-  par(7).
-    out_variable(reg(x,4),reg(out,1)).
-    out_value(reg(x,5),reg(out,2)).
-    out_variable(reg(x,6),reg(out,3)).
+  par(3,7).
+    out_variable(reg(y,5),reg(out,1)).
+    out_value(reg(y,4),reg(out,2)).
+    out_variable(reg(y,6),reg(out,3)).
     spawn(test_splice_suspension1/3).
   % body(test_splice_suspension1(X3,Outs2,Outs3)).
-  par(7).
-    out_variable(reg(x,5),reg(out,1)).
-    out_value(reg(x,6),reg(out,2)).
+  par(3,8).
+    out_variable(reg(y,7),reg(out,1)).
+    out_value(reg(y,6),reg(out,2)).
     out_value(reg(in,2),reg(out,3)).
     spawn(test_splice_suspension1/3).
   % body(X1=X2).
-    get_value(reg(x,4),reg(x,3)).
+    get_value(reg(y,5),reg(y,3)).
   % body(X2=X3).
-    get_value(reg(x,5),reg(x,4)).
+    get_value(reg(y,7),reg(y,5)).
   % body(dump_to_dot(dump/splice.dot)).
-  par(7).
+  par(1,8).
     out_constant('dump/splice.dot',reg(out,1)).
     spawn(dump_to_dot/1).
   % body(X1=test_splice_suspension).
-    get_constant(test_splice_suspension,reg(x,3)).
+    get_constant(test_splice_suspension,reg(y,3)).
   proceed.
 label(test_splice_suspension1/3).
   goal(test_splice_suspension1/3).
-  requires(7).
+  requires(4).
   try_guard_else_suspend.
   % head(test_splice_suspension1(X,Outs,Outs2)).
   % guard(wait(X)).
@@ -1747,57 +1747,57 @@ label(test_splice_suspension1/3).
   proceed.
 label(test_calc/2).
   goal(test_calc/2).
-  requires(10).
+  requires(11).
   try_guard_else_suspend.
   % head(test_calc(Outs,Outs2)).
   % guard(true).
   activate.
   % body(X2:=X-2).
-  par(5).
-    out_variable(reg(x,3),reg(out,1)).
+  par(3,5).
+    out_variable(reg(y,3),reg(out,1)).
     out_constant(2,reg(out,2)).
-    out_variable(reg(x,4),reg(out,3)).
+    out_variable(reg(y,4),reg(out,3)).
     call('__sub__'/3).
   % body(test_calc_report(X2,writeln(X2:=X-1),Outs,Outs1)).
-  par(5).
-    out_value(reg(x,4),reg(out,1)).
+  par(4,6).
+    out_value(reg(y,4),reg(out,1)).
     out_structure(writeln/1,reg(out,2)).
       write_structure((:=)/2).
-      write_value(reg(x,4)).
+      write_value(reg(y,4)).
       write_structure((-)/2).
-      write_value(reg(x,3)).
+      write_value(reg(y,3)).
       write_constant(1).
     out_value(reg(in,1),reg(out,3)).
-    out_variable(reg(x,4),reg(out,4)).
+    out_variable(reg(y,5),reg(out,4)).
     spawn(test_calc_report/4).
   % body(dump_to_dot(dump/calc.dot)).
-  par(5).
+  par(1,6).
     out_constant('dump/calc.dot',reg(out,1)).
     spawn(dump_to_dot/1).
   % body(X1:=X+2).
-  par(6).
-    out_value(reg(x,3),reg(out,1)).
+  par(3,7).
+    out_value(reg(y,3),reg(out,1)).
     out_constant(2,reg(out,2)).
-    out_variable(reg(x,5),reg(out,3)).
+    out_variable(reg(y,6),reg(out,3)).
     call('__add__'/3).
   % body(test_calc_report(X1,writeln(X1:=X+1),Outs1,Outs2)).
-  par(6).
-    out_value(reg(x,5),reg(out,1)).
+  par(4,7).
+    out_value(reg(y,6),reg(out,1)).
     out_structure(writeln/1,reg(out,2)).
       write_structure((:=)/2).
-      write_value(reg(x,5)).
+      write_value(reg(y,6)).
       write_structure((+)/2).
-      write_value(reg(x,3)).
+      write_value(reg(y,3)).
       write_constant(1).
-    out_value(reg(x,4),reg(out,3)).
+    out_value(reg(y,5),reg(out,3)).
     out_value(reg(in,2),reg(out,4)).
     spawn(test_calc_report/4).
   % body(X=10).
-    get_constant(10,reg(x,3)).
+    get_constant(10,reg(y,3)).
   proceed.
 label(test_calc_report/4).
   goal(test_calc_report/4).
-  requires(9).
+  requires(5).
   try_guard_else_suspend.
   % head(test_calc_report(X,P,Outs,Outs2)).
   % guard(wait(X)).
@@ -1824,7 +1824,7 @@ label(do_test/3).
       unify_constant(': ').
       unify_variable(reg(x,4)).
   % body(call(X,Outs1,Outs2)).
-  tail(5).
+  tail(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(x,4),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
@@ -1837,11 +1837,11 @@ label(main/1).
   % guard(true).
   activate.
   % body(outstream(Outs)).
-  seq(3).
-    out_variable(reg(x,2),reg(out,1)).
+  seq(1,3).
+    out_variable(reg(y,2),reg(out,1)).
     call(outstream/1).
   % body(call((do_test(test_call3),do_test(test_otherwise),do_test(test_write_var),do_test(test_write_atom),do_test(test_write_list),do_test(test_write_structure),do_test(test_get_structure),do_test(test_set_structure),do_test(test_get_list),do_test(test_set_list),do_test(test_check_constant),do_test(test_check_list),do_test(test_check_nil),do_test(test_check_structure),do_test(test_wait_var),do_test(test_atom_concat),do_test(test_atom_chars),do_test(test_atom_codes),do_test(test_append),do_test(test_reverse),do_test(test_nth0),do_test(test_nth1),do_test(test_splice_suspension),do_test(test_calc)),Outs,Out2)).
-  seq(4).
+  seq(3,4).
     out_structure((',')/2,reg(out,1)).
       write_structure(do_test/1).
       write_constant(test_call3).
@@ -1913,19 +1913,19 @@ label(main/1).
       write_constant(test_splice_suspension).
       write_structure(do_test/1).
       write_constant(test_calc).
-    out_value(reg(x,2),reg(out,2)).
-    out_variable(reg(x,3),reg(out,3)).
+    out_value(reg(y,2),reg(out,2)).
+    out_variable(reg(y,3),reg(out,3)).
     call(call/3).
   % body(inference_count(Infer)).
-  seq(4).
-    out_variable(reg(x,2),reg(out,1)).
+  seq(1,5).
+    out_variable(reg(y,4),reg(out,1)).
     call(inference_count/1).
   % body(Out2=[write(total_inferences=),writeln(Infer)]).
-    get_list(reg(x,3)).
+    get_list(reg(y,3)).
       unify_structure(write/1).
       unify_constant('total_inferences=').
       unify_list.
       unify_structure(writeln/1).
-      unify_value(reg(x,2)).
+      unify_value(reg(y,4)).
       unify_nil.
   proceed.

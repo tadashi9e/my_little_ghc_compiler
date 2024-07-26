@@ -1,6 +1,6 @@
 label(main/1).
   goal(main/1).
-  requires(6).
+  requires(7).
   try_guard_else(label(main/1-2)).
   % head(main([_4182,Arg])).
     check_list(reg(in,1)).
@@ -11,46 +11,46 @@ label(main/1).
   % guard(true).
   activate.
   % body(atom_number(Arg,N)).
-  par(3).
+  par(2,3).
     out_value(reg(x,2),reg(out,1)).
-    out_variable(reg(x,2),reg(out,2)).
+    out_variable(reg(y,2),reg(out,2)).
     spawn(atom_number/2).
   % body(outstream(Os)).
-  par(4).
-    out_variable(reg(x,3),reg(out,1)).
+  par(1,4).
+    out_variable(reg(y,3),reg(out,1)).
     spawn(outstream/1).
   % body(report_results(Os-[],X)).
-  par(4).
+  par(2,5).
     out_structure((-)/2,reg(out,1)).
-      write_value(reg(x,3)).
+      write_value(reg(y,3)).
       write_nil.
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,4),reg(out,2)).
     spawn(report_results/2).
   % body(wait_time(X)).
-  par(4).
-    out_value(reg(x,3),reg(out,1)).
+  par(1,5).
+    out_value(reg(y,4),reg(out,1)).
     spawn(wait_time/1).
   % body(go(N,X)).
-  tail(4).
-    out_value(reg(x,2),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
+  tail(2,5).
+    out_value(reg(y,2),reg(out,1)).
+    out_value(reg(y,4),reg(out,2)).
     execute(go/2).
 label(main/1-2).
   otherwise.
   % head(main([Prog])).
     check_list(reg(in,1)).
-      read_variable(reg(x,2)).
+      read_variable(reg(x,5)).
       read_nil.
   % guard(true).
   activate.
   % body(outstream([write(usage: ),write(Prog),writeln( <N>)])).
-  tail(4).
+  tail(1,6).
     out_list(reg(out,1)).
       write_structure(write/1).
       write_constant('usage: ').
       write_list.
       write_structure(write/1).
-      write_value(reg(x,2)).
+      write_value(reg(x,5)).
       write_list.
       write_structure(writeln/1).
       write_constant(' <N>').
@@ -67,7 +67,7 @@ label(report_results/2).
   % guard(true).
   activate.
   % body(report_results(Os-Os2,X,1)).
-  tail(5).
+  tail(3,5).
     out_structure((-)/2,reg(out,1)).
       write_value(reg(x,3)).
       write_value(reg(x,4)).
@@ -76,41 +76,41 @@ label(report_results/2).
     execute(report_results/3).
 label(report_results/3).
   goal(report_results/3).
-  requires(11).
+  requires(12).
   try_guard_else_suspend.
   % head(report_results(Os-Os2,[X|Xs],N)).
     check_structure((-)/2,reg(in,1)).
-      read_variable(reg(x,6)).
       read_variable(reg(x,4)).
-    check_list(reg(in,2)).
-      read_variable(reg(x,7)).
       read_variable(reg(x,5)).
+    check_list(reg(in,2)).
+      read_variable(reg(x,8)).
+      read_variable(reg(x,6)).
   % guard(true).
   activate.
   % body(report1(Os-Os1,X,N)).
-  par(8).
+  par(3,9).
     out_structure((-)/2,reg(out,1)).
-      write_value(reg(x,6)).
-      write_variable(reg(x,6)).
-    out_value(reg(x,7),reg(out,2)).
+      write_value(reg(x,4)).
+      write_variable(reg(x,7)).
+    out_value(reg(x,8),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     spawn(report1/3).
   % body(N1:=N+1).
-  par(8).
+  par(2,9).
     out_value(reg(in,3),reg(out,1)).
-    out_variable(reg(x,7),reg(out,2)).
+    out_variable(reg(y,4),reg(out,2)).
     call('__inc__'/2).
   % body(report_results(Os1-Os2,Xs,N1)).
-  tail(8).
+  tail(3,9).
     out_structure((-)/2,reg(out,1)).
-      write_value(reg(x,6)).
-      write_value(reg(x,4)).
-    out_value(reg(x,5),reg(out,2)).
-    out_value(reg(x,7),reg(out,3)).
+      write_value(reg(x,7)).
+      write_value(reg(x,5)).
+    out_value(reg(x,6),reg(out,2)).
+    out_value(reg(y,4),reg(out,3)).
     execute(report_results/3).
 label(report1/3).
   goal(report1/3).
-  requires(9).
+  requires(5).
   try_guard_else_suspend.
   % head(report1(Os-Os2,X,N)).
     check_structure((-)/2,reg(in,1)).
@@ -132,13 +132,13 @@ label(report1/3).
   proceed.
 label(go/2).
   goal(go/2).
-  requires(9).
+  requires(13).
   try_guard_else_suspend.
   % head(go(N,X)).
   % guard(true).
   activate.
   % body(move(N,left,center,right,X,[])).
-  tail(4).
+  tail(6,7).
     out_value(reg(in,1),reg(out,1)).
     out_constant(left,reg(out,2)).
     out_constant(center,reg(out,3)).
@@ -161,19 +161,19 @@ label(move/6-2).
   try_guard_else_suspend.
   % head(move(N,A,B,C,O1,O4)).
   % guard(N>0).
-  seq(8).
+  seq(2,8).
     out_value(reg(in,1),reg(out,1)).
     out_constant(0,reg(out,2)).
     call((>)/2).
   activate.
   % body(M:=N-1).
-  par(8).
+  par(2,8).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,7),reg(out,2)).
+    out_variable(reg(y,7),reg(out,2)).
     call('__dec__'/2).
   % body(move(M,A,C,B,O1,[m(A,B)|O3])).
-  par(9).
-    out_value(reg(x,7),reg(out,1)).
+  par(6,9).
+    out_value(reg(y,7),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,4),reg(out,3)).
     out_value(reg(in,3),reg(out,4)).
@@ -185,8 +185,8 @@ label(move/6-2).
       write_variable(reg(x,8)).
     spawn(move/6).
   % body(move(M,C,B,A,O3,O4)).
-  tail(9).
-    out_value(reg(x,7),reg(out,1)).
+  tail(6,9).
+    out_value(reg(y,7),reg(out,1)).
     out_value(reg(in,4),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     out_value(reg(in,2),reg(out,4)).

@@ -141,19 +141,27 @@ ghc_compile_goals([Goal|Goals], Source, OStream, VarKvs) :-
         ( ghc_compile_inline(Ctx, Goal, GoalSource)
         ; ghc_compile_goal_pred(Ctx, [], Goal, GoalSource) )),
     assign_labels(Ctx),
+    max_register_index(Ctx, in, MaxReg_in),
+    max_register_index(Ctx, y, MaxReg_y),
     max_register_index(Ctx, x, MaxReg_x),
-    max_register_index(Ctx, out, MaxReg_out),
-    MaxReg is MaxReg_x + MaxReg_out + 1,
+    max_seq_par_tail(Ctx, MaxSeqParTail),
+    max([MaxReg_in, MaxReg_y, MaxReg_x, MaxSeqParTail], MaxReg),
     get(Ctx, max_reg, MaxReg),
     flush_source(Ctx, OStream),
     always_success(ghc_compile_goals(Goals, Source, OStream, VarKvs)).
+
+max(List, Max) :- max_aux(List, Max, 0).
+max_aux([], Max, Max).
+max_aux([N|Ns], Max, Ac) :-
+    ( N > Ac -> max_aux(Ns, Max, N)
+    ; max_aux(Ns, Max, Ac) ).
 
 %% write_goal_entry_point(?Ctx, +Goal)
 % Ctx に ghc_source の値として格納しているコンパイルコードに
 % ゴール先頭部分のコードを追加する。
 % 1. ゴール処理開始位置ラベル: label(ゴール名 / アリティ)
 % 2. 実行トレース用情報: goal(ゴール名 / アリティ)
-% 3. 消費レジスタサイズヒント: requires(最大使用レジスタ数)
+% 3. 消費レジスタサイズ: requires(最大使用レジスタ数)
 write_goal_entry_point(Ctx, goal(G, N)) :-
     % ジャンプ先として指定できるようにラベルを設定
     write_source(Ctx, label(G / N)),
@@ -299,9 +307,9 @@ ghc_out(Ctx, reg(out, Nreg), X) :-
         ->
         Op =.. [out_value, reg(R, N), reg(out, Nreg)],
         write_source(Ctx, Op)
-      ; put(Ctx, X, reg(x, N))
+      ; put(Ctx, X, reg(y, N))
         ->
-        Op =.. [out_variable, reg(x, N), reg(out, Nreg)],
+        Op =.. [out_variable, reg(y, N), reg(out, Nreg)],
         write_source(Ctx, Op) )
     ; X = []
       ->
@@ -464,49 +472,57 @@ ghc_get(Ctx, reg(Reg, Nreg), X,
 % サブゴール Goal の呼び出し処理をコンパイルする。
 ghc_compile_call(Ctx, SeqPar, C := Q) :-  % 数式演算の最適化
     nonvar(Q),
-    ( SeqPar = seq -> write_source(Ctx, seq(_))
-    ; SeqPar = par -> write_source(Ctx, par(_))
-    ; SeqPar = tail -> write_source(Ctx, tail(_)) ),
+    ( SeqPar = seq -> write_source(Ctx, seq(Arity, _))
+    ; SeqPar = par -> write_source(Ctx, par(Arity, _))
+    ; SeqPar = tail -> write_source(Ctx, tail(Arity, _)) ),
     ( Q = A + B, B == 1 ->
       ghc_call_args(Ctx, [A, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__inc__'/2))
       ; SeqPar = par -> write_source(Ctx, call('__inc__'/2))
-      ; SeqPar = tail -> write_source(Ctx, execute('__inc__'/2)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__inc__'/2)) ),
+      Arity = 2
     ; Q = A - B, B == 1 ->
       ghc_call_args(Ctx, [A, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__dec__'/2))
       ; SeqPar = par -> write_source(Ctx, call('__dec__'/2))
-      ; SeqPar = tail -> write_source(Ctx, execute('__dec__'/2)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__dec__'/2)) ),
+      Arity = 2
     ; Q = A + B ->
       ghc_call_args(Ctx, [A, B, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__add__'/3))
       ; SeqPar = par -> write_source(Ctx, call('__add__'/3))
-      ; SeqPar = tail -> write_source(Ctx, execute('__add__'/3)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__add__'/3)) ),
+      Arity = 3
     ; Q = A - B ->
       ghc_call_args(Ctx, [A, B, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__sub__'/3))
       ; SeqPar = par -> write_source(Ctx, call('__sub__'/3))
-      ; SeqPar = tail -> write_source(Ctx, execute('__sub__'/3)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__sub__'/3)) ),
+      Arity = 3
     ; Q = A * B ->
       ghc_call_args(Ctx, [A, B, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__mul__'/3))
       ; SeqPar = par -> write_source(Ctx, call('__mul__'/3))
-      ; SeqPar = tail -> write_source(Ctx, execute('__mul__'/3)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__mul__'/3)) ),
+      Arity = 3
     ; Q = A / B ->
       ghc_call_args(Ctx, [A, B, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__div__'/3))
       ; SeqPar = par -> write_source(Ctx, call('__div__'/3))
-      ; SeqPar = tail -> write_source(Ctx, execute('__div__'/3)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__div__'/3)) ),
+      Arity = 3
     ; Q = A mod B ->
       ghc_call_args(Ctx, [A, B, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__mod__'/3))
       ; SeqPar = par -> write_source(Ctx, call('__mod__'/3))
-      ; SeqPar = tail -> write_source(Ctx, execute('__mod__'/3)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__mod__'/3)) ),
+      Arity = 3
     ; Q = -A ->
       ghc_call_args(Ctx, [A, C], 1),
       ( SeqPar = seq -> write_source(Ctx, call('__neg__'/2))
       ; SeqPar = par -> write_source(Ctx, call('__neg__'/2))
-      ; SeqPar = tail -> write_source(Ctx, execute('__neg__'/2)) )
+      ; SeqPar = tail -> write_source(Ctx, execute('__neg__'/2)) ),
+      Arity = 2
     ).
 ghc_compile_call(Ctx, SeqPar, C =:= Q) :-  % 数式演算の最適化
     nonvar(Q),
@@ -517,9 +533,9 @@ ghc_compile_call(Ctx, SeqPar, C =\= Q) :-  % 数式演算の最適化
     ghc_compile_call(Ctx, seq, T := Q),
     ghc_compile_call(Ctx, SeqPar, C =\= T).
 ghc_compile_call(Ctx, SeqPar, Goal) :-
-    ( SeqPar = seq -> write_source(Ctx, seq(_))
-    ; SeqPar = par -> write_source(Ctx, par(_))
-    ; SeqPar = tail -> write_source(Ctx, tail(_)) ),
+    ( SeqPar = seq -> write_source(Ctx, seq(Nf, _))
+    ; SeqPar = par -> write_source(Ctx, par(Nf, _))
+    ; SeqPar = tail -> write_source(Ctx, tail(Nf, _)) ),
     functor(Goal, F, Nf), Goal =.. [_|Args],
     ghc_call_args(Ctx, Args, 1),
     ( SeqPar = seq -> write_source(Ctx, call(F / Nf))
@@ -615,31 +631,35 @@ allocate_registers(Ctx, N) :-
     always_success(allocate_registers_out(Ctx, N1)).
 
 allocate_registers_x(Ctx, Source, Vn, Vn2) :-
-    always_success(correct_x_vars(Ctx, Source, VarsKvs)),
+    always_success(correct_xy_vars(Ctx, Source, VarsKvs)),
     always_success(allocate_vars(VarsKvs, Vn, Vn2)).
 
-correct_x_vars(Ctx, Source, VarsKvs) :-
+correct_xy_vars(Ctx, Source, VarsKvs) :-
     create(VarsKvs),
-    correct_x_vars(Ctx, Source, 0, VarsKvs).
-correct_x_vars(_, [], _, _) :- !.
-correct_x_vars(Ctx, [S|Ss], N, Vars) :-
+    correct_xy_vars(Ctx, Source, 0, VarsKvs).
+correct_xy_vars(_, [], _, _) :- !.
+correct_xy_vars(Ctx, [S|Ss], N, Vars) :-
     N1 is N + 1,
-    ( var(S) -> correct_x_vars(Ctx, Ss, N1, Vars) 
-    ; correct_x_vars_in_term(Ctx, S, N1, Vars),
-      correct_x_vars(Ctx, Ss, N1, Vars) ).
-correct_x_vars_in_term(_, S, _, _) :-
+    ( var(S) -> correct_xy_vars(Ctx, Ss, N1, Vars) 
+    ; correct_xy_vars_in_term(Ctx, S, N1, Vars),
+      correct_xy_vars(Ctx, Ss, N1, Vars) ).
+correct_xy_vars_in_term(_, S, _, _) :-
     var(S), !.
-correct_x_vars_in_term(_, reg(x, NReg), N, Vars) :- !,
+correct_xy_vars_in_term(_, reg(x, NReg), N, Vars) :- !,
     ( get(Vars, NReg, (Start, _)) ->
       put(Vars, NReg, (Start, N))
     ; put(Vars, NReg, (N, N)) ) .
-correct_x_vars_in_term(_, [], _, _) :- !.
-correct_x_vars_in_term(Ctx, [S|Ss], N, Vars) :- !,
-    correct_x_vars_in_term(Ctx, S, N, Vars),
-    correct_x_vars_in_term(Ctx, Ss, N, Vars).
-correct_x_vars_in_term(Ctx, S, N, Vars) :-
+correct_xy_vars_in_term(_, reg(y, NReg), N, Vars) :- !,
+    ( get(Vars, NReg, (Start, _)) ->
+      put(Vars, NReg, (Start, 99999))
+    ; put(Vars, NReg, (N, 99999)) ) .
+correct_xy_vars_in_term(_, [], _, _) :- !.
+correct_xy_vars_in_term(Ctx, [S|Ss], N, Vars) :- !,
+    correct_xy_vars_in_term(Ctx, S, N, Vars),
+    correct_xy_vars_in_term(Ctx, Ss, N, Vars).
+correct_xy_vars_in_term(Ctx, S, N, Vars) :-
     S =.. [_|Args], !,
-    correct_x_vars_in_term(Ctx, Args, N, Vars).
+    correct_xy_vars_in_term(Ctx, Args, N, Vars).
 
 allocate_vars(VarsKvs, Vn, Vn2) :-
     gc(VarsKvs, VarsKvs1),
@@ -679,7 +699,7 @@ assign_vars_list(VarsList, Vn, Vn2) :-
 assign_vars_list([], _, _, Vmax, Vmax) :- !.
 assign_vars_list([Var|Vs], AllVars, Vmin, Vmax, Ac) :-
     always_success(assign_single_var(Var, AllVars, Vmin, Vn)),
-    max(Vn, Ac, Ac2),
+    max([Vn, Ac], Ac2),
     always_success(assign_vars_list(Vs, AllVars, Vmin, Vmax, Ac2)).
 
 assign_single_var(Var, AllVars, Vmin, Vmax) :-
@@ -712,8 +732,6 @@ overwrap(S, E, S2, _) :- S =< S2, S2 =< E.
 overwrap(S, E, _, E2) :- S =< E2, E2 =< E.
 overwrap(S, _, S2, E2) :- S2 =< S, S =< E2.
 overwrap(_, E, S2, E2) :- S2 =< E, E =< E2.
-max(I, J, J) :- I =< J, !.
-max(I, _, I).
 
 % out レジスタ位置を割り当てる。
 % call 実行までに使用しているレジスタを除外したうえで
@@ -723,20 +741,20 @@ allocate_registers_out(Ctx, N) :-
     allocate_registers_out(Ctx, Source, N, _).
 allocate_registers_out(_, [], Vn, Vn) :- !.
 allocate_registers_out(Ctx, [S|Ss], N, Vn) :-
-    ( S = seq(Out)
+    ( S = seq(_, Out)
       ->
       always_success(allocate_registers_out(Ctx, Ss, N, Out))
-    ; S = par(Out)
+    ; S = par(_, Out)
       ->
       always_success(allocate_registers_out(Ctx, Ss, N, Out))
-    ; S = tail(Out)
+    ; S = tail(_, Out)
       ->
       always_success(allocate_registers_out(Ctx, Ss, N, Out))
     ; ( S =.. [call|_] ; S =.. [spawn|_] ; S =.. [execute|_] )
       ->
       Vn is N + 1,
       always_success(allocate_registers_out(Ctx, Ss, N, _))
-    ; always_success(find_used_registers(Ctx, S, x, N, N1)),
+    ; always_success(find_used_registers(Ctx, S, _, N, N1)),
       always_success(allocate_registers_out(Ctx, Ss, N1, Vn) )).
     
 %% max_register_index(+Ctx, +Type, -Max)
@@ -744,8 +762,9 @@ allocate_registers_out(Ctx, [S|Ss], N, Vn) :-
 % Max に返す。
 % コンパイルコードは Ctx に ghc_source の値として格納されている。
 max_register_index(Ctx, Type, Max) :-
-    get(Ctx, goal, goal(_, Min)),
+    get(Ctx, goal, goal(_, Min0)),
     get(Ctx, ghc_source, Source),
+    Min is Min0 + 1,
     max_register_index(Ctx, Source, Type, Min, Max).
 max_register_index(_, [], _, Max, Max) :- !.
 max_register_index(Ctx, [S|Ss], Type, N, Max) :-
@@ -771,6 +790,29 @@ find_used_registers(Ctx, A, Type, N, N1) :-
     ; A =.. [_|As]
     ->
       find_used_registers(Ctx, As, Type, N, N1) ).
+
+%% max_seq_par_tail(+Ctx, -Max)
+max_seq_par_tail(Ctx, Max) :-
+    get(Ctx, ghc_source, Source),
+    max_seq_par_tail_aux(Source, Max, 0).
+max_seq_par_tail_aux([], Max, Max).
+max_seq_par_tail_aux([seq(Arity, Seq)|Ss], Max, Ac) :-
+    !,
+    SeqArity is Seq + Arity,
+    ( SeqArity < Ac -> max_seq_par_tail_aux(Ss, Max, Ac)
+    ; max_seq_par_tail_aux(Ss, Max, SeqArity) ).
+max_seq_par_tail_aux([par(Arity, Par)|Ss], Max, Ac) :-
+    !,
+    ParArity is Par + Arity,
+    ( ParArity < Ac -> max_seq_par_tail_aux(Ss, Max, Ac)
+    ; max_seq_par_tail_aux(Ss, Max, ParArity) ).
+max_seq_par_tail_aux([tail(Arity, Tail)|Ss], Max, Ac) :-
+    !,
+    TailArity is Tail + Arity,
+    ( TailArity < Ac -> max_seq_par_tail_aux(Ss, Max, Ac)
+    ; max_seq_par_tail_aux(Ss, Max, TailArity) ).
+max_seq_par_tail_aux([_|Ss], Max, Ac) :-
+    !, max_seq_par_tail_aux(Ss, Max, Ac).
 
 %% assign_labels(?Ctx)
 % Ctx に ghc_source の値として格納されているコンパイルコード上の

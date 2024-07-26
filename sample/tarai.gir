@@ -1,10 +1,10 @@
 label(tarai/4).
   goal(tarai/4).
-  requires(12).
+  requires(15).
   try_guard_else(label(tarai/4-2)).
   % head(tarai(X,Y,_116,R)).
   % guard(X=<Y).
-  seq(6).
+  seq(2,6).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call((=<)/2).
@@ -18,58 +18,58 @@ label(tarai/4-2).
   % guard(true).
   activate.
   % body(X_1:=X-1).
-  par(6).
+  par(2,6).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(x,5),reg(out,2)).
+    out_variable(reg(y,5),reg(out,2)).
     call('__dec__'/2).
   % body(tarai(X_1,Y,Z,R_X)).
-  par(6).
-    out_value(reg(x,5),reg(out,1)).
+  par(4,7).
+    out_value(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_variable(reg(x,5),reg(out,4)).
+    out_variable(reg(y,6),reg(out,4)).
     spawn(tarai/4).
   % body(Y_1:=Y-1).
-  par(7).
+  par(2,8).
     out_value(reg(in,2),reg(out,1)).
-    out_variable(reg(x,6),reg(out,2)).
+    out_variable(reg(y,7),reg(out,2)).
     call('__dec__'/2).
   % body(tarai(Y_1,Z,X,R_Y)).
-  par(7).
-    out_value(reg(x,6),reg(out,1)).
+  par(4,9).
+    out_value(reg(y,7),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
-    out_variable(reg(x,6),reg(out,4)).
+    out_variable(reg(y,8),reg(out,4)).
     spawn(tarai/4).
   % body(Z_1:=Z-1).
-  par(8).
+  par(2,10).
     out_value(reg(in,3),reg(out,1)).
-    out_variable(reg(x,7),reg(out,2)).
+    out_variable(reg(y,9),reg(out,2)).
     call('__dec__'/2).
   % body(tarai(Z_1,X,Y,R_Z)).
-  par(8).
-    out_value(reg(x,7),reg(out,1)).
+  par(4,11).
+    out_value(reg(y,9),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_value(reg(in,2),reg(out,3)).
-    out_variable(reg(x,7),reg(out,4)).
+    out_variable(reg(y,10),reg(out,4)).
     spawn(tarai/4).
   % body(tarai(R_X,R_Y,R_Z,R)).
-  tail(8).
-    out_value(reg(x,5),reg(out,1)).
-    out_value(reg(x,6),reg(out,2)).
-    out_value(reg(x,7),reg(out,3)).
+  tail(4,11).
+    out_value(reg(y,6),reg(out,1)).
+    out_value(reg(y,8),reg(out,2)).
+    out_value(reg(y,10),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
     execute(tarai/4).
 label(report/1).
   goal(report/1).
-  requires(3).
+  requires(4).
   try_guard_else_suspend.
   % head(report(Ri)).
   % guard(wait(Ri)).
   wait(reg(in,1)).
   activate.
   % body(outstream([writeln(Ri)])).
-  tail(3).
+  tail(1,3).
     out_list(reg(out,1)).
       write_structure(writeln/1).
       write_value(reg(in,1)).
@@ -92,55 +92,55 @@ label(main/1).
   % guard(true).
   activate.
   % body(atom_number(X,Xi)).
-  par(5).
+  par(2,5).
     out_value(reg(x,2),reg(out,1)).
-    out_variable(reg(x,2),reg(out,2)).
+    out_variable(reg(y,2),reg(out,2)).
     spawn(atom_number/2).
   % body(atom_number(Y,Yi)).
-  par(5).
+  par(2,5).
     out_value(reg(x,3),reg(out,1)).
-    out_variable(reg(x,3),reg(out,2)).
+    out_variable(reg(y,3),reg(out,2)).
     spawn(atom_number/2).
   % body(atom_number(Z,Zi)).
-  par(5).
+  par(2,5).
     out_value(reg(x,4),reg(out,1)).
-    out_variable(reg(x,4),reg(out,2)).
+    out_variable(reg(y,4),reg(out,2)).
     spawn(atom_number/2).
   % body(report(Ri)).
-  par(6).
-    out_variable(reg(x,5),reg(out,1)).
+  par(1,6).
+    out_variable(reg(y,5),reg(out,1)).
     spawn(report/1).
   % body(wait_time(Ri)).
-  par(6).
-    out_value(reg(x,5),reg(out,1)).
+  par(1,6).
+    out_value(reg(y,5),reg(out,1)).
     spawn(wait_time/1).
   % body(tarai(Xi,Yi,Zi,Ri)).
-  par(6).
-    out_value(reg(x,2),reg(out,1)).
-    out_value(reg(x,3),reg(out,2)).
-    out_value(reg(x,4),reg(out,3)).
-    out_value(reg(x,5),reg(out,4)).
+  par(4,6).
+    out_value(reg(y,2),reg(out,1)).
+    out_value(reg(y,3),reg(out,2)).
+    out_value(reg(y,4),reg(out,3)).
+    out_value(reg(y,5),reg(out,4)).
     spawn(tarai/4).
   % body(dump_to_dot(dump/tarai.dot)).
-  tail(6).
+  tail(1,6).
     out_constant('dump/tarai.dot',reg(out,1)).
     execute(dump_to_dot/1).
 label(main/1-2).
   otherwise.
   % head(main([Prog])).
     check_list(reg(in,1)).
-      read_variable(reg(x,2)).
+      read_variable(reg(x,6)).
       read_nil.
   % guard(true).
   activate.
   % body(outstream([write(usage: ),write(Prog),write( X Y Z),nl])).
-  tail(6).
+  tail(1,7).
     out_list(reg(out,1)).
       write_structure(write/1).
       write_constant('usage: ').
       write_list.
       write_structure(write/1).
-      write_value(reg(x,2)).
+      write_value(reg(x,6)).
       write_list.
       write_structure(write/1).
       write_constant(' X Y Z').
