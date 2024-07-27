@@ -961,7 +961,7 @@ struct VM : std::enable_shared_from_this<VM> {
     heap[h + 2].store(tagvalue<TAG_INT>(0));
     heap[h + 3].store(tagvalue<TAG_INT>(target_pc));
     for (int i = 0; i <= arity; ++i) {
-      heap[h + 4 + i].store(out[i]);
+      heap[h + 4 + i].store(ref_of(out[i]));
     }
     heap_published(5 + arity);
     A* lst = &heap[h + 0];
@@ -1477,7 +1477,7 @@ class RuntimeError: public std::runtime_error {
       vm->fail();                                         \
       continue;                                           \
     }                                                     \
-    vm->in[Ai] = q;                                       \
+    vm->in[Ai] = ref_of(q);                               \
   }
 #define MACRO_wait_for(tag, Ai)                           \
   {                                                       \
@@ -1491,7 +1491,7 @@ class RuntimeError: public std::runtime_error {
       vm->fail();                                         \
       continue;                                           \
     }                                                     \
-    vm->in[Ai] = q;                                       \
+    vm->in[Ai] = ref_of(q);                               \
   }
 
 #define MACRO_try_guard_else(jump_to)             \
@@ -1588,7 +1588,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_set_value(Vn, Ai)                 \
   {                                             \
-    const Q q = deref(vm->in[Vn]);              \
+    const Q q = ref_of(deref(vm->in[Vn]));      \
     vm->in[Vn] = q;                             \
     vm->in[Ai] = q;                             \
   }
@@ -1639,7 +1639,7 @@ class RuntimeError: public std::runtime_error {
 #endif
 #define MACRO_out_value(Vn, Oi)                             \
   {                                                         \
-    const Q q = deref(vm->in[Vn]);                          \
+    const Q q = ref_of(deref(vm->in[Vn]));                  \
     vm->in[Vn] = q;                                         \
     vm->out[Oi] = q;                                        \
   }
@@ -1728,7 +1728,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_get_variable(Vn, Ai)                        \
   {                                                       \
-    const Q q = deref(vm->in[Ai]);                        \
+    const Q q = ref_of(deref(vm->in[Ai]));                \
     vm->in[Ai] = q;                                       \
     vm->in[Vn] = q;                                       \
   }
@@ -1861,7 +1861,7 @@ class RuntimeError: public std::runtime_error {
 #define MACRO_unify_variable(Vn)                             \
   {                                                          \
     const Q q = deref(vm->pop());                            \
-    vm->in[Vn] = q;                                          \
+    vm->in[Vn] = ref_of(q);                                  \
   }
 #define MACRO_unify_value(Vn)                             \
   {                                                       \
@@ -1995,7 +1995,7 @@ class RuntimeError: public std::runtime_error {
 
 #define MACRO_check_variable(Vn, Ai)                 \
   {                                                  \
-    vm->in[Vn] = deref(vm->in[Ai]);                  \
+    vm->in[Vn] = ref_of(deref(vm->in[Ai]));          \
   }
 
 #define MACRO_check_value(Vn, Ai)                    \
@@ -2069,10 +2069,10 @@ class RuntimeError: public std::runtime_error {
     }                                                      \
   }
 
-#define MACRO_read_variable(Vn)                               \
-  {                                                           \
-    const Q q = deref(vm->pop());                             \
-    vm->in[Vn] = q;                                           \
+#define MACRO_read_variable(Vn)                            \
+  {                                                        \
+    const Q q = deref(vm->pop());                          \
+    vm->in[Vn] = ref_of(q);                                \
   }
 
 #define MACRO_read_value(Vn)                                \
