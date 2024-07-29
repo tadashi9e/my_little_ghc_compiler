@@ -22,6 +22,16 @@ This repository contains following files:
 - `gir_to_cc.pl`: GIR to C++ translator written in Prolog.
 - `kvs.pl`: Utility predicates file used in ghc_to_gir.pl and gir_to_cc.pl.
 
+`include/*.h` are header files for VM implementation:
+
+- `include/ghc.h`: Main header file.
+- `include/ghc_tags.h`: Defines tag constants.
+- 'include/ghc_symbols.h': Symbol (atom) table.
+- 'include/ghc_tagutils.h': Utilities for tagged pointer/value operations.
+- 'include/ghc_vm.h': VM implementation.
+- 'include/ghc_vm_ops.h': Basic VM operations (GIR implementation).
+- 'include/ghc_dumpdot.h': Dumps VM registers/heap to a dot file.
+
 ## Requirements
 
 - SWI-Prolog: Install SWI-Prolog to execute the Prolog-based translators.
