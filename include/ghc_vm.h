@@ -675,7 +675,7 @@ struct VM : std::enable_shared_from_this<VM> {
           }
           in[i] = q;
         }
-        const size_t h = heap_publishing(2 + arity);
+        const size_t h = heap_publishing(3 + arity);
         Q goal = tagptr<TAG_REF>(&heap[h]);
         heap[h + 0].store(tagvalue<TAG_INT>(0));
         heap[h + 1].store(tagvalue<TAG_INT>(contexts.back().pc_goal));
