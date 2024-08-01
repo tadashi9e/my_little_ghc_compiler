@@ -126,10 +126,11 @@ Q atom(123);  // __dump_to_dot__ / 1
 Q atom(124);  // dump_to_dot / 2
 Q atom(125);  // __dump_to_dot__ / 2
 Q atom(126);  // tarai / 4
-Q atom(127);  // report / 1
-Q atom(128);  // main / 1
-Q atom(129);  // usage:  / 0
-Q atom(130);  //  X Y Z / 0
+Q atom(127);  // tarai_aux / 5
+Q atom(128);  // report / 1
+Q atom(129);  // main / 1
+Q atom(130);  // usage:  / 0
+Q atom(131);  //  X Y Z / 0
 void module(VM::ptr vm, Program* prog) {
   for (;;) {
     switch (vm->pc) {
@@ -2470,63 +2471,96 @@ void module(VM::ptr vm, Program* prog) {
   MACRO_proceed;
     case 273:  // tarai/4
       MACRO_goal(273,atom(126));
-      MACRO_requires(15);
-      MACRO_try_guard_else(275);
-      MACRO_seq(2,6);
+      MACRO_requires(11);
+      MACRO_try_guard_else_suspend;
+      MACRO_activate;
+      MACRO_tail(5,6);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_out_value(reg::in(2),reg::out(2));
-      MACRO_call(165,274,atom(84));  // call((=<)/2)
-    case 274:  // return_from_call((=<)/2)
+      MACRO_out_value(reg::in(3),reg::out(3));
+      MACRO_out_value(reg::in(4),reg::out(4));
+      MACRO_out_value(reg::in(4),reg::out(5));
+      MACRO_execute(274,5);  // execute(tarai_aux/5)
+    case 274:  // tarai_aux/5
+      MACRO_goal(274,atom(127));
+      MACRO_requires(17);
+      MACRO_try_guard_else(277);
+      MACRO_seq(1,7);
+      MACRO_out_value(reg::in(5),reg::out(1));
+      MACRO_call(160,275,atom(65));  // call(var/1)
+    case 275:  // return_from_call(var/1)
+      MACRO_seq(2,7);
+      MACRO_out_value(reg::in(1),reg::out(1));
+      MACRO_out_value(reg::in(2),reg::out(2));
+      MACRO_call(165,276,atom(84));  // call((=<)/2)
+    case 276:  // return_from_call((=<)/2)
       MACRO_activate;
       MACRO_get_value(reg::in(2),reg::in(4));
       MACRO_proceed;
-    case 275:  // tarai/4-2
-      MACRO_otherwise;
-      MACRO_activate;
-      MACRO_par(4,8);
-      MACRO_out_variable(reg::y(5),reg::out(1));
-      MACRO_out_variable(reg::y(6),reg::out(2));
-      MACRO_out_variable(reg::y(7),reg::out(3));
-      MACRO_out_value(reg::in(4),reg::out(4));
-      MACRO_spawn(273,276,atom(126));  // spawn(tarai/4)
-    case 276:  // return_from_spawn(tarai/4)
-      MACRO_par(2,9);
+    case 277:  // tarai_aux/5-2
+      MACRO_try_guard_else(286);
+      MACRO_seq(1,7);
+      MACRO_out_value(reg::in(5),reg::out(1));
+      MACRO_call(160,278,atom(65));  // call(var/1)
+    case 278:  // return_from_call(var/1)
+      MACRO_seq(2,7);
       MACRO_out_value(reg::in(1),reg::out(1));
-      MACRO_out_variable(reg::y(8),reg::out(2));
-      MACRO_call(227,277,atom(108));  // call(__dec__/2)
-    case 277:  // return_from_call(__dec__/2)
-      MACRO_par(4,9);
-      MACRO_out_value(reg::y(8),reg::out(1));
+      MACRO_out_value(reg::in(2),reg::out(2));
+      MACRO_call(166,279,atom(85));  // call((>)/2)
+    case 279:  // return_from_call((>)/2)
+      MACRO_activate;
+      MACRO_par(2,7);
+      MACRO_out_value(reg::in(1),reg::out(1));
+      MACRO_out_variable(reg::y(6),reg::out(2));
+      MACRO_call(227,280,atom(108));  // call(__dec__/2)
+    case 280:  // return_from_call(__dec__/2)
+      MACRO_par(5,8);
+      MACRO_out_value(reg::y(6),reg::out(1));
       MACRO_out_value(reg::in(2),reg::out(2));
       MACRO_out_value(reg::in(3),reg::out(3));
-      MACRO_out_value(reg::y(5),reg::out(4));
-      MACRO_spawn(273,278,atom(126));  // spawn(tarai/4)
-    case 278:  // return_from_spawn(tarai/4)
-      MACRO_par(2,10);
+      MACRO_out_variable(reg::y(7),reg::out(4));
+      MACRO_out_value(reg::in(5),reg::out(5));
+      MACRO_spawn(274,281,atom(127));  // spawn(tarai_aux/5)
+    case 281:  // return_from_spawn(tarai_aux/5)
+      MACRO_par(2,9);
       MACRO_out_value(reg::in(2),reg::out(1));
-      MACRO_out_variable(reg::y(9),reg::out(2));
-      MACRO_call(227,279,atom(108));  // call(__dec__/2)
-    case 279:  // return_from_call(__dec__/2)
-      MACRO_par(4,10);
-      MACRO_out_value(reg::y(9),reg::out(1));
+      MACRO_out_variable(reg::y(8),reg::out(2));
+      MACRO_call(227,282,atom(108));  // call(__dec__/2)
+    case 282:  // return_from_call(__dec__/2)
+      MACRO_par(5,10);
+      MACRO_out_value(reg::y(8),reg::out(1));
       MACRO_out_value(reg::in(3),reg::out(2));
       MACRO_out_value(reg::in(1),reg::out(3));
-      MACRO_out_value(reg::y(6),reg::out(4));
-      MACRO_spawn(273,280,atom(126));  // spawn(tarai/4)
-    case 280:  // return_from_spawn(tarai/4)
-      MACRO_par(2,11);
+      MACRO_out_variable(reg::y(9),reg::out(4));
+      MACRO_out_value(reg::in(5),reg::out(5));
+      MACRO_spawn(274,283,atom(127));  // spawn(tarai_aux/5)
+    case 283:  // return_from_spawn(tarai_aux/5)
+      MACRO_par(5,11);
+      MACRO_out_value(reg::y(7),reg::out(1));
+      MACRO_out_value(reg::y(9),reg::out(2));
+      MACRO_out_variable(reg::y(10),reg::out(3));
+      MACRO_out_value(reg::in(4),reg::out(4));
+      MACRO_out_value(reg::in(5),reg::out(5));
+      MACRO_spawn(274,284,atom(127));  // spawn(tarai_aux/5)
+    case 284:  // return_from_spawn(tarai_aux/5)
+      MACRO_par(2,12);
       MACRO_out_value(reg::in(3),reg::out(1));
-      MACRO_out_variable(reg::y(10),reg::out(2));
-      MACRO_call(227,281,atom(108));  // call(__dec__/2)
-    case 281:  // return_from_call(__dec__/2)
-      MACRO_tail(4,11);
-      MACRO_out_value(reg::y(10),reg::out(1));
+      MACRO_out_variable(reg::y(11),reg::out(2));
+      MACRO_call(227,285,atom(108));  // call(__dec__/2)
+    case 285:  // return_from_call(__dec__/2)
+      MACRO_tail(5,12);
+      MACRO_out_value(reg::y(11),reg::out(1));
       MACRO_out_value(reg::in(1),reg::out(2));
       MACRO_out_value(reg::in(2),reg::out(3));
-      MACRO_out_value(reg::y(7),reg::out(4));
-      MACRO_execute(273,4);  // execute(tarai/4)
-    case 282:  // report/1
-      MACRO_goal(282,atom(127));
+      MACRO_out_value(reg::y(10),reg::out(4));
+      MACRO_out_value(reg::in(5),reg::out(5));
+      MACRO_execute(274,5);  // execute(tarai_aux/5)
+    case 286:  // tarai_aux/5-3
+      MACRO_otherwise;
+      MACRO_activate;
+      MACRO_proceed;
+    case 287:  // report/1
+      MACRO_goal(287,atom(128));
       MACRO_requires(4);
       MACRO_try_guard_else_suspend;
       MACRO_wait(reg::in(1));
@@ -2537,10 +2571,10 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_write_value(reg::in(1));
       MACRO_write_nil;
       MACRO_execute(54,1);  // execute(outstream/1)
-    case 283:  // main/1
-      MACRO_goal(283,atom(128));
+    case 288:  // main/1
+      MACRO_goal(288,atom(129));
       MACRO_requires(10);
-      MACRO_try_guard_else(289);
+      MACRO_try_guard_else(294);
       MACRO_check_list(reg::in(1));
       MACRO_read_void;
       MACRO_read_list;
@@ -2554,33 +2588,33 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_par(2,5);
       MACRO_out_value(reg::x(2),reg::out(1));
       MACRO_out_variable(reg::y(2),reg::out(2));
-      MACRO_spawn(48,284,atom(26));  // spawn(atom_number/2)
-    case 284:  // return_from_spawn(atom_number/2)
+      MACRO_spawn(48,289,atom(26));  // spawn(atom_number/2)
+    case 289:  // return_from_spawn(atom_number/2)
       MACRO_par(2,5);
       MACRO_out_value(reg::x(3),reg::out(1));
       MACRO_out_variable(reg::y(3),reg::out(2));
-      MACRO_spawn(48,285,atom(26));  // spawn(atom_number/2)
-    case 285:  // return_from_spawn(atom_number/2)
+      MACRO_spawn(48,290,atom(26));  // spawn(atom_number/2)
+    case 290:  // return_from_spawn(atom_number/2)
       MACRO_par(2,5);
       MACRO_out_value(reg::x(4),reg::out(1));
       MACRO_out_variable(reg::y(4),reg::out(2));
-      MACRO_spawn(48,286,atom(26));  // spawn(atom_number/2)
-    case 286:  // return_from_spawn(atom_number/2)
+      MACRO_spawn(48,291,atom(26));  // spawn(atom_number/2)
+    case 291:  // return_from_spawn(atom_number/2)
       MACRO_par(1,6);
       MACRO_out_variable(reg::y(5),reg::out(1));
-      MACRO_spawn(282,287,atom(127));  // spawn(report/1)
-    case 287:  // return_from_spawn(report/1)
+      MACRO_spawn(287,292,atom(128));  // spawn(report/1)
+    case 292:  // return_from_spawn(report/1)
       MACRO_par(1,6);
       MACRO_out_value(reg::y(5),reg::out(1));
-      MACRO_spawn(13,288,atom(9));  // spawn(wait_time/1)
-    case 288:  // return_from_spawn(wait_time/1)
+      MACRO_spawn(13,293,atom(9));  // spawn(wait_time/1)
+    case 293:  // return_from_spawn(wait_time/1)
       MACRO_tail(4,6);
       MACRO_out_value(reg::y(2),reg::out(1));
       MACRO_out_value(reg::y(3),reg::out(2));
       MACRO_out_value(reg::y(4),reg::out(3));
       MACRO_out_value(reg::y(5),reg::out(4));
       MACRO_execute(273,4);  // execute(tarai/4)
-    case 289:  // main/1-2
+    case 294:  // main/1-2
       MACRO_otherwise;
       MACRO_check_list(reg::in(1));
       MACRO_read_variable(reg::x(6));
@@ -2589,13 +2623,13 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_tail(1,7);
       MACRO_out_list(reg::out(1));
       MACRO_write_structure(atom(33));
-      MACRO_write_constant(atom(129));
+      MACRO_write_constant(atom(130));
       MACRO_write_list;
       MACRO_write_structure(atom(33));
       MACRO_write_value(reg::x(6));
       MACRO_write_list;
       MACRO_write_structure(atom(33));
-      MACRO_write_constant(atom(130));
+      MACRO_write_constant(atom(131));
       MACRO_write_list;
       MACRO_write_constant(atom(37));
       MACRO_write_nil;
@@ -2733,10 +2767,11 @@ void setup(Program* prog) {
   atom(124) = to_atom("dump_to_dot", 2);
   atom(125) = to_atom("__dump_to_dot__", 2);
   atom(126) = to_atom("tarai", 4);
-  atom(127) = to_atom("report", 1);
-  atom(128) = to_atom("main", 1);
-  atom(129) = to_atom("usage: ", 0);
-  atom(130) = to_atom(" X Y Z", 0);
+  atom(127) = to_atom("tarai_aux", 5);
+  atom(128) = to_atom("report", 1);
+  atom(129) = to_atom("main", 1);
+  atom(130) = to_atom("usage: ", 0);
+  atom(131) = to_atom(" X Y Z", 0);
   // setup entry points
   prog->add_entry_point(atom(1), 1);  // fail / 0
   prog->add_entry_point(atom(2), 2);  // call / 1
@@ -2832,8 +2867,9 @@ void setup(Program* prog) {
   prog->add_entry_point(atom(124), 270);  // dump_to_dot / 2
   prog->add_entry_point(atom(125), 272);  // __dump_to_dot__ / 2
   prog->add_entry_point(atom(126), 273);  // tarai / 4
-  prog->add_entry_point(atom(127), 282);  // report / 1
-  prog->add_entry_point(atom(128), 283);  // main / 1
+  prog->add_entry_point(atom(127), 274);  // tarai_aux / 5
+  prog->add_entry_point(atom(128), 287);  // report / 1
+  prog->add_entry_point(atom(129), 288);  // main / 1
 }
 int
 main(int argc, char* argv[]) {

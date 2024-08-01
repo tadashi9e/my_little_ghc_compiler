@@ -1,65 +1,99 @@
 label(tarai/4).
   goal(tarai/4).
-  requires(15).
-  try_guard_else(label(tarai/4-2)).
-  % head(tarai(X,Y,_116,R)).
-  % guard(X=<Y).
-  seq(2,6).
+  requires(11).
+  try_guard_else_suspend.
+  % head(tarai(X,Y,Z,R)).
+  % guard(true).
+  activate.
+  % body(tarai_aux(X,Y,Z,R,R)).
+  tail(5,6).
+    out_value(reg(in,1),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    out_value(reg(in,3),reg(out,3)).
+    out_value(reg(in,4),reg(out,4)).
+    out_value(reg(in,4),reg(out,5)).
+    execute(tarai_aux/5).
+label(tarai_aux/5).
+  goal(tarai_aux/5).
+  requires(17).
+  try_guard_else(label(tarai_aux/5-2)).
+  % head(tarai_aux(X,Y,_224,T,R)).
+  % guard((var(R),X=<Y)).
+  seq(1,7).
+    out_value(reg(in,5),reg(out,1)).
+    call(var/1).
+  seq(2,7).
     out_value(reg(in,1),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     call((=<)/2).
   activate.
-  % body(R=Y).
+  % body(T=Y).
     get_value(reg(in,2),reg(in,4)).
   proceed.
-label(tarai/4-2).
-  otherwise.
-  % head(tarai(X,Y,Z,R)).
-  % guard(true).
-  activate.
-  % body(tarai(R_X,R_Y,R_Z,R)).
-  par(4,8).
-    out_variable(reg(y,5),reg(out,1)).
-    out_variable(reg(y,6),reg(out,2)).
-    out_variable(reg(y,7),reg(out,3)).
-    out_value(reg(in,4),reg(out,4)).
-    spawn(tarai/4).
-  % body(X_1:=X-1).
-  par(2,9).
+label(tarai_aux/5-2).
+  try_guard_else(label(tarai_aux/5-3)).
+  % head(tarai_aux(X,Y,Z,T,R)).
+  % guard((var(R),X>Y)).
+  seq(1,7).
+    out_value(reg(in,5),reg(out,1)).
+    call(var/1).
+  seq(2,7).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(y,8),reg(out,2)).
+    out_value(reg(in,2),reg(out,2)).
+    call((>)/2).
+  activate.
+  % body(X_1:=X-1).
+  par(2,7).
+    out_value(reg(in,1),reg(out,1)).
+    out_variable(reg(y,6),reg(out,2)).
     call('__dec__'/2).
-  % body(tarai(X_1,Y,Z,R_X)).
-  par(4,9).
-    out_value(reg(y,8),reg(out,1)).
+  % body(tarai_aux(X_1,Y,Z,R_X,R)).
+  par(5,8).
+    out_value(reg(y,6),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
-    out_value(reg(y,5),reg(out,4)).
-    spawn(tarai/4).
+    out_variable(reg(y,7),reg(out,4)).
+    out_value(reg(in,5),reg(out,5)).
+    spawn(tarai_aux/5).
   % body(Y_1:=Y-1).
-  par(2,10).
+  par(2,9).
     out_value(reg(in,2),reg(out,1)).
-    out_variable(reg(y,9),reg(out,2)).
+    out_variable(reg(y,8),reg(out,2)).
     call('__dec__'/2).
-  % body(tarai(Y_1,Z,X,R_Y)).
-  par(4,10).
-    out_value(reg(y,9),reg(out,1)).
+  % body(tarai_aux(Y_1,Z,X,R_Y,R)).
+  par(5,10).
+    out_value(reg(y,8),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
     out_value(reg(in,1),reg(out,3)).
-    out_value(reg(y,6),reg(out,4)).
-    spawn(tarai/4).
+    out_variable(reg(y,9),reg(out,4)).
+    out_value(reg(in,5),reg(out,5)).
+    spawn(tarai_aux/5).
+  % body(tarai_aux(R_X,R_Y,R_Z,T,R)).
+  par(5,11).
+    out_value(reg(y,7),reg(out,1)).
+    out_value(reg(y,9),reg(out,2)).
+    out_variable(reg(y,10),reg(out,3)).
+    out_value(reg(in,4),reg(out,4)).
+    out_value(reg(in,5),reg(out,5)).
+    spawn(tarai_aux/5).
   % body(Z_1:=Z-1).
-  par(2,11).
+  par(2,12).
     out_value(reg(in,3),reg(out,1)).
-    out_variable(reg(y,10),reg(out,2)).
+    out_variable(reg(y,11),reg(out,2)).
     call('__dec__'/2).
-  % body(tarai(Z_1,X,Y,R_Z)).
-  tail(4,11).
-    out_value(reg(y,10),reg(out,1)).
+  % body(tarai_aux(Z_1,X,Y,R_Z,R)).
+  tail(5,12).
+    out_value(reg(y,11),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_value(reg(in,2),reg(out,3)).
-    out_value(reg(y,7),reg(out,4)).
-    execute(tarai/4).
+    out_value(reg(y,10),reg(out,4)).
+    out_value(reg(in,5),reg(out,5)).
+    execute(tarai_aux/5).
+label(tarai_aux/5-3).
+  otherwise.
+  % head(tarai_aux(_888,_890,_892,_894,_896)).
+  activate.
+  proceed.
 label(report/1).
   goal(report/1).
   requires(4).
@@ -79,7 +113,7 @@ label(main/1).
   goal(main/1).
   requires(10).
   try_guard_else(label(main/1-2)).
-  % head(main([_728,X,Y,Z])).
+  % head(main([_1242,X,Y,Z])).
     check_list(reg(in,1)).
       read_void.
       read_list.

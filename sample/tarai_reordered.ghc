@@ -1,12 +1,15 @@
 % -*- coding:utf-8-unix; mode:prolog -*-
 
-tarai(X, Y, _, R) :- X =< Y | R = Y.
+tarai(X, Y, Z, R) :- tarai_aux(X, Y, Z, R, R).
+
+tarai_aux(X, Y, _, T, R) :- var(R), X =< Y | T = Y.
+tarai_aux(X, Y, Z, T, R) :- var(R), X > Y |
+    X_1 := X - 1, tarai_aux(X_1, Y, Z, R_X, R),
+    Y_1 := Y - 1, tarai_aux(Y_1, Z, X, R_Y, R),
+    tarai_aux(R_X, R_Y, R_Z, T, R),
+    Z_1 := Z - 1, tarai_aux(Z_1, X, Y, R_Z, R).
 otherwise.
-tarai(X, Y, Z, R) :- true |
-    tarai(R_X, R_Y, R_Z, R),
-    X_1 := X - 1, tarai(X_1, Y, Z, R_X),
-    Y_1 := Y - 1, tarai(Y_1, Z, X, R_Y),
-    Z_1 := Z - 1, tarai(Z_1, X, Y, R_Z).
+tarai_aux(_, _, _, _, _).
 
 report(Ri) :-
     wait(Ri) |
