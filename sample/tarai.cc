@@ -2589,7 +2589,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_otherwise;
       MACRO_check_list(reg::in(1));
       MACRO_read_variable(reg::x(6));
-      MACRO_read_nil;
+      MACRO_read_void;
       MACRO_activate;
       MACRO_tail(1,7);
       MACRO_out_list(reg::out(1));

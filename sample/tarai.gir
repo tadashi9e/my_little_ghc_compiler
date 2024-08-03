@@ -127,10 +127,10 @@ label(main/1).
     execute(dump_to_dot/1).
 label(main/1-2).
   otherwise.
-  % head(main([Prog])).
+  % head(main([Prog|_1200])).
     check_list(reg(in,1)).
       read_variable(reg(x,6)).
-      read_nil.
+      read_void.
   % guard(true).
   activate.
   % body(outstream([write(usage: ),write(Prog),write( X Y Z),nl])).

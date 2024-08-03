@@ -46,5 +46,5 @@ main([_|Args]) :-
     printstream(SortedNs),
     qsort(Ns, SortedNs).
 otherwise.
-main([Prog]) :-
+main([Prog|_]) :-
     outstream([write('usage: '), write(Prog), write(' <Numbers...>'), nl]).

@@ -37,10 +37,10 @@ label(main/1).
     execute(report_results/2).
 label(main/1-2).
   otherwise.
-  % head(main([Prog])).
+  % head(main([Prog|_332])).
     check_list(reg(in,1)).
       read_variable(reg(x,5)).
-      read_nil.
+      read_void.
   % guard(true).
   activate.
   % body(outstream([write(usage: ),write(Prog),writeln( <N>)])).

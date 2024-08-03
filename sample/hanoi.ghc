@@ -9,7 +9,7 @@ main([_,Arg]) :-
     wait_time(X),
     go(N, X).
 otherwise.
-main([Prog]) :-
+main([Prog|_]) :-
     outstream([write('usage: '), write(Prog), writeln(' <N>')]).
 
 report_results(Os-Os2, X) :-

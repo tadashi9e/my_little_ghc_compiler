@@ -250,10 +250,10 @@ label(main/1).
     execute(qsort/2).
 label(main/1-2).
   otherwise.
-  % head(main([Prog])).
+  % head(main([Prog|_4042])).
     check_list(reg(in,1)).
       read_variable(reg(x,4)).
-      read_nil.
+      read_void.
   % guard(true).
   activate.
   % body(outstream([write(usage: ),write(Prog),write( <Numbers...>),nl])).
