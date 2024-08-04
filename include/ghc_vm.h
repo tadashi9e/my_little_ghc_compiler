@@ -977,6 +977,13 @@ struct VM : std::enable_shared_from_this<VM> {
     } while (0);
     return false;
   }
+  void copy_from_out_to_in(int arity) {
+    for (int i = 1; i <= arity; ++i) {
+      const Q q = deref(out[i]);
+      const TAG_T tag = tag_of(q);
+      in[i] = (tag == TAG_REF) ? local_to_heap(q) : q;
+    }
+  }
   Q local_to_heap(Q q) {
     Q* p = ptr_of<Q>(q);
     assert(*p == q);  // q must be a dereferenced local variable

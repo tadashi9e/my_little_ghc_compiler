@@ -105,9 +105,7 @@
 // out レジスタの内容を in レジスタにコピーし、
 // 制御を jump_to に移す。
 #define MACRO_execute(jump_to, arity)             \
-  for (int i = 1; i <= (arity); ++i) {            \
-    vm->in[i] = vm->out[i];                       \
-  }                                               \
+  vm->copy_from_out_to_in(arity);                 \
   vm->pc = (jump_to);                             \
   vm->contexts.back().pc_continue = -1;           \
   vm->contexts.back().status =                    \
