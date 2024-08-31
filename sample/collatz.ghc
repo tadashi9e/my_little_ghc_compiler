@@ -1,0 +1,34 @@
+% -*- mode:prolog -*-
+collatz(1, Ns) :-
+    Ns = [1].
+collatz(N, Ns) :-
+    N mod 2 =:= 0 | N2 := N / 2, Ns = [N | Ns2], collatz(N2, Ns2).
+otherwise.
+collatz(N, Ns) :-
+    N2 := N * 3 + 1, Ns = [N | Ns2], collatz(N2, Ns2).
+
+printstream([], Stream - Stream2) :-
+    true | Stream = [nl | Stream2].
+printstream([N | Ns], Stream - Stream2) :-
+    wait(N) |
+    Stream = [write(N) | Stream1],
+    printstream_rest(Ns, Stream1 - Stream2).
+printstream_rest([], Stream - Stream2) :-
+    true |
+    Stream = [nl | Stream2].
+printstream_rest([N | Ns], Stream - Stream2) :-
+    wait(N) |
+    Stream = [write(','), write(N) | Stream1],
+    printstream_rest(Ns, Stream1 - Stream2).
+
+collatz_for_each_args([A | As], Stream - Stream2) :-
+    atom_number(A, N),
+    printstream(Ns, Stream - Stream1),
+    collatz(N, Ns),
+    collatz_for_each_args(As, Stream1 - Stream2).
+main([_ | Args]) :-
+    outstream(Stream),
+    collatz_for_each_args(Args, Stream - []).
+otherwise.
+main(_) :-
+    outstream([write('usage: '), write(Prog), writeln(' <N> [<N2> <N3> ...]')]).

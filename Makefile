@@ -11,7 +11,7 @@ GHC_HEADERS=include/ghc_dumpdot.h include/ghc.h include/ghc_symbols.h include/gh
 
 TARGETS=sample/hello sample/test sample/tarai sample/tarai_reordered \
 	sample/primes sample/hanoi sample/queen sample/qsort sample/fibonacci \
-	sample/microkanren
+	sample/microkanren sample/collatz
 
 all:: $(TARGETS)
 
@@ -90,3 +90,10 @@ sample/microkanren.cc: $(GIR_TO_CC) $(BUILTIN_GIR) sample/microkanren.gir
 	$(GIR_TO_CC) $(BUILTIN_GIR) sample/microkanren.gir -o sample/microkanren.cc
 sample/microkanren.gir: $(GHC_TO_GIR) sample/microkanren.ghc
 	$(GHC_TO_GIR) sample/microkanren.ghc -o sample/microkanren.gir
+
+sample/collatz: sample/collatz.cc ${GHC_HEADERS}
+	$(CXX) $(CXXFLAGS) sample/collatz.cc -o sample/collatz
+sample/collatz.cc: $(GIR_TO_CC) $(BUILTIN_GIR) sample/collatz.gir
+	$(GIR_TO_CC) $(BUILTIN_GIR) sample/collatz.gir -o sample/collatz.cc
+sample/collatz.gir: $(GHC_TO_GIR) sample/collatz.ghc
+	$(GHC_TO_GIR) sample/collatz.ghc -o sample/collatz.gir

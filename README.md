@@ -123,6 +123,24 @@ Usage: `test`
 
 Description: Contains miscellaneous test codes, primarily for experimentation purposes.
 
+### sample/collatz.ghc
+
+Usage: `collatz <N> [<N1> <N2> ...]`
+
+Description: Collatz conjecture calculator.
+
+Example:
+
+```
+$ sample/collatz 10 11 12 13 14 15
+10,5,16,8,4,2,1
+11,34,17,52,26,13,40,20,10,5,16,8,4,2,1
+12,6,3,10,5,16,8,4,2,1
+13,40,20,10,5,16,8,4,2,1
+14,7,22,11,34,17,52,26,13,40,20,10,5,16,8,4,2,1
+15,46,23,70,35,106,53,160,80,40,20,10,5,16,8,4,2,1
+```
+
 ## In Future...
 
 - Add indexing operations to GIR such as 'switch-on-xxx' in WAM.
