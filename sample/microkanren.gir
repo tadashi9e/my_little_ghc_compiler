@@ -1158,17 +1158,21 @@ label(pp/4-2).
     execute(p_write/3).
 label(pp_space/3).
   goal(pp_space/3).
-  requires(10).
+  requires(11).
   try_guard_else(label(pp_space/3-2)).
   % head(pp_space(N,St1,St2)).
   % guard(N=:=0).
   seq(2,5).
     out_variable(reg(y,4),reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    call((:=)/2).
+  seq(2,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_constant(0,reg(out,2)).
     call((:=)/2).
-  seq(2,5).
-    out_value(reg(in,1),reg(out,1)).
-    out_value(reg(y,4),reg(out,2)).
+  seq(2,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(y,5),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(St1=St2).
@@ -1180,19 +1184,19 @@ label(pp_space/3-2).
   % guard(true).
   activate.
   % body(N1:=N-1).
-  par(2,6).
+  par(2,7).
     out_value(reg(in,1),reg(out,1)).
-    out_variable(reg(y,5),reg(out,2)).
+    out_variable(reg(y,6),reg(out,2)).
     call('__dec__'/2).
   % body(St1=[write( )|St2]).
     get_list(reg(in,2)).
       unify_structure(write/1).
       unify_constant(' ').
-      unify_variable(reg(x,6)).
+      unify_variable(reg(x,7)).
   % body(pp_space(N1,St2,St3)).
-  tail(3,7).
-    out_value(reg(y,5),reg(out,1)).
-    out_value(reg(x,6),reg(out,2)).
+  tail(3,8).
+    out_value(reg(y,6),reg(out,1)).
+    out_value(reg(x,7),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute(pp_space/3).
 label(pp_rest/4).

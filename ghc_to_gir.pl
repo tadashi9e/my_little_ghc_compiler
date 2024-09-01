@@ -526,12 +526,14 @@ ghc_compile_call(Ctx, SeqPar, C := Q) :-  % 数式演算の最適化
     ).
 ghc_compile_call(Ctx, SeqPar, C =:= Q) :-  % 数式演算の最適化
     nonvar(Q),
-    ghc_compile_call(Ctx, seq, T := Q),
-    ghc_compile_call(Ctx, SeqPar, C =:= T).
+    ghc_compile_call(Ctx, seq, Ct := C),
+    ghc_compile_call(Ctx, seq, Qt := Q),
+    ghc_compile_call(Ctx, SeqPar, Ct =:= Qt).
 ghc_compile_call(Ctx, SeqPar, C =\= Q) :-  % 数式演算の最適化
     nonvar(Q),
-    ghc_compile_call(Ctx, seq, T := Q),
-    ghc_compile_call(Ctx, SeqPar, C =\= T).
+    ghc_compile_call(Ctx, seq, Ct := C),
+    ghc_compile_call(Ctx, seq, Qt := Q),
+    ghc_compile_call(Ctx, SeqPar, Ct =\= Qt).
 ghc_compile_call(Ctx, SeqPar, Goal) :-
     ( SeqPar = seq -> write_source(Ctx, seq(Nf, _))
     ; SeqPar = par -> write_source(Ctx, par(Nf, _))

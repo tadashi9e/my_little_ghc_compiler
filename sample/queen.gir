@@ -207,7 +207,7 @@ label(queen/5-3).
     execute(queen/5).
 label(check/8).
   goal(check/8).
-  requires(22).
+  requires(24).
   try_guard_else(label(check/8-2)).
   % head(check([],T,_D,U,C,B,I,O)).
     check_nil(reg(in,1)).
@@ -233,38 +233,46 @@ label(check/8-2).
   try_guard_else(label(check/8-3)).
   % head(check([P|R],T,D,U,C,B,I,O)).
     check_list(reg(in,1)).
-      read_variable(reg(x,11)).
       read_variable(reg(x,13)).
+      read_variable(reg(x,15)).
   % guard((T=\=P+D,T=\=P-D)).
-  seq(3,14).
-    out_value(reg(x,11),reg(out,1)).
-    out_value(reg(in,3),reg(out,2)).
-    out_variable(reg(y,10),reg(out,3)).
-    call('__add__'/3).
-  seq(2,14).
-    out_value(reg(in,2),reg(out,1)).
-    out_value(reg(y,10),reg(out,2)).
-    call((=\=)/2).
-  seq(3,14).
-    out_value(reg(x,11),reg(out,1)).
+  seq(2,16).
+    out_variable(reg(y,10),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    call((:=)/2).
+  seq(3,16).
+    out_value(reg(x,13),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
     out_variable(reg(y,11),reg(out,3)).
-    call('__sub__'/3).
-  seq(2,14).
-    out_value(reg(in,2),reg(out,1)).
+    call('__add__'/3).
+  seq(2,16).
+    out_value(reg(y,10),reg(out,1)).
     out_value(reg(y,11),reg(out,2)).
+    call((=\=)/2).
+  seq(2,16).
+    out_variable(reg(y,12),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    call((:=)/2).
+  seq(3,16).
+    out_value(reg(x,13),reg(out,1)).
+    out_value(reg(in,3),reg(out,2)).
+    out_variable(reg(y,13),reg(out,3)).
+    call('__sub__'/3).
+  seq(2,16).
+    out_value(reg(y,12),reg(out,1)).
+    out_value(reg(y,13),reg(out,2)).
     call((=\=)/2).
   activate.
   % body(D1:=D+1).
-  par(2,14).
+  par(2,16).
     out_value(reg(in,3),reg(out,1)).
-    out_variable(reg(y,12),reg(out,2)).
+    out_variable(reg(y,14),reg(out,2)).
     call('__inc__'/2).
   % body(check(R,T,D1,U,C,B,I,O)).
-  tail(8,14).
-    out_value(reg(x,13),reg(out,1)).
+  tail(8,16).
+    out_value(reg(x,15),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
-    out_value(reg(y,12),reg(out,3)).
+    out_value(reg(y,14),reg(out,3)).
     out_value(reg(in,4),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     out_value(reg(in,6),reg(out,6)).
@@ -275,17 +283,21 @@ label(check/8-3).
   try_guard_else(label(check/8-4)).
   % head(check([P|_R],T,D,_U,_C,_B,I,O)).
     check_list(reg(in,1)).
-      read_variable(reg(x,13)).
-      read_variable(reg(x,14)).
+      read_variable(reg(x,16)).
+      read_variable(reg(x,15)).
   % guard(T=:=P+D).
-  seq(3,15).
-    out_value(reg(x,13),reg(out,1)).
+  seq(2,17).
+    out_variable(reg(y,15),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    call((:=)/2).
+  seq(3,17).
+    out_value(reg(x,16),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
-    out_variable(reg(y,13),reg(out,3)).
+    out_variable(reg(y,16),reg(out,3)).
     call('__add__'/3).
-  seq(2,15).
-    out_value(reg(in,2),reg(out,1)).
-    out_value(reg(y,13),reg(out,2)).
+  seq(2,17).
+    out_value(reg(y,15),reg(out,1)).
+    out_value(reg(y,16),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(I=O).
@@ -295,17 +307,21 @@ label(check/8-4).
   try_guard_else_suspend.
   % head(check([P|_R],T,D,_U,_C,_B,I,O)).
     check_list(reg(in,1)).
-      read_variable(reg(x,14)).
-      read_variable(reg(x,15)).
+      read_variable(reg(x,18)).
+      read_variable(reg(x,17)).
   % guard(T=:=P-D).
-  seq(3,16).
-    out_value(reg(x,14),reg(out,1)).
+  seq(2,19).
+    out_variable(reg(y,17),reg(out,1)).
+    out_value(reg(in,2),reg(out,2)).
+    call((:=)/2).
+  seq(3,19).
+    out_value(reg(x,18),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
-    out_variable(reg(y,14),reg(out,3)).
+    out_variable(reg(y,18),reg(out,3)).
     call('__sub__'/3).
-  seq(2,16).
-    out_value(reg(in,2),reg(out,1)).
-    out_value(reg(y,14),reg(out,2)).
+  seq(2,19).
+    out_value(reg(y,17),reg(out,1)).
+    out_value(reg(y,18),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(I=O).
@@ -342,7 +358,7 @@ label(concat/3-2).
     execute(concat/3).
 label(gen/2).
   goal(gen/2).
-  requires(7).
+  requires(8).
   try_guard_else(label(gen/2-2)).
   % head(gen(N,X)).
   % guard(N>0).
@@ -371,11 +387,15 @@ label(gen/2-2).
   % guard(N=:=0).
   seq(2,5).
     out_variable(reg(y,4),reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    call((:=)/2).
+  seq(2,6).
+    out_variable(reg(y,5),reg(out,1)).
     out_constant(0,reg(out,2)).
     call((:=)/2).
-  seq(2,5).
-    out_value(reg(in,1),reg(out,1)).
-    out_value(reg(y,4),reg(out,2)).
+  seq(2,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(y,5),reg(out,2)).
     call((=:=)/2).
   activate.
   % body(X=[]).
