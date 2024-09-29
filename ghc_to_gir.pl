@@ -132,14 +132,15 @@ find_goal_source(Goal,
 ghc_compile_goals([], _, _, _) :- !.
 ghc_compile_goals([Goal|Goals], Source, OStream, VarKvs) :-
     find_goal_source(Goal, Source, GoalSource),
+    always_success(ghc_preprocess(GoalSource, PreProcessedGoalSource)),
     create(Ctx),
     get(VarKvs, vars, Vars), put(Ctx, vars, Vars),
     get(VarKvs, singletons, Singletons), put(Ctx, singletons, Singletons),
     write_goal_entry_point(Ctx, Goal),
     put(Ctx, goal, Goal),
     always_success(
-        ( ghc_compile_inline(Ctx, Goal, GoalSource)
-        ; ghc_compile_goal_pred(Ctx, [], Goal, GoalSource) )),
+        ( ghc_compile_inline(Ctx, Goal, PreProcessedGoalSource)
+        ; ghc_compile_goal_pred(Ctx, [], Goal, PreProcessedGoalSource) )),
     assign_labels(Ctx),
     max_register_index(Ctx, in, MaxReg_in),
     max_register_index(Ctx, y, MaxReg_y),
@@ -155,6 +156,130 @@ max_aux([], Max, Max).
 max_aux([N|Ns], Max, Ac) :-
     ( N > Ac -> max_aux(Ns, Max, N)
     ; max_aux(Ns, Max, Ac) ).
+
+%% ghc_preprocess(+GoalSource, -PreProcessedGoalSource)
+ghc_preprocess([], []) :- !.
+ghc_preprocess([Goal|Goals], [Goal2|Goals2]) :-
+    ghc_preprocess_goal(Goal, Goal2),
+    ghc_preprocess(Goals, Goals2).
+
+%% ghc_preprocess(+Goal, -PreProcessedGoal)
+ghc_preprocess_goal(Head :- Guard | Body, Head :- PreProcessedGuard | PreProcessedBody) :-
+    tuple_list(Guard, GuardList),
+    always_success(ghc_preprocess_eval_polynomial(GuardList, PreProcessedGuardList)),
+    tuple_list(PreProcessedGuard, PreProcessedGuardList),
+    tuple_list(Body, BodyList),
+    always_success(ghc_preprocess_eval_polynomial(BodyList, PreProcessedBodyList)),
+    tuple_list(PreProcessedBody, PreProcessedBodyList).
+ghc_preprocess_goal(Head :- Body, Head :- PreProcessedBody) :-
+    tuple_list(Body, BodyList),
+    always_success(ghc_preprocess_eval_polynomial(BodyList, PreProcessedBodyList)),
+    tuple_list(PreProcessedBody, PreProcessedBodyList).
+ghc_preprocess_goal(Goal, Goal).
+
+tuple_list(Tuple, List) :- comma_list(Tuple, List).
+
+ghc_preprocess_eval_polynomial([], []) :- !.
+ghc_preprocess_eval_polynomial([V := X | Goals], PreProcessedGoals) :- !,
+    always_success(ghc_preprocess_polynomial(
+                       X, V,
+                       PreProcessedGoals, PreProcessedGoals2)),
+    ghc_preprocess_eval_polynomial(Goals, PreProcessedGoals2).
+ghc_preprocess_eval_polynomial([X1 =:= X2 | Goals], PreProcessedGoals) :- !,
+    always_success(ghc_preprocess_polynomial(
+                       X1, V1,
+                       PreProcessedGoals, PreProcessedGoals2)),
+    always_success(ghc_preprocess_polynomial(
+                       X2, V2,
+                       PreProcessedGoals2, PreProcessedGoals3)),
+    PreProcessedGoals3 = [V1 =:= V2 | PreProcessedGoals4],
+    ghc_preprocess_eval_polynomial(Goals, PreProcessedGoals4).
+ghc_preprocess_eval_polynomial([X1 =\= X2 | Goals], PreProcessedGoals) :- !,
+    always_success(ghc_preprocess_polynomial(
+                       X1, V1,
+                       PreProcessedGoals, PreProcessedGoals2)),
+    always_success(ghc_preprocess_polynomial(
+                       X2, V2,
+                       PreProcessedGoals2, PreProcessedGoals3)),
+    PreProcessedGoals3 = [V1 =\= V2 | PreProcessedGoals4],
+    ghc_preprocess_eval_polynomial(Goals, PreProcessedGoals4).
+ghc_preprocess_eval_polynomial([G | Goals], [G | PreProcessedGoals]) :- !,
+    ghc_preprocess_eval_polynomial(Goals, PreProcessedGoals).
+
+ghc_preprocess_polynomial(X, X, Gs, Gs) :- var(X), !.
+ghc_preprocess_polynomial(X, X, Gs, Gs) :- integer(X), !.
+ghc_preprocess_polynomial(- X, X3, Gs, Gs3) :-
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    Gs2 = ['__neg__'(X2, X3) | Gs3].
+ghc_preprocess_polynomial(X + Y, V, Gs, Gs4) :-
+    ( Y == 1 ->
+      ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+      Gs2 = ['__inc__'(X2, V) | Gs4]
+    ; X == 1 ->
+      ghc_preprocess_polynomial(Y, Y2, Gs, Gs2),
+      Gs2 = ['__inc__'(Y2, V) | Gs4]
+    ; !,
+      ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+      ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+      Gs3 = ['__add__'(X2, Y2, V) | Gs4] ).
+ghc_preprocess_polynomial(X - Y, V, Gs, Gs4) :-
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ( Y == 1 ->
+      Gs2 = ['__dec__'(X2, V) | Gs4]
+    ; !,
+      ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+      Gs3 = ['__sub__'(X2, Y2, V) | Gs4] ).
+ghc_preprocess_polynomial(X * Y, V, Gs, Gs4) :-
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+    Gs3 = ['__mul__'(X2, Y2, V) | Gs4].
+ghc_preprocess_polynomial(X / Y, V, Gs, Gs4) :-
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+    Gs3 = ['__div__'(X2, Y2, V) | Gs4].
+ghc_preprocess_polynomial(X mod Y, V, Gs, Gs4) :-
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+    Gs3 = ['__mod__'(X2, Y2, V) | Gs4].
+ghc_preprocess_polynomial(X, V, Gs, Gs2) :-
+    Gs = [V := X | Gs2], !.
+
+
+ghc_preprocess_polynomial(X, X, Gs, Gs) :- var(X), !.
+ghc_preprocess_polynomial(- X, X3, Gs, Gs3) :- !,
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    Gs2 = ('__neg__'(X2, X3), Gs3).
+ghc_preprocess_polynomial(X + Y, V, Gs, Gs4) :- !,
+    ( Y == 1 ->
+      ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+      Gs2 = ('__inc__'(X2, V), Gs4)
+    ; X == 1 ->
+      ghc_preprocess_polynomial(Y, Y2, Gs, Gs2),
+      Gs2 = ('__inc__'(Y2, V), Gs4)
+    ; !,
+      ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+      ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+      Gs3 = ('__add__'(X2, Y2, V), Gs4) ).
+ghc_preprocess_polynomial(X - Y, V, Gs, Gs4) :- !,
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ( Y == 1 ->
+      Gs2 = ('__dec__'(X2, V), Gs4)
+    ; !,
+      ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+      Gs3 = ('__sub__'(X2, Y2, V), Gs4) ).
+ghc_preprocess_polynomial(X * Y, V, Gs, Gs4) :- !,
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+    Gs3 = ('__mul__'(X2, Y2, V), Gs4).
+ghc_preprocess_polynomial(X / Y, V, Gs, Gs4) :- !,
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+    Gs3 = ('__div__'(X2, Y2, V), Gs4).
+ghc_preprocess_polynomial(X mod Y, V, Gs, Gs4) :- !,
+    ghc_preprocess_polynomial(X, X2, Gs, Gs2),
+    ghc_preprocess_polynomial(Y, Y2, Gs2, Gs3),
+    Gs3 = ('__mod__'(X2, Y2, V), Gs4).
+ghc_preprocess_polynomial(X, X, Gs, Gs) :- !.
 
 %% write_goal_entry_point(?Ctx, +Goal)
 % Ctx に ghc_source の値として格納しているコンパイルコードに

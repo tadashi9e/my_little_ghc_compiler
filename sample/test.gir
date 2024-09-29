@@ -94,7 +94,7 @@ label(test_otherwise_aux/3).
   proceed.
 label(test_otherwise_aux/3-2).
   otherwise.
-  % head(test_otherwise_aux(_1078,Outs,Outs2)).
+  % head(test_otherwise_aux(_1084,Outs,Outs2)).
   % guard(true).
   activate.
   % body(Outs=[writeln(test success)|Outs2]).
@@ -136,7 +136,7 @@ label(test_write_list/2).
   % head(test_write_list(Outs,Outs2)).
   % guard(true).
   activate.
-  % body(Outs=[writeln([1,2,3,4,5|_1752])|Outs2]).
+  % body(Outs=[writeln([1,2,3,4,5|_1758])|Outs2]).
     get_list(reg(in,1)).
       unify_structure(writeln/1).
       unify_list.
@@ -289,7 +289,7 @@ label(test_check_constant_aux/3-2).
   proceed.
 label(test_check_constant_aux/3-3).
   otherwise.
-  % head(test_check_constant_aux(_4876,Outs,Outs2)).
+  % head(test_check_constant_aux(_4882,Outs,Outs2)).
   % guard(true).
   activate.
   % body(Outs=[writeln(test failed(otherwise))|Outs2]).
@@ -351,7 +351,7 @@ label(test_check_list_aux/3-2).
   proceed.
 label(test_check_list_aux/3-3).
   otherwise.
-  % head(test_check_list_aux(_6820,Outs,Outs2)).
+  % head(test_check_list_aux(_6826,Outs,Outs2)).
   % guard(true).
   activate.
   % body(Outs=[writeln(test failed(otherwise))|Outs2]).
@@ -405,7 +405,7 @@ label(test_check_nil_aux/3-2).
   proceed.
 label(test_check_nil_aux/3-3).
   otherwise.
-  % head(test_check_nil_aux(_8976,Outs,Outs2)).
+  % head(test_check_nil_aux(_8982,Outs,Outs2)).
   % guard(true).
   activate.
   % body(Outs=[writeln(test failed(otherwise))|Outs2]).
@@ -461,7 +461,7 @@ label(test_check_structure_aux/3-2).
   proceed.
 label(test_check_structure_aux/3-3).
   otherwise.
-  % head(test_check_structure_aux(_11376,Outs,Outs2)).
+  % head(test_check_structure_aux(_11382,Outs,Outs2)).
   % guard(true).
   activate.
   % body(Outs=[writeln(test failed(otherwise))|Outs2]).
@@ -1752,12 +1752,12 @@ label(test_calc/2).
   % head(test_calc(Outs,Outs2)).
   % guard(true).
   activate.
-  % body(X2:=X-2).
+  % body(__sub__(X,2,X2)).
   par(3,5).
     out_variable(reg(y,3),reg(out,1)).
     out_constant(2,reg(out,2)).
     out_variable(reg(y,4),reg(out,3)).
-    call('__sub__'/3).
+    spawn('__sub__'/3).
   % body(test_calc_report(X2,writeln(X2:=X-1),Outs,Outs1)).
   par(4,6).
     out_value(reg(y,4),reg(out,1)).
@@ -1774,12 +1774,12 @@ label(test_calc/2).
   par(1,6).
     out_constant('dump/calc.dot',reg(out,1)).
     spawn(dump_to_dot/1).
-  % body(X1:=X+2).
+  % body(__add__(X,2,X1)).
   par(3,7).
     out_value(reg(y,3),reg(out,1)).
     out_constant(2,reg(out,2)).
     out_variable(reg(y,6),reg(out,3)).
-    call('__add__'/3).
+    spawn('__add__'/3).
   % body(test_calc_report(X1,writeln(X1:=X+1),Outs1,Outs2)).
   par(4,7).
     out_value(reg(y,6),reg(out,1)).
@@ -1833,7 +1833,7 @@ label(main/1).
   goal(main/1).
   requires(7).
   try_guard_else_suspend.
-  % head(main(_40110)).
+  % head(main(_40116)).
   % guard(true).
   activate.
   % body(outstream(Outs)).

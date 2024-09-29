@@ -17,7 +17,7 @@ label(tarai_aux/5).
   goal(tarai_aux/5).
   requires(17).
   try_guard_else(label(tarai_aux/5-2)).
-  % head(tarai_aux(X,Y,_224,T,R)).
+  % head(tarai_aux(X,Y,_230,T,R)).
   % guard((var(R),X=<Y)).
   seq(1,7).
     out_value(reg(in,5),reg(out,1)).
@@ -42,11 +42,11 @@ label(tarai_aux/5-2).
     out_value(reg(in,2),reg(out,2)).
     call((>)/2).
   activate.
-  % body(X_1:=X-1).
+  % body(__dec__(X,X_1)).
   par(2,7).
     out_value(reg(in,1),reg(out,1)).
     out_variable(reg(y,6),reg(out,2)).
-    call('__dec__'/2).
+    spawn('__dec__'/2).
   % body(tarai_aux(X_1,Y,Z,R_X,R)).
   par(5,8).
     out_value(reg(y,6),reg(out,1)).
@@ -55,11 +55,11 @@ label(tarai_aux/5-2).
     out_variable(reg(y,7),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     spawn(tarai_aux/5).
-  % body(Y_1:=Y-1).
+  % body(__dec__(Y,Y_1)).
   par(2,9).
     out_value(reg(in,2),reg(out,1)).
     out_variable(reg(y,8),reg(out,2)).
-    call('__dec__'/2).
+    spawn('__dec__'/2).
   % body(tarai_aux(Y_1,Z,X,R_Y,R)).
   par(5,10).
     out_value(reg(y,8),reg(out,1)).
@@ -76,11 +76,11 @@ label(tarai_aux/5-2).
     out_value(reg(in,4),reg(out,4)).
     out_value(reg(in,5),reg(out,5)).
     spawn(tarai_aux/5).
-  % body(Z_1:=Z-1).
+  % body(__dec__(Z,Z_1)).
   par(2,12).
     out_value(reg(in,3),reg(out,1)).
     out_variable(reg(y,11),reg(out,2)).
-    call('__dec__'/2).
+    spawn('__dec__'/2).
   % body(tarai_aux(Z_1,X,Y,R_Z,R)).
   tail(5,12).
     out_value(reg(y,11),reg(out,1)).
@@ -91,7 +91,7 @@ label(tarai_aux/5-2).
     execute(tarai_aux/5).
 label(tarai_aux/5-3).
   otherwise.
-  % head(tarai_aux(_888,_890,_892,_894,_896)).
+  % head(tarai_aux(_894,_896,_898,_900,_902)).
   activate.
   proceed.
 label(report/1).
@@ -113,7 +113,7 @@ label(main/1).
   goal(main/1).
   requires(10).
   try_guard_else(label(main/1-2)).
-  % head(main([_1242,X,Y,Z])).
+  % head(main([_1248,X,Y,Z])).
     check_list(reg(in,1)).
       read_void.
       read_list.
@@ -157,7 +157,7 @@ label(main/1).
     execute(tarai/4).
 label(main/1-2).
   otherwise.
-  % head(main([Prog|_1776])).
+  % head(main([Prog|_1782])).
     check_list(reg(in,1)).
       read_variable(reg(x,6)).
       read_void.
