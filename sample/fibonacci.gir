@@ -42,7 +42,7 @@ label(fib/4).
     execute(fib/4).
 label(fib/4-2).
   try_guard_else_suspend.
-  % head(fib(Max,N1,N2,Ns0)).
+  % head(fib(Max,_14148,N2,Ns0)).
   % guard(N2>Max).
   seq(2,7).
     out_value(reg(in,3),reg(out,1)).
@@ -137,7 +137,7 @@ label(main/1).
   goal(main/1).
   requires(6).
   try_guard_else(label(main/1-2)).
-  % head(main([_1596,Arg])).
+  % head(main([_1512,Arg])).
     check_list(reg(in,1)).
       read_void.
       read_list.
@@ -161,7 +161,7 @@ label(main/1).
     execute(fibonacci/2).
 label(main/1-2).
   otherwise.
-  % head(main([Prog|_2068])).
+  % head(main([Prog|_1960])).
     check_list(reg(in,1)).
       read_variable(reg(x,4)).
       read_void.

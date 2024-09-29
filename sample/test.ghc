@@ -16,7 +16,7 @@ otherwise.
 test_otherwise_aux(_, Outs, Outs2) :-
     Outs = [writeln('test success') | Outs2].
 
-test_write_var(Outs, Outs2) :- Outs = [writeln(Var) | Outs2].
+test_write_var(Outs, Outs2) :- Outs = [writeln(_SingletonVar) | Outs2].
 test_write_atom(Outs, Outs2) :- Outs = [writeln(atom) | Outs2].
 test_write_list(Outs, Outs2) :- Outs = [writeln([1,2,3,4,5|_]) | Outs2].
 test_write_structure(Outs, Outs2) :-

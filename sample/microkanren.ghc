@@ -29,7 +29,7 @@ seek(Var, [Var=V1|_], V0) :- true | V0 = success(V1).
 otherwise.
 seek(Var, [_|Sub],    V0) :- seek(Var, Sub, V0).
 
-continue_walk_if_seek_success(U, success(V0), Sub, V) :- walk(V0, Sub, V).
+continue_walk_if_seek_success(_, success(V0), Sub, V) :- walk(V0, Sub, V).
 continue_walk_if_seek_success(U, fail,        _,   V) :- true | U = V.
 
 % unify(+U0, +V0, +St, -Str)
@@ -52,7 +52,7 @@ put_result_state_if_success([_|_], State, Str) :-
 unification(U, U, Sub0, Sub2) :-
     true |
     Sub2 = Sub0.
-unification(VarU=ValU, VarV=ValU, Sub0, Sub2) :-
+unification(VarU=ValU, VarV=ValV, Sub0, Sub2) :-
     unify(VarU, VarV, Sub0, Sub1),
     unify(ValU, ValV, Sub1, Sub2).
 unification(var(C), var(C), Sub0, Sub2) :-
@@ -151,7 +151,7 @@ take_all_aux([T|Ts], V) :-
     take_all(Ts, V2).
 
 % take(+N, +T, -V)
-take(0, T, V) :-
+take(0, _, V) :-
     true |
     V = [].
 take(N, T, V) :-
@@ -271,7 +271,7 @@ pp_space(N, St1, St3) :- true | N1 := N - 1,
                                 St1 = [write(' ') | St2],
                                 pp_space(N1, St2, St3).
 
-pp_rest(N, [], St1, St2) :- true | St1 = St2.
+pp_rest(_, [], St1, St2) :- true | St1 = St2.
 pp_rest(N, [A|B], St1, St2) :- call(( p_write(','), p_nl,
                                       pp(N, A),
                                       pp_rest(N, B) ),

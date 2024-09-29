@@ -1454,7 +1454,7 @@ label('__write_functor_tail__'/2).
   goal('__write_functor_tail__'/2).
   requires(7).
   try_guard_else(label('__write_functor_tail__'/2-2)).
-  % head(__write_functor_tail__(Stream,[])).
+  % head(__write_functor_tail__(_Stream,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.

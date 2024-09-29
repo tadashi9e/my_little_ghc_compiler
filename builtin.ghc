@@ -12,7 +12,7 @@ call((G1, G2)) :- call(G1), call(G2).
 otherwise.
 call(Goal) :- '__call__'(Goal).
 
-'__call__'(Goal) :-
+'__call__'(_Goal) :-
     inline('  MACRO_wait(reg::in(1));'),
     inline('  {'),
     inline('    const Q q = vm->in[1];'),
@@ -45,7 +45,7 @@ call((G1,G2), U, V) :- call(G1, U, U0), call(G2, U0, V).
 otherwise.
 call(Goal, U, V) :- '__call__'(Goal, U, V).
 
-'__call__'(Goal, U, V) :-
+'__call__'(_Goal, _U, _V) :-
     inline('  MACRO_wait(reg::in(1));'),
     inline('  {'),
     inline('    const Q q = vm->in[1];'),
@@ -98,7 +98,7 @@ wait_time(Var) :-
     '__time_post__'(Start, InferenceCount, ResumeCount).
     
 
-'__time_pre__'(Start, InferenceCount, ResumeCount) :-
+'__time_pre__'(_Start, _InferenceCount, _ResumeCount) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const int64_t istart = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
@@ -109,7 +109,7 @@ wait_time(Var) :-
     inline('  MACRO_proceed;').
 
 
-'__time_post__'(Start, InferenceCount, ResumeCount) :-
+'__time_post__'(_Start, _InferenceCount, _ResumeCount) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const int64_t iend = static_cast<int64_t>(std::clock() * 1000000.0 / CLOCKS_PER_SEC);'),
@@ -131,7 +131,7 @@ atom_concat(A, B, C) :- atom(A), atom(B) | '__atom_concat_1__'(A, B, C).
 atom_concat(A, B, C) :- atom(A), atom(C) | '__atom_concat_2__'(A, B, C).
 atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
 
-'__atom_concat_1__'(A, B, C) :-
+'__atom_concat_1__'(_A, _B, _C) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q1 = vm->in[1];'),
@@ -145,7 +145,7 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
     inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__atom_concat_2__'(A, B, C) :-
+'__atom_concat_2__'(_A, _B, _C) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q1 = vm->in[1];'),
@@ -168,7 +168,7 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
     inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__atom_concat_3__'(A, B, C) :-
+'__atom_concat_3__'(_A, _B, _C) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q2 = vm->in[2];'),
@@ -194,7 +194,7 @@ atom_concat(A, B, C) :- atom(B), atom(C) | '__atom_concat_3__'(A, B, C).
 
 atom_codes(A, Cs) :- atom(A) | '__atom_to_codes__'(A, Cs).
 atom_codes(A, Cs) :- Cs = [_|_] | '__codes_to_atom__'(A, Cs, '').
-'__atom_to_codes__'(A, Cs) :-
+'__atom_to_codes__'(_A, _Cs) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q = vm->in[1];'),
@@ -219,7 +219,7 @@ atom_codes(A, Cs) :- Cs = [_|_] | '__codes_to_atom__'(A, Cs, '').
     integer(C), atom(Ac) |
     '__atom_code_concat__'(Ac, C, Ac2),
     '__codes_to_atom__'(A, Cs, Ac2).
-'__atom_code_concat__'(A, C, A2) :-
+'__atom_code_concat__'(_A, _C, _A2) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q1 = vm->in[1];'),
@@ -234,7 +234,7 @@ atom_codes(A, Cs) :- Cs = [_|_] | '__codes_to_atom__'(A, Cs, '').
     inline('  MACRO_proceed;').
 atom_chars(A, Cs) :- atom(A) | '__atom_to_chars__'(A, Cs).
 atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
-'__atom_to_chars__'(A, Cs) :-
+'__atom_to_chars__'(_A, _Cs) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q = vm->in[1];'),
@@ -291,7 +291,7 @@ atom_chars(A, [C|Cs]) :- '__chars_to_atom__'(A, Cs, C).
 atom_number(A, N) :- atom(A) | '__atom_to_number__'(A, N).
 atom_number(A, N) :- integer(N) | '__number_to_atom__'(A, N).
 
-'__atom_to_number__'(A, N) :-
+'__atom_to_number__'(_A, _N) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q = vm->in[1];'),
@@ -301,7 +301,7 @@ atom_number(A, N) :- integer(N) | '__number_to_atom__'(A, N).
     inline('  }'),
     inline('  MACRO_proceed;').
 
-'__number_to_atom__'(A, N) :-
+'__number_to_atom__'(_A, _N) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q = vm->in[2];'),
@@ -380,7 +380,7 @@ close(Stream) :-
     Ac21 := Ac2 + 1,   % 00001
     '__open_opt_string_to_integer__'(Opts, OFlag, OMode, Ac1, Ac21).
 
-'__open__'(Src, OFlag, Mode, Stream) :-
+'__open__'(_Src, _OFlag, _Mode, _Stream) :-
     inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(3));'),
@@ -404,7 +404,7 @@ close(Stream) :-
     inline('    }'),
     inline('  }').
     inline('  MACRO_proceed;').
-'__close__'(Stream) :-
+'__close__'(_Stream) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_activate;'),
     inline('  {'),
@@ -418,7 +418,7 @@ writeln(Stream, X) :- write(Stream, X) -> nl(Stream).
 
 nl :- nl(1).
 nl(Stream) :- integer(Stream) | '__nl__'(Stream).
-'__nl__'(Stream) :-
+'__nl__'(_Stream) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_activate;'),
     inline('  {'),
@@ -457,7 +457,7 @@ otherwise.
 '__write_functor_args2__'(_, []) :- true.
 '__write_functor_args2__'(Stream, [A|B]) :-
     '__write__'(Stream, A) -> '__write_functor_tail__'(Stream, B).
-'__write_functor_tail__'(Stream, []) :- true.
+'__write_functor_tail__'(_Stream, []) :- true.
 '__write_functor_tail__'(Stream, [A|B]) :-
     '__write__'(Stream, ',')
     -> '__write__'(Stream, A) -> '__write_functor_tail__'(Stream, B).
@@ -472,7 +472,7 @@ otherwise.
 '__write_list_tail__'(Stream, X) :-
     '__write__'(Stream, '|') -> '__write__'(Stream, X).
 
-'__write_number__'(Stream, X) :-
+'__write_number__'(_Stream, _X) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q1 = vm->in[1];'),
@@ -489,7 +489,7 @@ otherwise.
     inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__write_atom__'(Stream, X) :-
+'__write_atom__'(_Stream, _X) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q1 = vm->in[1];'),
@@ -505,7 +505,7 @@ otherwise.
     inline('    }'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__write_var__'(Stream, X) :-
+'__write_var__'(_Stream, _X) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q1 = vm->in[1];'),
@@ -525,15 +525,15 @@ otherwise.
     inline('  }'),
     inline('  MACRO_proceed;').
 
-integer(X) :-
+integer(_X) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_return;').
 
-atom(X) :-
+atom(_X) :-
     inline('  MACRO_wait_for(TAG_ATOM, reg::in(1));'),
     inline('  MACRO_return;').
 
-var(X) :-
+var(_X) :-
     inline('  {'),
     inline('    const Q q = vm->in[1] = deref(vm->in[1]);'),
     inline('    const TAG_T tag = tag_of(q);'),
@@ -544,7 +544,7 @@ var(X) :-
     inline('  }'),
     inline('  MACRO_return;').
 
-is_functor(X) :-
+is_functor(_X) :-
     inline('  MACRO_wait_for(TAG_STR, reg::in(1));'),
     inline('  {'),
     inline('    const Q q = vm->in[1];'),
@@ -556,7 +556,7 @@ is_functor(X) :-
     inline('  }'),
     inline('  MACRO_return;').
 
-'=..'(F, U) :-
+'=..'(_F, _U) :-
     inline('  MACRO_wait_for(TAG_STR, reg::in(1));'),
     inline('  MACRO_activate;'),
     inline('  {'),
@@ -578,7 +578,7 @@ is_functor(X) :-
     inline('  }'),
     inline('  MACRO_proceed;').
 
-X == Y :-
+_X == _Y :-
     inline('  MACRO_wait(reg::in(1));'),
     inline('  MACRO_wait(reg::in(2));'),
     inline('  {'),
@@ -590,7 +590,7 @@ X == Y :-
     inline('  }'),
     inline('  MACRO_return;').
 
-X >= Y :-
+_X >= _Y :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  {'),
@@ -602,7 +602,7 @@ X >= Y :-
     inline('  }'),
     inline('  MACRO_return;').
 
-X =< Y :-
+_X =< _Y :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  {'),
@@ -614,7 +614,7 @@ X =< Y :-
     inline('  }'),
     inline('  MACRO_return;').
 
-X > Y :-
+_X > _Y :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  {'),
@@ -626,7 +626,7 @@ X > Y :-
     inline('  }'),
     inline('  MACRO_return;').
 
-X < Y :-
+_X < _Y :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  {'),
@@ -642,7 +642,7 @@ X =:= Y :- X1 := X, Y1 := Y, X1 == Y1.
 
 X =\= Y :- X1 := X, Y1 := Y, '__not_equal__'(X1, Y1).
 
-'__not_equal__'(X, Y) :-
+'__not_equal__'(_X, _Y) :-
     inline('  MACRO_wait(reg::in(1));'),
     inline('  MACRO_wait(reg::in(2));'),
     inline('  {'),
@@ -686,7 +686,7 @@ otherwise.
 otherwise.
 '__neg__'(A, C) :- A1 := A -> '__ineg__'(A1, C).
 
-'__ineg__'(A, B) :-
+'__ineg__'(_A, _B) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_activate;'),
     inline('  {'),
@@ -694,7 +694,7 @@ otherwise.
     inline('    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__iadd__'(A, B, C) :-
+'__iadd__'(_A, _B, _C) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  MACRO_activate;'),
@@ -705,7 +705,7 @@ otherwise.
     inline('    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__isub__'(A, B, C) :-
+'__isub__'(_A, _B, _C) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  MACRO_activate;'),
@@ -716,7 +716,7 @@ otherwise.
     inline('    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__imul__'(A, B, C) :-
+'__imul__'(_A, _B, _C) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  MACRO_activate;'),
@@ -727,7 +727,7 @@ otherwise.
     inline('    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__idiv__'(A, B, C) :-
+'__idiv__'(_A, _B, _C) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  MACRO_activate;'),
@@ -738,7 +738,7 @@ otherwise.
     inline('    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(3));'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__imod__'(A1, B1, C) :-
+'__imod__'(_A, _B, _C) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_wait_for(TAG_INT, reg::in(2));'),
     inline('  MACRO_activate;'),
@@ -757,7 +757,7 @@ otherwise.
 otherwise.
 '__dec__'(A, B) :- A1 := A -> '__idec__'(A1, B).
 
-'__iinc__'(A, B) :-
+'__iinc__'(_A, _B) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_activate;'),
     inline('  {'),
@@ -766,7 +766,7 @@ otherwise.
     inline('    MACRO_get_constant(tagvalue<TAG_INT>(v), reg::in(2));'),
     inline('  }'),
     inline('  MACRO_proceed;').
-'__idec__'(A, B) :-
+'__idec__'(_A, _B) :-
     inline('  MACRO_wait_for(TAG_INT, reg::in(1));'),
     inline('  MACRO_activate;'),
     inline('  {'),
@@ -802,7 +802,7 @@ nth1(N, Ls, E) :- var(E) | N1 := N - 1, '__nth0__'(N1, Ls, E).
 nth1(N, Ls, E) :- var(N) | '__nth0_rev__'(N1, Ls, E, 0), N := N1 + 1.
 
 inference_count(Count) :- '__inference_count__'(Count).
-'__inference_count__'(Count) :-
+'__inference_count__'(_Count) :-
     inline('  MACRO_activate;'),
     inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->inference_count), vm->in[1])) {'),
     inline('    MACRO_fail;'),
@@ -810,7 +810,7 @@ inference_count(Count) :- '__inference_count__'(Count).
     inline('  MACRO_proceed;').
 
 resume_count(Count) :- '__resume_count__'(Count).
-'__resume_count__'(Count) :-
+'__resume_count__'(_Count) :-
     inline('  MACRO_activate;'),
     inline('  if (!vm->unify(tagvalue<TAG_INT>(vm->resume_count), vm->in[1])) {'),
     inline('    MACRO_fail;'),
@@ -818,7 +818,7 @@ resume_count(Count) :- '__resume_count__'(Count).
     inline('  MACRO_proceed;').
 
 dump_to_dot(File) :- atom(File) | '__dump_to_dot__'(File).
-'__dump_to_dot__'(File) :-
+'__dump_to_dot__'(_File) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q = vm->in[1];'),
@@ -828,7 +828,7 @@ dump_to_dot(File) :- atom(File) | '__dump_to_dot__'(File).
     inline('  MACRO_proceed;').
 
 dump_to_dot(File, Var) :- atom(File) | '__dump_to_dot__'(File, Var).
-'__dump_to_dot__'(File, Var) :-
+'__dump_to_dot__'(_File, _Var) :-
     inline('  MACRO_activate;'),
     inline('  {'),
     inline('    const Q q1 = vm->in[1];'),

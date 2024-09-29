@@ -57,6 +57,7 @@ ghc_load_all_terms([SourceFile|SourceFiles], Source, VarKvs) :-
 ghc_read_all_terms(Stream, Source, VarKvs) :-
     read_term(Stream, Term,
               [variable_names(Vars), singletons(Singletons)]),
+    report_singletons(Term, Singletons),
     ( Term = end_of_file -> Source = []
     ; Source = [Term|Source2],
       ( get(VarKvs, vars, Vars0),
@@ -68,6 +69,14 @@ ghc_read_all_terms(Stream, Source, VarKvs) :-
         put(VarKvs, singletons, Singletons2)
       ; put(VarKvs, singletons, Singletons) ),
       ghc_read_all_terms(Stream, Source2, VarKvs)).
+
+%% report_singletons(+Term +Singletons)
+report_singletons(_, []) :- !.
+report_singletons(Term, [Singleton=_|Singletons]) :-
+    atom_chars(Singleton, SCs),
+    ( SCs = ['_'|_] -> true
+    ; format('warning: Singleton ~w in ~w~n', [Singleton, Term]) ),
+    report_singletons(Term, Singletons).
 
 %% ghc_compile(+Source, +WamFile)
 % GHC ソースコード Source を WAM 風中間コードにコンパイルして

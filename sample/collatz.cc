@@ -2641,6 +2641,9 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_execute(283,2);  // execute(collatz_for_each_args/2)
     case 289:  // main/1-2
       MACRO_otherwise;
+      MACRO_check_list(reg::in(1));
+      MACRO_read_variable(reg::x(3));
+      MACRO_read_void;
       MACRO_activate;
       MACRO_tail(1,4);
       MACRO_out_list(reg::out(1));
@@ -2648,7 +2651,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_write_constant(atom(131));
       MACRO_write_list;
       MACRO_write_structure(atom(33));
-      MACRO_write_variable(reg::x(3));
+      MACRO_write_value(reg::x(3));
       MACRO_write_list;
       MACRO_write_structure(atom(35));
       MACRO_write_constant(atom(132));

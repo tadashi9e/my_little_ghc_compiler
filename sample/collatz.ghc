@@ -30,5 +30,5 @@ main([_ | Args]) :-
     outstream(Stream),
     collatz_for_each_args(Args, Stream - []).
 otherwise.
-main(_) :-
+main([Prog|_]) :-
     outstream([write('usage: '), write(Prog), writeln(' <N> [<N2> <N3> ...]')]).

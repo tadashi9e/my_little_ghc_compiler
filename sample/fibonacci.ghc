@@ -8,7 +8,7 @@ fib(Max, N1, N2, Ns0) :-
     Ns0 = [N2 | Ns1],
     N3 := N1 + N2,
     fib(Max, N2, N3, Ns1).
-fib(Max, N1, N2, Ns0) :-
+fib(Max, _, N2, Ns0) :-
     N2 > Max | Ns0 = [].
 
 

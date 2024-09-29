@@ -110,7 +110,7 @@ label(test_write_var/2).
   % head(test_write_var(Outs,Outs2)).
   % guard(true).
   activate.
-  % body(Outs=[writeln(Var)|Outs2]).
+  % body(Outs=[writeln(_SingletonVar)|Outs2]).
     get_list(reg(in,1)).
       unify_structure(writeln/1).
       unify_variable(reg(x,3)).

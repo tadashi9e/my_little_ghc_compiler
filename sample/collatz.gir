@@ -14,7 +14,7 @@ label(collatz/2).
 label(collatz/2-2).
   try_guard_else(label(collatz/2-3)).
   % head(collatz(N,Ns)).
-  % guard((__mod__(N,2,_19458),_19458=:=0)).
+  % guard((__mod__(N,2,_19454),_19454=:=0)).
   seq(3,4).
     out_value(reg(in,1),reg(out,1)).
     out_constant(2,reg(out,2)).
@@ -53,13 +53,13 @@ label(collatz/2-3).
   % head(collatz(N,Ns)).
   % guard(true).
   activate.
-  % body(__mul__(N,3,_19796)).
+  % body(__mul__(N,3,_19792)).
   par(3,8).
     out_value(reg(in,1),reg(out,1)).
     out_constant(3,reg(out,2)).
     out_variable(reg(y,7),reg(out,3)).
     spawn('__mul__'/3).
-  % body(__inc__(_19796,N2)).
+  % body(__inc__(_19792,N2)).
   par(2,9).
     out_value(reg(y,7),reg(out,1)).
     out_variable(reg(y,8),reg(out,2)).
@@ -216,7 +216,10 @@ label(main/1).
     execute(collatz_for_each_args/2).
 label(main/1-2).
   otherwise.
-  % head(main(_2266)).
+  % head(main([Prog|_2270])).
+    check_list(reg(in,1)).
+      read_variable(reg(x,3)).
+      read_void.
   % guard(true).
   activate.
   % body(outstream([write(usage: ),write(Prog),writeln( <N> [<N2> <N3> ...])])).
@@ -226,7 +229,7 @@ label(main/1-2).
       write_constant('usage: ').
       write_list.
       write_structure(write/1).
-      write_variable(reg(x,3)).
+      write_value(reg(x,3)).
       write_list.
       write_structure(writeln/1).
       write_constant(' <N> [<N2> <N3> ...]').
