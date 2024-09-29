@@ -57,7 +57,7 @@ ghc_load_all_terms([SourceFile|SourceFiles], Source, VarKvs) :-
 ghc_read_all_terms(Stream, Source, VarKvs) :-
     read_term(Stream, Term,
               [variable_names(Vars), singletons(Singletons)]),
-    report_singletons(Term, Singletons),
+    report_singletons(Term, Vars, Singletons, Singletons),
     ( Term = end_of_file -> Source = []
     ; Source = [Term|Source2],
       ( get(VarKvs, vars, Vars0),
@@ -70,13 +70,24 @@ ghc_read_all_terms(Stream, Source, VarKvs) :-
       ; put(VarKvs, singletons, Singletons) ),
       ghc_read_all_terms(Stream, Source2, VarKvs)).
 
-%% report_singletons(+Term +Singletons)
-report_singletons(_, []) :- !.
-report_singletons(Term, [Singleton=_|Singletons]) :-
+%% report_singletons(+Term +Vars, +Singletons, +Singletons)
+report_singletons(_, _, _, []) :- !.
+report_singletons(Term, Vars, Singletons,
+                  [Singleton = _ | RestSingletons]) :-
     atom_chars(Singleton, SCs),
     ( SCs = ['_'|_] -> true
-    ; format('warning: Singleton ~w in ~w~n', [Singleton, Term]) ),
-    report_singletons(Term, Singletons).
+    ; format('warning: Singleton ~w in ', [Singleton]),
+      report_term(Term, Vars, Singletons) ),
+    report_singletons(Term, Vars, Singletons, RestSingletons).
+report_term(Term, Vars, Singletons) :-
+    ( unify_var_vals(Vars),
+      unify_var_vals(Singletons),
+      format('~w~n', [Term]),
+      fail  % rollback unify_var_vals
+    ; !, true ).
+unify_var_vals([]) :- !.
+unify_var_vals([V=V|Vs]) :-
+    unify_var_vals(Vs).
 
 %% ghc_compile(+Source, +WamFile)
 % GHC ソースコード Source を WAM 風中間コードにコンパイルして
@@ -1026,7 +1037,7 @@ indent(N, OStream) :-
     ; write(OStream, ' '), N1 is N - 1, indent(N1, OStream) ).
 is_singleton1([], _) :- !.
 is_singleton1([_=Var|Vars], Arg) :-
-    ( Var == Arg -> false
+    ( Var == Arg -> fail
     ; is_singleton1(Vars, Arg) ).
 is_singleton(Ctx, Arg) :-
     get(Ctx, vars, Vars),
