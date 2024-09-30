@@ -2580,7 +2580,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_par(2,4);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_out_variable(reg::y(3),reg::out(2));
-      MACRO_spawn(302,281,atom(134));  // spawn(gen/2)
+      MACRO_spawn(300,281,atom(134));  // spawn(gen/2)
     case 281:  // return_from_spawn(gen/2)
       MACRO_tail(5,6);
       MACRO_out_value(reg::y(3),reg::out(1));
@@ -2645,7 +2645,7 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_out_value(reg::in(4),reg::out(1));
       MACRO_out_value(reg::in(5),reg::out(2));
       MACRO_out_variable(reg::y(9),reg::out(3));
-      MACRO_spawn(300,287,atom(137));  // spawn(concat/3)
+      MACRO_spawn(298,287,atom(137));  // spawn(concat/3)
     case 287:  // return_from_spawn(concat/3)
       MACRO_tail(5,10);
       MACRO_out_value(reg::y(9),reg::out(1));
@@ -2700,52 +2700,42 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_out_value(reg::in(8),reg::out(8));
       MACRO_execute(286,8);  // execute(check/8)
     case 294:  // check/8-3
-      MACRO_try_guard_else(297);
+      MACRO_try_guard_else(296);
       MACRO_check_list(reg::in(1));
       MACRO_read_variable(reg::x(13));
       MACRO_read_variable(reg::x(14));
       MACRO_seq(3,15);
       MACRO_out_value(reg::x(13),reg::out(1));
       MACRO_out_value(reg::in(3),reg::out(2));
-      MACRO_out_variable(reg::y(13),reg::out(3));
+      MACRO_out_value(reg::in(2),reg::out(3));
       MACRO_call(179,295,atom(45));  // call(__add__/3)
     case 295:  // return_from_call(__add__/3)
-      MACRO_seq(2,15);
-      MACRO_out_value(reg::in(2),reg::out(1));
-      MACRO_out_value(reg::y(13),reg::out(2));
-      MACRO_call(168,296,atom(87));  // call((=:=)/2)
-    case 296:  // return_from_call((=:=)/2)
       MACRO_activate;
       MACRO_get_value(reg::in(8),reg::in(7));
       MACRO_proceed;
-    case 297:  // check/8-4
+    case 296:  // check/8-4
       MACRO_try_guard_else_suspend;
       MACRO_check_list(reg::in(1));
+      MACRO_read_variable(reg::x(13));
       MACRO_read_variable(reg::x(14));
-      MACRO_read_variable(reg::x(15));
-      MACRO_seq(3,16);
-      MACRO_out_value(reg::x(14),reg::out(1));
+      MACRO_seq(3,15);
+      MACRO_out_value(reg::x(13),reg::out(1));
       MACRO_out_value(reg::in(3),reg::out(2));
-      MACRO_out_variable(reg::y(14),reg::out(3));
-      MACRO_call(185,298,atom(97));  // call(__sub__/3)
-    case 298:  // return_from_call(__sub__/3)
-      MACRO_seq(2,16);
-      MACRO_out_value(reg::in(2),reg::out(1));
-      MACRO_out_value(reg::y(14),reg::out(2));
-      MACRO_call(168,299,atom(87));  // call((=:=)/2)
-    case 299:  // return_from_call((=:=)/2)
+      MACRO_out_value(reg::in(2),reg::out(3));
+      MACRO_call(185,297,atom(97));  // call(__sub__/3)
+    case 297:  // return_from_call(__sub__/3)
       MACRO_activate;
       MACRO_get_value(reg::in(8),reg::in(7));
       MACRO_proceed;
-    case 300:  // concat/3
-      MACRO_goal(300,atom(137));
+    case 298:  // concat/3
+      MACRO_goal(298,atom(137));
       MACRO_requires(9);
-      MACRO_try_guard_else(301);
+      MACRO_try_guard_else(299);
       MACRO_check_nil(reg::in(1));
       MACRO_activate;
       MACRO_get_value(reg::in(2),reg::in(3));
       MACRO_proceed;
-    case 301:  // concat/3-2
+    case 299:  // concat/3-2
       MACRO_try_guard_else_suspend;
       MACRO_check_list(reg::in(1));
       MACRO_read_variable(reg::x(5));
@@ -2758,16 +2748,16 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_out_value(reg::x(4),reg::out(1));
       MACRO_out_value(reg::in(2),reg::out(2));
       MACRO_out_value(reg::x(5),reg::out(3));
-      MACRO_execute(300,3);  // execute(concat/3)
-    case 302:  // gen/2
-      MACRO_goal(302,atom(134));
+      MACRO_execute(298,3);  // execute(concat/3)
+    case 300:  // gen/2
+      MACRO_goal(300,atom(134));
       MACRO_requires(8);
-      MACRO_try_guard_else(305);
+      MACRO_try_guard_else(303);
       MACRO_seq(2,4);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_out_constant(tagvalue<TAG_INT>(0),reg::out(2));
-      MACRO_call(166,303,atom(85));  // call((>)/2)
-    case 303:  // return_from_call((>)/2)
+      MACRO_call(166,301,atom(85));  // call((>)/2)
+    case 301:  // return_from_call((>)/2)
       MACRO_activate;
       MACRO_get_list(reg::in(2));
       MACRO_unify_value(reg::in(1));
@@ -2775,29 +2765,29 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_par(2,5);
       MACRO_out_value(reg::in(1),reg::out(1));
       MACRO_out_variable(reg::y(3),reg::out(2));
-      MACRO_spawn(223,304,atom(108));  // spawn(__dec__/2)
-    case 304:  // return_from_spawn(__dec__/2)
+      MACRO_spawn(223,302,atom(108));  // spawn(__dec__/2)
+    case 302:  // return_from_spawn(__dec__/2)
       MACRO_tail(2,5);
       MACRO_out_value(reg::y(3),reg::out(1));
       MACRO_out_value(reg::x(4),reg::out(2));
-      MACRO_execute(302,2);  // execute(gen/2)
-    case 305:  // gen/2-2
+      MACRO_execute(300,2);  // execute(gen/2)
+    case 303:  // gen/2-2
       MACRO_try_guard_else_suspend;
       MACRO_seq(2,5);
       MACRO_out_variable(reg::y(4),reg::out(1));
       MACRO_out_value(reg::in(1),reg::out(2));
-      MACRO_call(171,306,atom(90));  // call((:=)/2)
-    case 306:  // return_from_call((:=)/2)
+      MACRO_call(171,304,atom(90));  // call((:=)/2)
+    case 304:  // return_from_call((:=)/2)
       MACRO_seq(2,6);
       MACRO_out_variable(reg::y(5),reg::out(1));
       MACRO_out_constant(tagvalue<TAG_INT>(0),reg::out(2));
-      MACRO_call(171,307,atom(90));  // call((:=)/2)
-    case 307:  // return_from_call((:=)/2)
+      MACRO_call(171,305,atom(90));  // call((:=)/2)
+    case 305:  // return_from_call((:=)/2)
       MACRO_seq(2,6);
       MACRO_out_value(reg::y(4),reg::out(1));
       MACRO_out_value(reg::y(5),reg::out(2));
-      MACRO_call(168,308,atom(87));  // call((=:=)/2)
-    case 308:  // return_from_call((=:=)/2)
+      MACRO_call(168,306,atom(87));  // call((=:=)/2)
+    case 306:  // return_from_call((=:=)/2)
       MACRO_activate;
       MACRO_get_nil(reg::in(2));
       MACRO_proceed;
@@ -3046,8 +3036,8 @@ void setup(Program* prog) {
   prog->add_entry_point(atom(127), 280);  // go / 2
   prog->add_entry_point(atom(135), 282);  // queen / 5
   prog->add_entry_point(atom(136), 286);  // check / 8
-  prog->add_entry_point(atom(137), 300);  // concat / 3
-  prog->add_entry_point(atom(134), 302);  // gen / 2
+  prog->add_entry_point(atom(137), 298);  // concat / 3
+  prog->add_entry_point(atom(134), 300);  // gen / 2
 }
 int
 main(int argc, char* argv[]) {

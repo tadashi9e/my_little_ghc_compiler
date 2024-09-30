@@ -207,13 +207,12 @@ ghc_preprocess_eval_polynomial([V := X | Goals], PreProcessedGoals) :- !,
     ghc_preprocess_eval_polynomial(Goals, PreProcessedGoals2).
 ghc_preprocess_eval_polynomial([X1 =:= X2 | Goals], PreProcessedGoals) :- !,
     always_success(ghc_preprocess_polynomial(
-                       X1, V1,
+                       X1, V,
                        PreProcessedGoals, PreProcessedGoals2)),
     always_success(ghc_preprocess_polynomial(
-                       X2, V2,
+                       X2, V,
                        PreProcessedGoals2, PreProcessedGoals3)),
-    PreProcessedGoals3 = [V1 =:= V2 | PreProcessedGoals4],
-    ghc_preprocess_eval_polynomial(Goals, PreProcessedGoals4).
+    ghc_preprocess_eval_polynomial(Goals, PreProcessedGoals3).
 ghc_preprocess_eval_polynomial([X1 =\= X2 | Goals], PreProcessedGoals) :- !,
     always_success(ghc_preprocess_polynomial(
                        X1, V1,

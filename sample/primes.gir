@@ -90,7 +90,7 @@ label(sift/2-2).
   proceed.
 label(filter/3).
   goal(filter/3).
-  requires(14).
+  requires(12).
   try_guard_else(label(filter/3-2)).
   % head(filter(P,[X|Xs1],Ys0)).
     check_list(reg(in,2)).
@@ -129,31 +129,19 @@ label(filter/3-2).
   try_guard_else(label(filter/3-3)).
   % head(filter(P,[X|Xs1],Ys0)).
     check_list(reg(in,2)).
+      read_variable(reg(x,8)).
       read_variable(reg(x,7)).
-      read_variable(reg(x,10)).
-  % guard((__mod__(X,P,_17636),_17636=:=0)).
-  seq(3,11).
-    out_value(reg(x,7),reg(out,1)).
+  % guard(__mod__(X,P,0)).
+  seq(3,9).
+    out_value(reg(x,8),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    out_variable(reg(y,7),reg(out,3)).
+    out_constant(0,reg(out,3)).
     call('__mod__'/3).
-  seq(2,11).
-    out_variable(reg(y,8),reg(out,1)).
-    out_value(reg(y,7),reg(out,2)).
-    call((:=)/2).
-  seq(2,11).
-    out_variable(reg(y,9),reg(out,1)).
-    out_constant(0,reg(out,2)).
-    call((:=)/2).
-  seq(2,11).
-    out_value(reg(y,8),reg(out,1)).
-    out_value(reg(y,9),reg(out,2)).
-    call((=:=)/2).
   activate.
   % body(filter(P,Xs1,Ys0)).
-  tail(3,11).
+  tail(3,9).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,10),reg(out,2)).
+    out_value(reg(x,7),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute(filter/3).
 label(filter/3-3).
