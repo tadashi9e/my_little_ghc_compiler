@@ -1758,7 +1758,7 @@ label(test_calc/2).
     out_constant(2,reg(out,2)).
     out_variable(reg(y,4),reg(out,3)).
     spawn('__sub__'/3).
-  % body(test_calc_report(X2,writeln(X2:=X-1),Outs,Outs1)).
+  % body(test_calc_report(X2,writeln(X2:=X-2),Outs,Outs1)).
   par(4,6).
     out_value(reg(y,4),reg(out,1)).
     out_structure(writeln/1,reg(out,2)).
@@ -1766,7 +1766,7 @@ label(test_calc/2).
       write_value(reg(y,4)).
       write_structure((-)/2).
       write_value(reg(y,3)).
-      write_constant(1).
+      write_constant(2).
     out_value(reg(in,1),reg(out,3)).
     out_variable(reg(y,5),reg(out,4)).
     spawn(test_calc_report/4).
@@ -1780,7 +1780,7 @@ label(test_calc/2).
     out_constant(2,reg(out,2)).
     out_variable(reg(y,6),reg(out,3)).
     spawn('__add__'/3).
-  % body(test_calc_report(X1,writeln(X1:=X+1),Outs1,Outs2)).
+  % body(test_calc_report(X1,writeln(X1:=X+2),Outs1,Outs2)).
   par(4,7).
     out_value(reg(y,6),reg(out,1)).
     out_structure(writeln/1,reg(out,2)).
@@ -1788,7 +1788,7 @@ label(test_calc/2).
       write_value(reg(y,6)).
       write_structure((+)/2).
       write_value(reg(y,3)).
-      write_constant(1).
+      write_constant(2).
     out_value(reg(y,5),reg(out,3)).
     out_value(reg(in,2),reg(out,4)).
     spawn(test_calc_report/4).

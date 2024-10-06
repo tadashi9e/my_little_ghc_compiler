@@ -1,6 +1,6 @@
 label(collatz/2).
   goal(collatz/2).
-  requires(9).
+  requires(10).
   try_guard_else(label(collatz/2-2)).
   % head(collatz(1,Ns)).
     check_constant(1,reg(in,1)).
@@ -14,52 +14,56 @@ label(collatz/2).
 label(collatz/2-2).
   try_guard_else(label(collatz/2-3)).
   % head(collatz(N,Ns)).
-  % guard(__mod__(N,2,0)).
+  % guard((__mod__(N,2,_19474),_19474=:=0)).
   seq(3,4).
     out_value(reg(in,1),reg(out,1)).
     out_constant(2,reg(out,2)).
-    out_constant(0,reg(out,3)).
+    out_variable(reg(y,3),reg(out,3)).
     call('__mod__'/3).
+  seq(2,4).
+    out_value(reg(y,3),reg(out,1)).
+    out_constant(0,reg(out,2)).
+    call((=:=)/2).
   activate.
   % body(__div__(N,2,N2)).
-  par(3,4).
+  par(3,5).
     out_value(reg(in,1),reg(out,1)).
     out_constant(2,reg(out,2)).
-    out_variable(reg(y,3),reg(out,3)).
+    out_variable(reg(y,4),reg(out,3)).
     spawn('__div__'/3).
   % body(Ns=[N|Ns2]).
     get_list(reg(in,2)).
       unify_value(reg(in,1)).
-      unify_variable(reg(x,4)).
+      unify_variable(reg(x,5)).
   % body(collatz(N2,Ns2)).
-  tail(2,5).
-    out_value(reg(y,3),reg(out,1)).
-    out_value(reg(x,4),reg(out,2)).
+  tail(2,6).
+    out_value(reg(y,4),reg(out,1)).
+    out_value(reg(x,5),reg(out,2)).
     execute(collatz/2).
 label(collatz/2-3).
   otherwise.
   % head(collatz(N,Ns)).
   % guard(true).
   activate.
-  % body(__mul__(N,3,_19752)).
-  par(3,5).
+  % body(__mul__(N,3,_19812)).
+  par(3,6).
     out_value(reg(in,1),reg(out,1)).
     out_constant(3,reg(out,2)).
-    out_variable(reg(y,4),reg(out,3)).
+    out_variable(reg(y,5),reg(out,3)).
     spawn('__mul__'/3).
-  % body(__inc__(_19752,N2)).
-  par(2,6).
-    out_value(reg(y,4),reg(out,1)).
-    out_variable(reg(y,5),reg(out,2)).
+  % body(__inc__(_19812,N2)).
+  par(2,7).
+    out_value(reg(y,5),reg(out,1)).
+    out_variable(reg(y,6),reg(out,2)).
     spawn('__inc__'/2).
   % body(Ns=[N|Ns2]).
     get_list(reg(in,2)).
       unify_value(reg(in,1)).
-      unify_variable(reg(x,6)).
+      unify_variable(reg(x,7)).
   % body(collatz(N2,Ns2)).
-  tail(2,7).
-    out_value(reg(y,5),reg(out,1)).
-    out_value(reg(x,6),reg(out,2)).
+  tail(2,8).
+    out_value(reg(y,6),reg(out,1)).
+    out_value(reg(x,7),reg(out,2)).
     execute(collatz/2).
 label(printstream/2).
   goal(printstream/2).

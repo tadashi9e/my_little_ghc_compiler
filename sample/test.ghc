@@ -230,10 +230,10 @@ test_splice_suspension1(X, Outs, Outs2) :-
 
 test_calc(Outs, Outs2) :-
     X2 := X - 2,
-    test_calc_report(X2, writeln(X2 := X - 1), Outs, Outs1),
+    test_calc_report(X2, writeln(X2 := X - 2), Outs, Outs1),
     dump_to_dot('dump/calc.dot'),
     X1 := X + 2,
-    test_calc_report(X1, writeln(X1 := X + 1), Outs1, Outs2),
+    test_calc_report(X1, writeln(X1 := X + 2), Outs1, Outs2),
     X = 10.
 test_calc_report(X, P, Outs, Outs2) :- wait(X) | Outs = [P | Outs2].
 

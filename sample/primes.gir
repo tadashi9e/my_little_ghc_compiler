@@ -90,58 +90,54 @@ label(sift/2-2).
   proceed.
 label(filter/3).
   goal(filter/3).
-  requires(12).
+  requires(10).
   try_guard_else(label(filter/3-2)).
   % head(filter(P,[X|Xs1],Ys0)).
     check_list(reg(in,2)).
-      read_variable(reg(x,8)).
-      read_variable(reg(x,7)).
-  % guard((__mod__(X,P,_17590),_17590=\=0)).
-  seq(3,9).
-    out_value(reg(x,8),reg(out,1)).
+      read_variable(reg(x,6)).
+      read_variable(reg(x,5)).
+  % guard((__mod__(X,P,_17602),_17602=\=0)).
+  seq(3,7).
+    out_value(reg(x,6),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
     out_variable(reg(y,4),reg(out,3)).
     call('__mod__'/3).
-  seq(2,9).
-    out_variable(reg(y,5),reg(out,1)).
-    out_value(reg(y,4),reg(out,2)).
-    call((:=)/2).
-  seq(2,9).
-    out_variable(reg(y,6),reg(out,1)).
+  seq(2,7).
+    out_value(reg(y,4),reg(out,1)).
     out_constant(0,reg(out,2)).
-    call((:=)/2).
-  seq(2,9).
-    out_value(reg(y,5),reg(out,1)).
-    out_value(reg(y,6),reg(out,2)).
     call((=\=)/2).
   activate.
   % body(Ys0=[X|Ys1]).
     get_list(reg(in,3)).
-      unify_value(reg(x,8)).
-      unify_variable(reg(x,8)).
+      unify_value(reg(x,6)).
+      unify_variable(reg(x,6)).
   % body(filter(P,Xs1,Ys1)).
-  tail(3,9).
+  tail(3,7).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,7),reg(out,2)).
-    out_value(reg(x,8),reg(out,3)).
+    out_value(reg(x,5),reg(out,2)).
+    out_value(reg(x,6),reg(out,3)).
     execute(filter/3).
 label(filter/3-2).
   try_guard_else(label(filter/3-3)).
   % head(filter(P,[X|Xs1],Ys0)).
     check_list(reg(in,2)).
-      read_variable(reg(x,8)).
-      read_variable(reg(x,7)).
-  % guard(__mod__(X,P,0)).
-  seq(3,9).
-    out_value(reg(x,8),reg(out,1)).
+      read_variable(reg(x,5)).
+      read_variable(reg(x,6)).
+  % guard((__mod__(X,P,_17648),_17648=:=0)).
+  seq(3,7).
+    out_value(reg(x,5),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
-    out_constant(0,reg(out,3)).
+    out_variable(reg(y,5),reg(out,3)).
     call('__mod__'/3).
+  seq(2,7).
+    out_value(reg(y,5),reg(out,1)).
+    out_constant(0,reg(out,2)).
+    call((=:=)/2).
   activate.
   % body(filter(P,Xs1,Ys0)).
-  tail(3,9).
+  tail(3,7).
     out_value(reg(in,1),reg(out,1)).
-    out_value(reg(x,7),reg(out,2)).
+    out_value(reg(x,6),reg(out,2)).
     out_value(reg(in,3),reg(out,3)).
     execute(filter/3).
 label(filter/3-3).

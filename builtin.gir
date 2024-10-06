@@ -1732,27 +1732,47 @@ label((<)/2).
   inline('  MACRO_return;').
 label((=:=)/2).
   goal((=:=)/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(X=:=Y).
   % guard(true).
   activate.
-  % body(X==Y).
-  tail(2,4).
-    out_value(reg(in,1),reg(out,1)).
+  % body(X1:=X).
+  par(2,4).
+    out_variable(reg(y,3),reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    spawn((:=)/2).
+  % body(Y1:=Y).
+  par(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
+    spawn((:=)/2).
+  % body(X1==Y1).
+  tail(2,5).
+    out_value(reg(y,3),reg(out,1)).
+    out_value(reg(y,4),reg(out,2)).
     execute((==)/2).
 label((=\=)/2).
   goal((=\=)/2).
-  requires(6).
+  requires(7).
   try_guard_else_suspend.
   % head(X=\=Y).
   % guard(true).
   activate.
-  % body(__not_equal__(X,Y)).
-  tail(2,4).
-    out_value(reg(in,1),reg(out,1)).
+  % body(X1:=X).
+  par(2,4).
+    out_variable(reg(y,3),reg(out,1)).
+    out_value(reg(in,1),reg(out,2)).
+    spawn((:=)/2).
+  % body(Y1:=Y).
+  par(2,5).
+    out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
+    spawn((:=)/2).
+  % body(__not_equal__(X1,Y1)).
+  tail(2,5).
+    out_value(reg(y,3),reg(out,1)).
+    out_value(reg(y,4),reg(out,2)).
     execute('__not_equal__'/2).
 label('__not_equal__'/2).
   goal('__not_equal__'/2).
