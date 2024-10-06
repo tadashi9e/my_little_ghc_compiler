@@ -213,10 +213,24 @@ ghc_preprocess_eval_polynomial([V := P|Gs]) -->
     ghc_optimize_polynomial(P, V),
     ghc_preprocess_eval_polynomial(Gs).
 ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
+    { var(X), var(Y), ! },
+    [X =:= Y],
+    ghc_preprocess_eval_polynomial(Gs).
+ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
+    { var(X), ! },
+    ghc_optimize_polynomial(Y, Y1),
+    [X1 := X, X1 == Y1],
+    ghc_preprocess_eval_polynomial(Gs).
+ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
+    { var(Y), ! },
+    ghc_optimize_polynomial(X, X1),
+    [Y1 := Y, X1 == Y1],
+    ghc_preprocess_eval_polynomial(Gs).
+ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
     { ! },
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
-    [X1 =:= Y1],
+    [X1 == Y1],
     ghc_preprocess_eval_polynomial(Gs).
 ghc_preprocess_eval_polynomial([X =\= Y|Gs]) -->
     { ! },

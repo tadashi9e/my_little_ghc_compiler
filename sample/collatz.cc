@@ -2491,8 +2491,8 @@ void module(VM::ptr vm, Program* prog) {
       MACRO_seq(2,4);
       MACRO_out_value(reg::y(3),reg::out(1));
       MACRO_out_constant(tagvalue<TAG_INT>(0),reg::out(2));
-      MACRO_call(168,276,atom(87));  // call((=:=)/2)
-    case 276:  // return_from_call((=:=)/2)
+      MACRO_call(163,276,atom(82));  // call((==)/2)
+    case 276:  // return_from_call((==)/2)
       MACRO_activate;
       MACRO_par(3,5);
       MACRO_out_value(reg::in(1),reg::out(1));

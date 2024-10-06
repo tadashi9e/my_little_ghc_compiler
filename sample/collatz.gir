@@ -14,7 +14,7 @@ label(collatz/2).
 label(collatz/2-2).
   try_guard_else(label(collatz/2-3)).
   % head(collatz(N,Ns)).
-  % guard((__mod__(N,2,_19474),_19474=:=0)).
+  % guard((__mod__(N,2,_19474),_19474==0)).
   seq(3,4).
     out_value(reg(in,1),reg(out,1)).
     out_constant(2,reg(out,2)).
@@ -23,7 +23,7 @@ label(collatz/2-2).
   seq(2,4).
     out_value(reg(y,3),reg(out,1)).
     out_constant(0,reg(out,2)).
-    call((=:=)/2).
+    call((==)/2).
   activate.
   % body(__div__(N,2,N2)).
   par(3,5).
