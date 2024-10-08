@@ -2,7 +2,7 @@ label(main/1).
   goal(main/1).
   requires(6).
   try_guard_else_suspend.
-  % head(main([_13476|Ss])).
+  % head(main([_|Ss])).
     check_list(reg(in,1)).
       read_void.
       read_variable(reg(x,2)).

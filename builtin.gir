@@ -359,7 +359,7 @@ label(atom_codes/2).
 label(atom_codes/2-2).
   try_guard_else_suspend.
   % head(atom_codes(A,Cs)).
-  % guard(Cs=[_6962|_6964]).
+  % guard(Cs=[_|_]).
     check_list(reg(in,2)).
       read_void.
       read_void.
@@ -1396,7 +1396,7 @@ label('__write_functor_args__'/2).
   goal('__write_functor_args__'/2).
   requires(6).
   try_guard_else(label('__write_functor_args__'/2-2)).
-  % head(__write_functor_args__(_76708,[])).
+  % head(__write_functor_args__(_,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1426,7 +1426,7 @@ label('__write_functor_args2__'/2).
   goal('__write_functor_args2__'/2).
   requires(7).
   try_guard_else(label('__write_functor_args2__'/2-2)).
-  % head(__write_functor_args2__(_81904,[])).
+  % head(__write_functor_args2__(_,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -1505,7 +1505,7 @@ label('__write_list_tail__'/2).
     execute('__write__'/2).
 label('__write_list_tail__'/2-2).
   try_guard_else(label('__write_list_tail__'/2-3)).
-  % head(__write_list_tail__(_90862,[])).
+  % head(__write_list_tail__(_,[])).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -2327,7 +2327,7 @@ label(append/3-4).
 label(append/3-5).
   try_guard_else_suspend.
   % head(append(Xs,Ys,Zs)).
-  % guard((Ys=[_242686|_242688],Zs=[_242700|_242702])).
+  % guard((Ys=[_|_],Zs=[_|_])).
     check_list(reg(in,2)).
       read_void.
       read_void.
@@ -2451,7 +2451,7 @@ label('__nth0__'/3).
   goal('__nth0__'/3).
   requires(9).
   try_guard_else(label('__nth0__'/3-2)).
-  % head(__nth0__(0,[Y|_264114],E)).
+  % head(__nth0__(0,[Y|_],E)).
     check_constant(0,reg(in,1)).
     check_list(reg(in,2)).
       read_variable(reg(x,4)).
@@ -2463,7 +2463,7 @@ label('__nth0__'/3).
   proceed.
 label('__nth0__'/3-2).
   otherwise.
-  % head(__nth0__(N,[_270288|Ys],E)).
+  % head(__nth0__(N,[_|Ys],E)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,5)).
@@ -2484,7 +2484,7 @@ label('__nth0_rev__'/4).
   goal('__nth0_rev__'/4).
   requires(11).
   try_guard_else(label('__nth0_rev__'/4-2)).
-  % head(__nth0_rev__(N,[E|_273454],E,Ac)).
+  % head(__nth0_rev__(N,[E|_],E,Ac)).
     check_list(reg(in,2)).
       read_value(reg(in,3)).
       read_void.
@@ -2495,7 +2495,7 @@ label('__nth0_rev__'/4).
   proceed.
 label('__nth0_rev__'/4-2).
   otherwise.
-  % head(__nth0_rev__(N,[_279720|Ls],E,Ac)).
+  % head(__nth0_rev__(N,[_|Ls],E,Ac)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,6)).

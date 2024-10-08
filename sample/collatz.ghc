@@ -7,28 +7,25 @@ otherwise.
 collatz(N, Ns) :-
     N2 := N * 3 + 1, Ns = [N | Ns2], collatz(N2, Ns2).
 
-printstream([], Stream - Stream2) :-
-    true | Stream = [nl | Stream2].
-printstream([N | Ns], Stream - Stream2) :-
+printstream([]) --> [nl].
+printstream([N | Ns]) -->
     wait(N) |
-    Stream = [write(N) | Stream1],
-    printstream_rest(Ns, Stream1 - Stream2).
-printstream_rest([], Stream - Stream2) :-
-    true |
-    Stream = [nl | Stream2].
-printstream_rest([N | Ns], Stream - Stream2) :-
+    [ write(N) ],
+    printstream_rest(Ns).
+printstream_rest([]) --> [nl].
+printstream_rest([N | Ns]) -->
     wait(N) |
-    Stream = [write(','), write(N) | Stream1],
-    printstream_rest(Ns, Stream1 - Stream2).
+    [write(','), write(N)],
+    printstream_rest(Ns).
 
-collatz_for_each_args([A | As], Stream - Stream2) :-
-    atom_number(A, N),
-    printstream(Ns, Stream - Stream1),
-    collatz(N, Ns),
-    collatz_for_each_args(As, Stream1 - Stream2).
+collatz_for_each_args([]) --> [].
+collatz_for_each_args([A | As]) -->
+    { atom_number(A, N), collatz(N, Ns) },
+    printstream(Ns),
+    collatz_for_each_args(As).
 main([_ | Args]) :-
     outstream(Stream),
-    collatz_for_each_args(Args, Stream - []).
+    collatz_for_each_args(Args, Stream, []).
 otherwise.
 main([Prog|_]) :-
     outstream([write('usage: '), write(Prog), writeln(' <N> [<N2> <N3> ...]')]).

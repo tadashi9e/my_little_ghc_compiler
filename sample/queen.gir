@@ -2,7 +2,7 @@ label(main/1).
   goal(main/1).
   requires(7).
   try_guard_else(label(main/1-2)).
-  % head(main([_13476,Arg])).
+  % head(main([_,Arg])).
     check_list(reg(in,1)).
       read_void.
       read_list.
@@ -37,7 +37,7 @@ label(main/1).
     execute(report_results/2).
 label(main/1-2).
   otherwise.
-  % head(main([Prog|_14090])).
+  % head(main([Prog|_])).
     check_list(reg(in,1)).
       read_variable(reg(x,5)).
       read_void.
@@ -166,7 +166,7 @@ label(queen/5).
   proceed.
 label(queen/5-2).
   try_guard_else(label(queen/5-3)).
-  % head(queen([],[_1510|_1512],_1520,I,O)).
+  % head(queen([],[_|_],_,I,O)).
     check_nil(reg(in,1)).
     check_list(reg(in,2)).
       read_void.
@@ -235,7 +235,7 @@ label(check/8-2).
     check_list(reg(in,1)).
       read_variable(reg(x,11)).
       read_variable(reg(x,13)).
-  % guard((__add__(P,D,_42936),T=\=_42936,__sub__(P,D,_42952),T=\=_42952)).
+  % guard((__add__(P,D,_),T=\=_,__sub__(P,D,_),T=\=_)).
   seq(3,14).
     out_value(reg(x,11),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
@@ -277,7 +277,7 @@ label(check/8-3).
     check_list(reg(in,1)).
       read_variable(reg(x,13)).
       read_variable(reg(x,14)).
-  % guard((__add__(P,D,_43016),_43028:=T,_43028==_43016)).
+  % guard((__add__(P,D,_),_:=T,_==_)).
   seq(3,15).
     out_value(reg(x,13),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
@@ -301,7 +301,7 @@ label(check/8-4).
     check_list(reg(in,1)).
       read_variable(reg(x,15)).
       read_variable(reg(x,16)).
-  % guard((__sub__(P,D,_43068),_43080:=T,_43080==_43068)).
+  % guard((__sub__(P,D,_),_:=T,_==_)).
   seq(3,17).
     out_value(reg(x,15),reg(out,1)).
     out_value(reg(in,3),reg(out,2)).
@@ -376,7 +376,7 @@ label(gen/2).
 label(gen/2-2).
   try_guard_else_suspend.
   % head(gen(N,X)).
-  % guard((_121892:=N,_121892==0)).
+  % guard((_:=N,_==0)).
   seq(2,5).
     out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).

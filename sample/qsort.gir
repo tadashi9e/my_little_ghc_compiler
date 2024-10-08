@@ -101,7 +101,7 @@ label(part/4-2).
     execute(part/4).
 label(part/4-3).
   try_guard_else_suspend.
-  % head(part([],_1048,S,L)).
+  % head(part([],_,S,L)).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
@@ -228,7 +228,7 @@ label(main/1).
   goal(main/1).
   requires(6).
   try_guard_else(label(main/1-2)).
-  % head(main([_3366|Args])).
+  % head(main([_|Args])).
     check_list(reg(in,1)).
       read_void.
       read_variable(reg(x,2)).
@@ -250,7 +250,7 @@ label(main/1).
     execute(qsort/2).
 label(main/1-2).
   otherwise.
-  % head(main([Prog|_4048])).
+  % head(main([Prog|_])).
     check_list(reg(in,1)).
       read_variable(reg(x,4)).
       read_void.

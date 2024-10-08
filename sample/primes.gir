@@ -96,7 +96,7 @@ label(filter/3).
     check_list(reg(in,2)).
       read_variable(reg(x,6)).
       read_variable(reg(x,5)).
-  % guard((__mod__(X,P,_17602),_17602=\=0)).
+  % guard((__mod__(X,P,_),_=\=0)).
   seq(3,7).
     out_value(reg(x,6),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
@@ -123,7 +123,7 @@ label(filter/3-2).
     check_list(reg(in,2)).
       read_variable(reg(x,5)).
       read_variable(reg(x,6)).
-  % guard((__mod__(X,P,_17648),_17648==0)).
+  % guard((__mod__(X,P,_),_==0)).
   seq(3,7).
     out_value(reg(x,5),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
@@ -142,7 +142,7 @@ label(filter/3-2).
     execute(filter/3).
 label(filter/3-3).
   try_guard_else_suspend.
-  % head(filter(_1464,[],Ys0)).
+  % head(filter(_,[],Ys0)).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -234,7 +234,7 @@ label(main/1).
   goal(main/1).
   requires(5).
   try_guard_else(label(main/1-2)).
-  % head(main([_3138,A])).
+  % head(main([_,A])).
     check_list(reg(in,1)).
       read_void.
       read_list.
@@ -259,7 +259,7 @@ label(main/1).
     execute(printstream/1).
 label(main/1-2).
   otherwise.
-  % head(main([Prog|_3782])).
+  % head(main([Prog|_])).
     check_list(reg(in,1)).
       read_variable(reg(x,3)).
       read_void.

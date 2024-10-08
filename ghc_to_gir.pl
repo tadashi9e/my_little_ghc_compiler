@@ -93,9 +93,12 @@ unify_var_vals([V=V|Vs]) :-
 % GHC ソースコード Source を WAM 風中間コードにコンパイルして
 % OFile に書き込む。
 ghc_compile(Source, WamFile, VarKvs) :-
-    ghc_collect_goals(Source, Goals),
+    always_success(ghc_preprocess(Source, PreProcessedSource, VarKvs)),
+    % writeln(PreProcessedSource),
+    ghc_collect_goals(PreProcessedSource, Goals),
     open(WamFile, write, OStream, [create([write]), encoding(utf8)]),
-    always_success(ghc_compile_goals(Goals, Source, OStream, VarKvs)),
+    always_success(ghc_compile_goals(Goals, PreProcessedSource,
+                                     OStream, VarKvs)),
     close(OStream).
 
 %% ghc_collect_goals(+Source, -Goals)
@@ -152,15 +155,14 @@ find_goal_source(Goal,
 ghc_compile_goals([], _, _, _) :- !.
 ghc_compile_goals([Goal|Goals], Source, OStream, VarKvs) :-
     find_goal_source(Goal, Source, GoalSource),
-    always_success(ghc_preprocess(GoalSource, PreProcessedGoalSource)),
     create(Ctx),
     get(VarKvs, vars, Vars), put(Ctx, vars, Vars),
     get(VarKvs, singletons, Singletons), put(Ctx, singletons, Singletons),
     write_goal_entry_point(Ctx, Goal),
     put(Ctx, goal, Goal),
     always_success(
-        ( ghc_compile_inline(Ctx, Goal, PreProcessedGoalSource)
-        ; ghc_compile_goal_pred(Ctx, [], Goal, PreProcessedGoalSource) )),
+        ( ghc_compile_inline(Ctx, Goal, GoalSource)
+        ; ghc_compile_goal_pred(Ctx, [], Goal, GoalSource) )),
     assign_labels(Ctx),
     max_register_index(Ctx, in, MaxReg_in),
     max_register_index(Ctx, y, MaxReg_y),
@@ -177,95 +179,132 @@ max_aux([N|Ns], Max, Ac) :-
     ( N > Ac -> max_aux(Ns, Max, N)
     ; max_aux(Ns, Max, Ac) ).
 
-%% ghc_preprocess(+GoalSource, -PreProcessedGoalSource)
-ghc_preprocess([], []) :- !.
-ghc_preprocess([Goal|Goals], [Goal2|Goals2]) :-
-    ghc_preprocess_goal(Goal, Goal2),
-    ghc_preprocess(Goals, Goals2).
+%% ghc_preprocess(+GoalSource, -PreProcessedGoalSource, ?VarKvs)
+ghc_preprocess([], [], _) :- !.
+ghc_preprocess([Goal|Goals], [Goal2|Goals2], VarKvs) :-
+    always_success(ghc_preprocess_goal(Goal, Goal2, VarKvs)),
+    ghc_preprocess(Goals, Goals2, VarKvs).
 
-%% ghc_preprocess(+Goal, -PreProcessedGoal)
-ghc_preprocess_goal(Head :- Guard | Body, Head :- PreProcessedGuard | PreProcessedBody) :-
+%% ghc_preprocess(+Goal, -PreProcessedGoal, ?VarKvs)
+ghc_preprocess_goal((Head :- Guard | Body),
+                    (Head :- PreProcessedGuard | PreProcessedBody),
+                    VarKvs) :-
+    !,
     tuple_list(Guard, GuardList),
-    always_success(phrase(ghc_preprocess_eval_polynomial(GuardList), PreProcessedGuardList, [])),
+    always_success(phrase(ghc_preprocess_eval_polynomial(GuardList, VarKvs),
+                          PreProcessedGuardList, [])),
     tuple_list(PreProcessedGuard, PreProcessedGuardList),
     tuple_list(Body, BodyList),
-    always_success(phrase(ghc_preprocess_eval_polynomial(BodyList), PreProcessedBodyList, [])),
+    always_success(phrase(ghc_preprocess_eval_polynomial(BodyList, VarKvs),
+                          PreProcessedBodyList, [])),
     tuple_list(PreProcessedBody, PreProcessedBodyList).
-ghc_preprocess_goal(Head :- Body, Head :- PreProcessedBody) :-
+ghc_preprocess_goal((Head :- Body),
+                    (Head :- PreProcessedBody),
+                    VarKvs) :-
+    !,
     tuple_list(Body, BodyList),
-    always_success(phrase(ghc_preprocess_eval_polynomial(BodyList), PreProcessedBodyList, [])),
+    always_success(phrase(ghc_preprocess_eval_polynomial(BodyList, VarKvs),
+                          PreProcessedBodyList, [])),
     tuple_list(PreProcessedBody, PreProcessedBodyList).
-ghc_preprocess_goal(Goal, Goal).
+% Preprocess DCG style predicate with guard.
+ghc_preprocess_goal((Head --> Guard | Body),
+                    (Head2 :- Guard | Body2),
+                    VarKvs) :-
+    !,
+    tuple_list(Body, BodyList),
+    always_success(Head =.. [P | Args]),
+    append(Args, [IO, IO2], Args2),
+    Head2 =.. [P | Args2],
+    always_success(phrase(ghc_preprocess_dcg_goals(BodyList, IO, IO2, VarKvs),
+                          BodyList2, [])),
+    always_success(phrase(ghc_preprocess_eval_polynomial(BodyList2, VarKvs),
+                          BodyList3, [])),
+    tuple_list(Body2, BodyList3).
+% Preprocess DCG style predicate.
+ghc_preprocess_goal((Head --> Body),
+                    (Head2 :- Body2),
+                    VarKvs) :-
+    !,
+    tuple_list(Body, BodyList),
+    always_success(Head =.. [P | Args]),
+    append(Args, [IO, IO2], Args2),
+    Head2 =.. [P | Args2],
+    always_success(phrase(ghc_preprocess_dcg_goals(BodyList, IO, IO2, VarKvs),
+                          BodyList2, [])),
+    always_success(phrase(ghc_preprocess_eval_polynomial(BodyList2, VarKvs),
+                          BodyList3, [])),
+    tuple_list(Body2, BodyList3).
+ghc_preprocess_goal(Goal, Goal, _).
 
 tuple_list(Tuple, List) :- comma_list(Tuple, List).
 
-%% ghc_preprocess_eval_polynomial(+OriginalGoals, -GoalsHead, -GoalsTail)
-ghc_preprocess_eval_polynomial([]) --> {!}.
-ghc_preprocess_eval_polynomial([V := X|Gs]) -->
+%% ghc_preprocess_eval_polynomial(+OriginalGoals, ?VarKvs, -Head, -Tail)
+ghc_preprocess_eval_polynomial([], _) --> {!}.
+ghc_preprocess_eval_polynomial([V := X|Gs], VarKvs) -->
     { integer(X), !, V = X },
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([V := X|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([V := X|Gs], VarKvs) -->
     [V := X],
     { var(X), ! },
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([V := P|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([V := P|Gs], VarKvs) -->
     { ! },
     ghc_optimize_polynomial(P, V),
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X =:= Y|Gs], VarKvs) -->
     { var(X), var(Y), ! },
     [X =:= Y],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X =:= Y|Gs], VarKvs) -->
     { var(X), ! },
     ghc_optimize_polynomial(Y, Y1),
     [X1 := X, X1 == Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X =:= Y|Gs], VarKvs) -->
     { var(Y), ! },
     ghc_optimize_polynomial(X, X1),
     [Y1 := Y, X1 == Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X =:= Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X =:= Y|Gs], VarKvs) -->
     { ! },
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 == Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X =\= Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X =\= Y|Gs], VarKvs) -->
     { ! },
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 =\= Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X > Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X > Y|Gs], VarKvs) -->
     { ! },
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 > Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X >= Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X >= Y|Gs], VarKvs) -->
     { ! },
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 >= Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X < Y]|Gs) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X < Y|Gs], VarKvs) -->
     { ! },
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 < Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([X =< Y|Gs]) -->
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([X =< Y|Gs], VarKvs) -->
     { ! },
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 =< Y1],
-    ghc_preprocess_eval_polynomial(Gs).
-ghc_preprocess_eval_polynomial([G|Gs]) -->
-    [G], ghc_preprocess_eval_polynomial(Gs).
+    ghc_preprocess_eval_polynomial(Gs, VarKvs).
+ghc_preprocess_eval_polynomial([G|Gs], VarKvs) -->
+    [G], ghc_preprocess_eval_polynomial(Gs, VarKvs).
 
-%% ghc_optimize_polynomial(+Polynomial, +Value, -GoalsHead, -GoalsTail)
+%% ghc_optimize_polynomial(+Polynomial, +Value, -Head, ?Tail)
 ghc_optimize_polynomial(X, X) -->
     { var(X), !}.
 ghc_optimize_polynomial(X, X) -->
@@ -308,6 +347,35 @@ ghc_optimize_polynomial(X mod Y, V) -->
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     ['__mod__'(X1, Y1, V)].
+
+%% ghc_preprocess_dcg_goals(+GoalList, -IO, ?IO, ?VarKvs, -Head, ?Tail)
+% Translate DCG style goals to normal goals.
+ghc_preprocess_dcg_goals([], IO, IO2, _) --> {!}, [IO = IO2].
+ghc_preprocess_dcg_goals([{Goals}|Body], IO, IO2, VarKvs) -->
+    { !, tuple_list(Goals, GoalList) },
+    GoalList,
+    ghc_preprocess_dcg_goals(Body, IO, IO2, VarKvs).
+ghc_preprocess_dcg_goals([List|Body], IO, IO2, VarKvs) -->
+    { List = [], ! },
+    ghc_preprocess_dcg_goals(Body, IO, IO2, VarKvs).
+ghc_preprocess_dcg_goals([List|Body], IO, IO3, VarKvs) -->
+    { List = [_|_], ! },
+    ghc_preprocess_dcg_list(List, IO, IO2, VarKvs),
+    ghc_preprocess_dcg_goals(Body, IO2, IO3, VarKvs).
+ghc_preprocess_dcg_goals([Goal|Body], IO, IO3, VarKvs) -->
+    {
+      Goal =.. [G | Args],
+      append(Args, [IO, IO2], Args2),
+      Goal2 =.. [G | Args2],
+      !
+    },
+    [ Goal2 ],
+    ghc_preprocess_dcg_goals(Body, IO2, IO3, VarKvs).
+ghc_preprocess_dcg_list([], IO, IO, _) --> {!}.
+ghc_preprocess_dcg_list(List, IO, IO2, VarKvs) -->
+    { append(List, IO2, List_IO2),
+      not_a_singleton(VarKvs, IO2) },
+    [ IO = List_IO2 ].
 
 %% write_goal_entry_point(?Ctx, +Goal)
 % Ctx に ghc_source の値として格納しているコンパイルコードに
@@ -979,20 +1047,23 @@ dump(Ctx, [S|Ss], OStream) :-
 indent(N, OStream) :-
     ( N =< 0 -> true
     ; write(OStream, ' '), N1 is N - 1, indent(N1, OStream) ).
+
+%% singleton(+Ctx, +Arg)
+% Check if Arg is a singleton.
+is_singleton(Ctx, Arg) :-
+    get(Ctx, vars, Vars),
+    is_singleton1(Vars, Arg).
 is_singleton1([], _) :- !.
 is_singleton1([_=Var|Vars], Arg) :-
     ( Var == Arg -> fail
     ; is_singleton1(Vars, Arg) ).
-is_singleton(Ctx, Arg) :-
-    get(Ctx, vars, Vars),
-    is_singleton1(Vars, Arg).
+not_a_singleton(VarKvs, Var) :-
+    get(VarKvs, vars, Vars),
+    put(VarKvs, vars, [_=Var|Vars]).
 
-translate_var_name1([], C, C) :- !.
-translate_var_name1([Name=Var|Vars], C, C2) :-
-    ( C == Var -> C2 = Name
-    ; translate_var_name1(Vars, C, C2) ).
-translate_var_names(Ctx, C, C2) :-
-    var(C) -> translate_var_name1(Ctx, C, C2).
+%% translate_var_names(+Vars, +C, -C2)
+translate_var_names(Vars, C, C2) :-
+    var(C) -> translate_var_name1(Vars, C, C2).
 translate_var_names(_, [], []).
 translate_var_names(Vars, [A|B], [A2|B2]) :-
     translate_var_names(Vars, A, A2),
@@ -1001,3 +1072,7 @@ translate_var_names(Vars, C, C2) :-
     C =.. [F|Args],
     translate_var_names(Vars, Args, Args2),
     C2 =.. [F|Args2].
+translate_var_name1([], _, C2) :- !, C2 = '_'.
+translate_var_name1([Name=Var|Vars], C, C2) :-
+    ( C == Var -> C2 = Name
+    ; translate_var_name1(Vars, C, C2) ).

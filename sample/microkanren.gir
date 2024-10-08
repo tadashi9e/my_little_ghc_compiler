@@ -59,7 +59,7 @@ label(walk/3).
     execute(continue_walk_if_seek_success/4).
 label(walk/3-2).
   otherwise.
-  % head(walk(U,_682,V)).
+  % head(walk(U,_,V)).
   % guard(true).
   activate.
   % body(V=U).
@@ -69,7 +69,7 @@ label(seek/3).
   goal(seek/3).
   requires(8).
   try_guard_else(label(seek/3-2)).
-  % head(seek(_836,[],V0)).
+  % head(seek(_,[],V0)).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -78,7 +78,7 @@ label(seek/3).
   proceed.
 label(seek/3-2).
   try_guard_else(label(seek/3-3)).
-  % head(seek(Var,[Var=V1|_1002],V0)).
+  % head(seek(Var,[Var=V1|_],V0)).
     check_list(reg(in,2)).
       read_structure((=)/2).
       read_value(reg(in,1)).
@@ -92,7 +92,7 @@ label(seek/3-2).
   proceed.
 label(seek/3-3).
   otherwise.
-  % head(seek(Var,[_1340|Sub],V0)).
+  % head(seek(Var,[_|Sub],V0)).
     check_list(reg(in,2)).
       read_void.
       read_variable(reg(x,4)).
@@ -108,7 +108,7 @@ label(continue_walk_if_seek_success/4).
   goal(continue_walk_if_seek_success/4).
   requires(9).
   try_guard_else(label(continue_walk_if_seek_success/4-2)).
-  % head(continue_walk_if_seek_success(_1550,success(V0),Sub,V)).
+  % head(continue_walk_if_seek_success(_,success(V0),Sub,V)).
     check_structure(success/1,reg(in,2)).
       read_variable(reg(x,5)).
   % guard(true).
@@ -121,7 +121,7 @@ label(continue_walk_if_seek_success/4).
     execute(walk/3).
 label(continue_walk_if_seek_success/4-2).
   try_guard_else_suspend.
-  % head(continue_walk_if_seek_success(U,fail,_1774,V)).
+  % head(continue_walk_if_seek_success(U,fail,_,V)).
     check_constant(fail,reg(in,2)).
   % guard(true).
   activate.
@@ -185,7 +185,7 @@ label(put_result_state_if_success/3).
   goal(put_result_state_if_success/3).
   requires(4).
   try_guard_else(label(put_result_state_if_success/3-2)).
-  % head(put_result_state_if_success([],_2504,Str)).
+  % head(put_result_state_if_success([],_,Str)).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
@@ -194,7 +194,7 @@ label(put_result_state_if_success/3).
   proceed.
 label(put_result_state_if_success/3-2).
   try_guard_else_suspend.
-  % head(put_result_state_if_success([_2796|_2798],State,Str)).
+  % head(put_result_state_if_success([_|_],State,Str)).
     check_list(reg(in,1)).
       read_void.
       read_void.
@@ -299,7 +299,7 @@ label(unification2/4-2).
   proceed.
 label(unification2/4-3).
   otherwise.
-  % head(unification2(_6452,_6454,_6456,Sub2)).
+  % head(unification2(_,_,_,Sub2)).
   % guard(true).
   activate.
   % body(Sub2=[]).
@@ -468,7 +468,7 @@ label(bind/3).
   goal(bind/3).
   requires(10).
   try_guard_else(label(bind/3-2)).
-  % head(bind([],_12720,Str)).
+  % head(bind([],_,Str)).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
@@ -616,7 +616,7 @@ label(take/3).
   goal(take/3).
   requires(8).
   try_guard_else(label(take/3-2)).
-  % head(take(0,_21080,V)).
+  % head(take(0,_,V)).
     check_constant(0,reg(in,1)).
   % guard(true).
   activate.
@@ -643,7 +643,7 @@ label(take_aux/3).
   goal(take_aux/3).
   requires(10).
   try_guard_else(label(take_aux/3-2)).
-  % head(take_aux(_22924,[],V)).
+  % head(take_aux(_,[],V)).
     check_nil(reg(in,2)).
   % guard(true).
   activate.
@@ -683,7 +683,7 @@ label(main/1).
   goal(main/1).
   requires(3).
   try_guard_else_suspend.
-  % head(main(_24918)).
+  % head(main(_)).
   % guard(true).
   activate.
   % body(test_five_or_six).
@@ -1161,7 +1161,7 @@ label(pp_space/3).
   requires(10).
   try_guard_else(label(pp_space/3-2)).
   % head(pp_space(N,St1,St2)).
-  % guard((_730162:=N,_730162==0)).
+  % guard((_:=N,_==0)).
   seq(2,5).
     out_variable(reg(y,4),reg(out,1)).
     out_value(reg(in,1),reg(out,2)).
@@ -1199,7 +1199,7 @@ label(pp_rest/4).
   goal(pp_rest/4).
   requires(11).
   try_guard_else(label(pp_rest/4-2)).
-  % head(pp_rest(_50642,[],St1,St2)).
+  % head(pp_rest(_,[],St1,St2)).
     check_nil(reg(in,2)).
   % guard(true).
   activate.

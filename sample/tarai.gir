@@ -2,7 +2,7 @@ label(tarai/4).
   goal(tarai/4).
   requires(15).
   try_guard_else(label(tarai/4-2)).
-  % head(tarai(X,Y,_13478,R)).
+  % head(tarai(X,Y,_,R)).
   % guard(X=<Y).
   seq(2,6).
     out_value(reg(in,1),reg(out,1)).
@@ -79,7 +79,7 @@ label(main/1).
   goal(main/1).
   requires(10).
   try_guard_else(label(main/1-2)).
-  % head(main([_734,X,Y,Z])).
+  % head(main([_,X,Y,Z])).
     check_list(reg(in,1)).
       read_void.
       read_list.
@@ -127,7 +127,7 @@ label(main/1).
     execute(dump_to_dot/1).
 label(main/1-2).
   otherwise.
-  % head(main([Prog|_1206])).
+  % head(main([Prog|_])).
     check_list(reg(in,1)).
       read_variable(reg(x,6)).
       read_void.
