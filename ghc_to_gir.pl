@@ -350,7 +350,7 @@ ghc_optimize_polynomial(X mod Y, V) -->
 
 %% ghc_preprocess_dcg_goals(+GoalList, -IO, ?IO, ?Ctx, -Head, ?Tail)
 % Translate DCG style goals to normal goals.
-ghc_preprocess_dcg_goals([], IO, IO2, _) -->
+ghc_preprocess_dcg_goals([], IO, IO2, Ctx) -->
     { !,
       stream_variable(Ctx, IO),
       stream_variable(Ctx, IO2) },
