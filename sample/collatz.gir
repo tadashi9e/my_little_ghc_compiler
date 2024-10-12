@@ -73,11 +73,11 @@ label(printstream/3).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
-  % body(_=[nl|_1926]).
+  % body(_=[nl|_A]).
     get_list(reg(in,2)).
       unify_constant(nl).
       unify_variable(reg(x,4)).
-  % body(_1926=_).
+  % body(_A=_).
     get_value(reg(in,3),reg(x,4)).
   proceed.
 label(printstream/3-2).
@@ -89,12 +89,12 @@ label(printstream/3-2).
   % guard(wait(N)).
   wait(reg(x,5)).
   activate.
-  % body(_=[write(N)|_2010]).
+  % body(_=[write(N)|_B]).
     get_list(reg(in,2)).
       unify_structure(write/1).
       unify_value(reg(x,5)).
       unify_variable(reg(x,5)).
-  % body(printstream_rest(Ns,_2010,_)).
+  % body(printstream_rest(Ns,_B,_)).
   par(3,6).
     out_value(reg(x,4),reg(out,1)).
     out_value(reg(x,5),reg(out,2)).
@@ -111,11 +111,11 @@ label(printstream_rest/3).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
-  % body(_=[nl|_2104]).
+  % body(_=[nl|_C]).
     get_list(reg(in,2)).
       unify_constant(nl).
       unify_variable(reg(x,4)).
-  % body(_2104=_).
+  % body(_C=_).
     get_value(reg(in,3),reg(x,4)).
   proceed.
 label(printstream_rest/3-2).
@@ -127,7 +127,7 @@ label(printstream_rest/3-2).
   % guard(wait(N)).
   wait(reg(x,5)).
   activate.
-  % body(_=[write(,),write(N)|_2194]).
+  % body(_=[write(,),write(N)|_D]).
     get_list(reg(in,2)).
       unify_structure(write/1).
       unify_constant(',').
@@ -135,7 +135,7 @@ label(printstream_rest/3-2).
       unify_structure(write/1).
       unify_value(reg(x,5)).
       unify_variable(reg(x,5)).
-  % body(printstream_rest(Ns,_2194,_)).
+  % body(printstream_rest(Ns,_D,_)).
   par(3,6).
     out_value(reg(x,4),reg(out,1)).
     out_value(reg(x,5),reg(out,2)).
