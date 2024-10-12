@@ -352,43 +352,43 @@ ghc_optimize_polynomial(X mod Y, V) -->
 % Translate DCG style goals to normal goals.
 ghc_preprocess_dcg_goals([], IO, IO2, _) -->
     { !,
-      not_a_singleton(Ctx, IO),
-      not_a_singleton(Ctx, IO2) },
+      stream_variable(Ctx, IO),
+      stream_variable(Ctx, IO2) },
     [IO = IO2].
 ghc_preprocess_dcg_goals([{Goals}|Body], IO, IO2, Ctx) -->
     { !,
-      not_a_singleton(Ctx, IO),
-      not_a_singleton(Ctx, IO2),
+      stream_variable(Ctx, IO),
       tuple_list(Goals, GoalList) },
     GoalList,
-    ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx).
+    ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx),
+    { stream_variable(Ctx, IO2) }.
 ghc_preprocess_dcg_goals([List|Body], IO, IO2, Ctx) -->
     { List = [], !,
-      not_a_singleton(Ctx, IO),
-      not_a_singleton(Ctx, IO2) },
-    ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx).
+      stream_variable(Ctx, IO) },
+    ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx),
+    { stream_variable(Ctx, IO2) }.
 ghc_preprocess_dcg_goals([List|Body], IO, IO3, Ctx) -->
     { List = [_|_], !,
-      not_a_singleton(Ctx, IO),
-      not_a_singleton(Ctx, IO2),
-      not_a_singleton(Ctx, IO3) },
+      stream_variable(Ctx, IO) },
     ghc_preprocess_dcg_list(List, IO, IO2, Ctx),
-    ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx).
+    { stream_variable(Ctx, IO2) },
+    ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx),
+    { stream_variable(Ctx, IO3) }.
 ghc_preprocess_dcg_goals([Goal|Body], IO, IO3, Ctx) -->
     {
       Goal =.. [G | Args],
       append(Args, [IO, IO2], Args2),
       Goal2 =.. [G | Args2],
       !,
-      not_a_singleton(Ctx, IO),
-      not_a_singleton(Ctx, IO2),
-      not_a_singleton(Ctx, IO3) },
+      stream_variable(Ctx, IO),
+      stream_variable(Ctx, IO2) },
     [ Goal2 ],
-    ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx).
+    ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx),
+    { stream_variable(Ctx, IO3) }.
 ghc_preprocess_dcg_list([], IO, IO, _) --> {!}.
 ghc_preprocess_dcg_list(List, IO, IO2, Ctx) -->
-    { not_a_singleton(Ctx, IO),
-      not_a_singleton(Ctx, IO2),
+    { stream_variable(Ctx, IO),
+      stream_variable(Ctx, IO2),
       append(List, IO2, List_IO2) },
     [ IO = List_IO2 ].
 
@@ -1072,12 +1072,6 @@ is_singleton1([], _) :- !.
 is_singleton1([_=Var|Vars], Arg) :-
     ( Var == Arg -> fail
     ; is_singleton1(Vars, Arg) ).
-not_a_singleton(Ctx, Var) :-
-    ( get(Ctx, vars, Vars),
-      not_exists_variable(Vars, Var)
-    -> put(Ctx, vars, [VarName=Var|Vars]),
-       generate_variable_name(Ctx, Var, VarName)
-    ; true ).
 
 %% translate_var_names(+Vars, +C, -C2)
 translate_var_names(Vars, C, C2) :-
@@ -1095,26 +1089,23 @@ translate_var_name1([Name=Var|Vars], C, C2) :-
     ( C == Var -> C2 = Name
     ; translate_var_name1(Vars, C, C2) ).
 
-%% generate_variable_name(?Ctx, +Var, -VarName)
-% Generate new variable name such as
-% _A, _B, ..., _Z,
-% _AA, _AB, ..., _AZ,
-% ...
-generate_variable_name(Ctx, Var, VarName) :-
-    ( nonvar(VarName) -> true
-    ; var(VarName)
-    ->
-      get(Ctx, vars, Vars),
-      atom_codes('_', [U]),
-      capital_letter_codes(Cs),
-      atom_codes(NewVarName, [U|Cs]),
-      not_exists_varname(Vars, NewVarName),
-      generate_variable_name_aux(Vars, Var, NewVarName),
-      VarName = NewVarName ).
-generate_variable_name_aux([], _, _).
-generate_variable_name_aux([N=V|NVs], Var, NewVarName) :-
-    ( V == Var -> N = NewVarName
-    ; generate_variable_name_aux(NVs, Var, NewVarName) ).
+%% stream_variable(?Ctx, +Var)
+stream_variable(Ctx, Var) :-
+    ( get(Ctx, vars, Vars),
+      not_exists_variable(Vars, Var)
+    -> put(Ctx, vars, [VarName=Var|Vars]),
+       generate_stream_variable_name(Ctx, VarName, 1)
+    ; true ).
+
+%% generate_stream_variable_name(?Ctx, -VarName, +N)
+% Generate new variable name such as _IOn
+generate_stream_variable_name(Ctx, VarName, N) :-
+    format(atom(NewVarName), '_IO~D', [N]),
+    get(Ctx, vars, Vars),
+    ( not_exists_varname(Vars, NewVarName)
+    -> VarName = NewVarName
+    ; N1 is N + 1,
+      generate_stream_variable_name(Ctx, VarName, N1) ).
 
 not_exists_variable([], _).
 not_exists_variable([_=V|NVs], Var) :-
@@ -1125,22 +1116,3 @@ not_exists_varname([], _).
 not_exists_varname([N=_|NVs], VarName) :-
     (N == VarName -> false
     ; not_exists_varname(NVs, VarName) ).
-
-%% capital_letter_codes(-Cs)
-% Generate capital letter code list.
-capital_letter_codes(Cs) :-
-    append(Cs1, [C], Cs),
-    capital_letter_codes_aux(Cs1),
-    single_capital_letter_code(C).
-capital_letter_codes_aux([]).
-capital_letter_codes_aux(Cs) :-
-    capital_letter_codes(Cs).
-%% single_capital_letter_code(-C)
-% Get 'A' to 'Z' character code.
-single_capital_letter_code(C) :-
-    atom_codes('A', [A]), atom_codes('Z', [Z]),
-    single_capital_letter_code_aux(C, A, Z).
-single_capital_letter_code_aux(A, A, _).
-single_capital_letter_code_aux(C, A, Z) :-
-    A1 is A + 1, A1 =< Z,
-    single_capital_letter_code_aux(C, A1, Z).

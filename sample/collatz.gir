@@ -69,65 +69,65 @@ label(printstream/3).
   goal(printstream/3).
   requires(9).
   try_guard_else(label(printstream/3-2)).
-  % head(printstream([],_A,_C)).
+  % head(printstream([],_IO1,_IO3)).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
-  % body(_A=[nl|_B]).
+  % body(_IO1=[nl|_IO2]).
     get_list(reg(in,2)).
       unify_constant(nl).
       unify_variable(reg(x,4)).
-  % body(_B=_C).
+  % body(_IO2=_IO3).
     get_value(reg(in,3),reg(x,4)).
   proceed.
 label(printstream/3-2).
   try_guard_else_suspend.
-  % head(printstream([N|Ns],_D,_F)).
+  % head(printstream([N|Ns],_IO4,_IO7)).
     check_list(reg(in,1)).
       read_variable(reg(x,5)).
       read_variable(reg(x,4)).
   % guard(wait(N)).
   wait(reg(x,5)).
   activate.
-  % body(_D=[write(N)|_E]).
+  % body(_IO4=[write(N)|_IO5]).
     get_list(reg(in,2)).
       unify_structure(write/1).
       unify_value(reg(x,5)).
       unify_variable(reg(x,5)).
-  % body(printstream_rest(Ns,_E,_G)).
+  % body(printstream_rest(Ns,_IO5,_IO6)).
   par(3,6).
     out_value(reg(x,4),reg(out,1)).
     out_value(reg(x,5),reg(out,2)).
     out_variable(reg(y,4),reg(out,3)).
     spawn(printstream_rest/3).
-  % body(_G=_F).
+  % body(_IO6=_IO7).
     get_value(reg(in,3),reg(y,4)).
   proceed.
 label(printstream_rest/3).
   goal(printstream_rest/3).
   requires(9).
   try_guard_else(label(printstream_rest/3-2)).
-  % head(printstream_rest([],_H,_J)).
+  % head(printstream_rest([],_IO8,_IO10)).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
-  % body(_H=[nl|_I]).
+  % body(_IO8=[nl|_IO9]).
     get_list(reg(in,2)).
       unify_constant(nl).
       unify_variable(reg(x,4)).
-  % body(_I=_J).
+  % body(_IO9=_IO10).
     get_value(reg(in,3),reg(x,4)).
   proceed.
 label(printstream_rest/3-2).
   try_guard_else_suspend.
-  % head(printstream_rest([N|Ns],_K,_M)).
+  % head(printstream_rest([N|Ns],_IO11,_IO14)).
     check_list(reg(in,1)).
       read_variable(reg(x,5)).
       read_variable(reg(x,4)).
   % guard(wait(N)).
   wait(reg(x,5)).
   activate.
-  % body(_K=[write(,),write(N)|_L]).
+  % body(_IO11=[write(,),write(N)|_IO12]).
     get_list(reg(in,2)).
       unify_structure(write/1).
       unify_constant(',').
@@ -135,29 +135,29 @@ label(printstream_rest/3-2).
       unify_structure(write/1).
       unify_value(reg(x,5)).
       unify_variable(reg(x,5)).
-  % body(printstream_rest(Ns,_L,_N)).
+  % body(printstream_rest(Ns,_IO12,_IO13)).
   par(3,6).
     out_value(reg(x,4),reg(out,1)).
     out_value(reg(x,5),reg(out,2)).
     out_variable(reg(y,4),reg(out,3)).
     spawn(printstream_rest/3).
-  % body(_N=_M).
+  % body(_IO13=_IO14).
     get_value(reg(in,3),reg(y,4)).
   proceed.
 label(collatz_for_each_args/3).
   goal(collatz_for_each_args/3).
   requires(11).
   try_guard_else(label(collatz_for_each_args/3-2)).
-  % head(collatz_for_each_args([],_O,_P)).
+  % head(collatz_for_each_args([],_IO15,_IO16)).
     check_nil(reg(in,1)).
   % guard(true).
   activate.
-  % body(_O=_P).
+  % body(_IO15=_IO16).
     get_value(reg(in,3),reg(in,2)).
   proceed.
 label(collatz_for_each_args/3-2).
   try_guard_else_suspend.
-  % head(collatz_for_each_args([A|As],_Q,_R)).
+  % head(collatz_for_each_args([A|As],_IO17,_IO20)).
     check_list(reg(in,1)).
       read_variable(reg(x,4)).
       read_variable(reg(x,7)).
@@ -173,19 +173,19 @@ label(collatz_for_each_args/3-2).
     out_value(reg(y,4),reg(out,1)).
     out_variable(reg(y,5),reg(out,2)).
     spawn(collatz/2).
-  % body(printstream(Ns,_Q,_S)).
+  % body(printstream(Ns,_IO17,_IO18)).
   par(3,8).
     out_value(reg(y,5),reg(out,1)).
     out_value(reg(in,2),reg(out,2)).
     out_variable(reg(y,6),reg(out,3)).
     spawn(printstream/3).
-  % body(collatz_for_each_args(As,_S,_T)).
+  % body(collatz_for_each_args(As,_IO18,_IO19)).
   par(3,8).
     out_value(reg(x,7),reg(out,1)).
     out_value(reg(y,6),reg(out,2)).
     out_variable(reg(y,7),reg(out,3)).
     spawn(collatz_for_each_args/3).
-  % body(_T=_R).
+  % body(_IO19=_IO20).
     get_value(reg(in,3),reg(y,7)).
   proceed.
 label(main/1).
