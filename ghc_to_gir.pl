@@ -350,16 +350,28 @@ ghc_optimize_polynomial(X mod Y, V) -->
 
 %% ghc_preprocess_dcg_goals(+GoalList, -IO, ?IO, ?Ctx, -Head, ?Tail)
 % Translate DCG style goals to normal goals.
-ghc_preprocess_dcg_goals([], IO, IO2, _) --> {!}, [IO = IO2].
+ghc_preprocess_dcg_goals([], IO, IO2, _) -->
+    { !,
+      not_a_singleton(Ctx, IO),
+      not_a_singleton(Ctx, IO2) },
+    [IO = IO2].
 ghc_preprocess_dcg_goals([{Goals}|Body], IO, IO2, Ctx) -->
-    { !, tuple_list(Goals, GoalList) },
+    { !,
+      not_a_singleton(Ctx, IO),
+      not_a_singleton(Ctx, IO2),
+      tuple_list(Goals, GoalList) },
     GoalList,
     ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx).
 ghc_preprocess_dcg_goals([List|Body], IO, IO2, Ctx) -->
-    { List = [], ! },
+    { List = [], !,
+      not_a_singleton(Ctx, IO),
+      not_a_singleton(Ctx, IO2) },
     ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx).
 ghc_preprocess_dcg_goals([List|Body], IO, IO3, Ctx) -->
-    { List = [_|_], ! },
+    { List = [_|_], !,
+      not_a_singleton(Ctx, IO),
+      not_a_singleton(Ctx, IO2),
+      not_a_singleton(Ctx, IO3) },
     ghc_preprocess_dcg_list(List, IO, IO2, Ctx),
     ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx).
 ghc_preprocess_dcg_goals([Goal|Body], IO, IO3, Ctx) -->
@@ -367,14 +379,17 @@ ghc_preprocess_dcg_goals([Goal|Body], IO, IO3, Ctx) -->
       Goal =.. [G | Args],
       append(Args, [IO, IO2], Args2),
       Goal2 =.. [G | Args2],
-      !
-    },
+      !,
+      not_a_singleton(Ctx, IO),
+      not_a_singleton(Ctx, IO2),
+      not_a_singleton(Ctx, IO3) },
     [ Goal2 ],
     ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx).
 ghc_preprocess_dcg_list([], IO, IO, _) --> {!}.
 ghc_preprocess_dcg_list(List, IO, IO2, Ctx) -->
-    { append(List, IO2, List_IO2),
-      not_a_singleton(Ctx, IO2) },
+    { not_a_singleton(Ctx, IO),
+      not_a_singleton(Ctx, IO2),
+      append(List, IO2, List_IO2) },
     [ IO = List_IO2 ].
 
 %% write_goal_entry_point(?Ctx, +Goal)
@@ -1058,9 +1073,11 @@ is_singleton1([_=Var|Vars], Arg) :-
     ( Var == Arg -> fail
     ; is_singleton1(Vars, Arg) ).
 not_a_singleton(Ctx, Var) :-
-    get(Ctx, vars, Vars),
-    put(Ctx, vars, [VarName=Var|Vars]),
-    generate_variable_name(Ctx, Var, VarName).
+    ( get(Ctx, vars, Vars),
+      not_exists_variable(Vars, Var)
+    -> put(Ctx, vars, [VarName=Var|Vars]),
+       generate_variable_name(Ctx, Var, VarName)
+    ; true ).
 
 %% translate_var_names(+Vars, +C, -C2)
 translate_var_names(Vars, C, C2) :-
@@ -1098,6 +1115,11 @@ generate_variable_name_aux([], _, _).
 generate_variable_name_aux([N=V|NVs], Var, NewVarName) :-
     ( V == Var -> N = NewVarName
     ; generate_variable_name_aux(NVs, Var, NewVarName) ).
+
+not_exists_variable([], _).
+not_exists_variable([_=V|NVs], Var) :-
+    (V == Var -> false
+    ; not_exists_variable(NVs, Var) ).
 
 not_exists_varname([], _).
 not_exists_varname([N=_|NVs], VarName) :-
