@@ -6,22 +6,27 @@
 %% main(+Argv)
 % メイン述語。wam_to_cc/2 を起動する。
 main(Argv) :-
-    ( opt_parse(Argv, WamFiles, CcFile)
+    ( ghc_opt_parse(Argv, WamFiles, CcFile)
     ; format('invalid arguments: ~w~n', [Argv]), fail),
     wam_to_cc(WamFiles, CcFile).
 
-%% opt_parse(+Argv, -WamFile, -CcFile)
+%% ghc_opt_parse(+Argv, -WamFile, -CcFile)
 % 与えられたコマンド引数を解釈する。
 % -o に続く引数を CcFile として返す。
 % それ以外を WamFile として返す。
 % -o に続く引数がない、あるいはそれ以外の引数が複数あれば fail。
-opt_parse(Argv, WamFiles, CcFile) :-
-    opt_parse_ccfile(Argv - Argv2, CcFile),
-    opt_parse_wamfiles(Argv2 - [], WamFiles).
-opt_parse_ccfile(['-o', CcFile|Argv2] - Argv2, CcFile) :- !.
-opt_parse_ccfile([A|Argv] - [A|Argv2], CcFile) :-
-    opt_parse_ccfile(Argv - Argv2, CcFile).
-opt_parse_wamfiles(WamFiles - [], WamFiles) :- !.
+ghc_opt_parse(Argv, SourceFiles, CcFile) :-
+    phrase(ghc_opt_parse_dcg(SourceFiles, CcFile), Argv, []),
+    !.
+ghc_opt_parse_dcg([], CcFile) --> [], { nonvar(CcFile) }.
+ghc_opt_parse_dcg(SourceFiles, CcFile) -->
+    { var(CcFile) },
+    ['-o', CcFile],
+    !,
+    ghc_opt_parse_dcg(SourceFiles, CcFile).
+ghc_opt_parse_dcg([SourceFile | SourceFiles], CcFile) -->
+    [SourceFile],
+    ghc_opt_parse_dcg(SourceFiles, CcFile).
 
 %% always_success(+P)
 % P を実行して、失敗したらエラーとしてメッセージを表示する。

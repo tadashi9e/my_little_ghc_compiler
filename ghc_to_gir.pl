@@ -6,22 +6,27 @@
 %% main(+Argv)
 % メイン述語。ghc_to_wam/2 を起動する。
 main(Argv) :-
-    ( opt_parse(Argv, SourceFiles, WamFile)
+    ( ghc_opt_parse(Argv, SourceFiles, WamFile)
     ; format('invalid arguments: ~w~n', [Argv]), fail),
     ghc_to_wam(SourceFiles, WamFile).
 
-%% opt_parse(+Argv, -SourceFiles, -WamFile)
+%% ghc_opt_parse(+Argv, -SourceFiles, -WamFile)
 % 与えられたコマンド引数を解釈する。
 % -o に続く引数を WamFile として返す。
 % それ以外を SourceFiles として返す。
 % -o に続く引数がない場合は fail。
-opt_parse(Argv, SourceFiles, WamFile) :-
-    opt_parse_wamfile(Argv - Argv2, WamFile),
-    opt_parse_sourcefiles(Argv2 - [], SourceFiles).
-opt_parse_wamfile(['-o', WamFile|Argv2] - Argv2, WamFile) :- !.
-opt_parse_wamfile([A|Argv] - [A|Argv2], WamFile) :-
-    opt_parse_wamfile(Argv - Argv2, WamFile).
-opt_parse_sourcefiles(SourceFiles - [], SourceFiles) :- !.
+ghc_opt_parse(Argv, SourceFiles, WamFile) :-
+    phrase(ghc_opt_parse_dcg(SourceFiles, WamFile), Argv, []),
+    !.
+ghc_opt_parse_dcg([], WamFile) --> [], { nonvar(WamFile) }.
+ghc_opt_parse_dcg(SourceFiles, WamFile) -->
+    { var(WamFile) },
+    ['-o', WamFile],
+    !,
+    ghc_opt_parse_dcg(SourceFiles, WamFile).
+ghc_opt_parse_dcg([SourceFile | SourceFiles], WamFile) -->
+    [SourceFile],
+    ghc_opt_parse_dcg(SourceFiles, WamFile).
 
 %% always_success(+P)
 % P を実行して、失敗したらエラーとしてメッセージを表示する。
@@ -239,64 +244,70 @@ ghc_preprocess_goal(Goal, Goal, _).
 tuple_list(Tuple, List) :- comma_list(Tuple, List).
 
 %% ghc_preprocess_eval_polynomial(+OriginalGoals, ?Ctx, -Head, -Tail)
-ghc_preprocess_eval_polynomial([], _) --> {!}.
+ghc_preprocess_eval_polynomial([], _) --> !.
 ghc_preprocess_eval_polynomial([V := X|Gs], Ctx) -->
-    { integer(X), !, V = X },
+    { integer(X) },
+    !,
+    { V = X },
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([V := X|Gs], Ctx) -->
     [V := X],
-    { var(X), ! },
+    { var(X) },
+    !,
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([V := P|Gs], Ctx) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(P, V),
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X =:= Y|Gs], Ctx) -->
-    { var(X), var(Y), ! },
+    { var(X), var(Y) },
+    !,
     [X =:= Y],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X =:= Y|Gs], Ctx) -->
-    { var(X), ! },
+    { var(X) },
+    !,
     ghc_optimize_polynomial(Y, Y1),
     [X1 := X, X1 == Y1],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X =:= Y|Gs], Ctx) -->
-    { var(Y), ! },
+    { var(Y) },
+    !,
     ghc_optimize_polynomial(X, X1),
     [Y1 := Y, X1 == Y1],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X =:= Y|Gs], Ctx) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 == Y1],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X =\= Y|Gs], Ctx) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 =\= Y1],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X > Y|Gs], Ctx) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 > Y1],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X >= Y|Gs], Ctx) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 >= Y1],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X < Y|Gs], Ctx) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 < Y1],
     ghc_preprocess_eval_polynomial(Gs, Ctx).
 ghc_preprocess_eval_polynomial([X =< Y|Gs], Ctx) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     [X1 =< Y1],
@@ -306,44 +317,47 @@ ghc_preprocess_eval_polynomial([G|Gs], Ctx) -->
 
 %% ghc_optimize_polynomial(+Polynomial, +Value, -Head, ?Tail)
 ghc_optimize_polynomial(X, X) -->
-    { var(X), !}.
+    { var(X) }, !.
 ghc_optimize_polynomial(X, X) -->
-    { integer(X), !}.
+    { integer(X) }, !.
 ghc_optimize_polynomial(X + Y, V) -->
-    { Y == 1, ! },
+    { Y == 1 },
+    !,
     ghc_optimize_polynomial(X, X1),
     ['__inc__'(X1, V)].
 ghc_optimize_polynomial(X + Y, V) -->
-    { X == 1, ! },
+    { X == 1 },
+    !,
     ghc_optimize_polynomial(Y, Y1),
     ['__inc__'(Y1, V)].
 ghc_optimize_polynomial(X + Y, V) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     ['__add__'(X1, Y1, V)].
 
 ghc_optimize_polynomial(X - Y, V) -->
-    { Y == 1, ! },
+    { Y == 1 },
+    !,
     ghc_optimize_polynomial(X, X1),
     ['__dec__'(X1, V)].
 ghc_optimize_polynomial(X - Y, V) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     ['__sub__'(X1, Y1, V)].
 ghc_optimize_polynomial(X * Y, V) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     ['__mul__'(X1, Y1, V)].
 ghc_optimize_polynomial(X / Y, V) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     ['__div__'(X1, Y1, V)].
 ghc_optimize_polynomial(X mod Y, V) -->
-    { ! },
+    !,
     ghc_optimize_polynomial(X, X1),
     ghc_optimize_polynomial(Y, Y1),
     ['__mod__'(X1, Y1, V)].
@@ -351,25 +365,27 @@ ghc_optimize_polynomial(X mod Y, V) -->
 %% ghc_preprocess_dcg_goals(+GoalList, -IO, ?IO, ?Ctx, -Head, ?Tail)
 % Translate DCG style goals to normal goals.
 ghc_preprocess_dcg_goals([], IO, IO2, Ctx) -->
-    { !,
-      stream_variable(Ctx, IO),
+    !,
+    { stream_variable(Ctx, IO),
       stream_variable(Ctx, IO2) },
     [IO = IO2].
 ghc_preprocess_dcg_goals([{Goals}|Body], IO, IO2, Ctx) -->
-    { !,
-      stream_variable(Ctx, IO),
+    !,
+    { stream_variable(Ctx, IO),
       tuple_list(Goals, GoalList) },
     GoalList,
     ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx),
     { stream_variable(Ctx, IO2) }.
 ghc_preprocess_dcg_goals([List|Body], IO, IO2, Ctx) -->
-    { List = [], !,
-      stream_variable(Ctx, IO) },
+    { List = [] },
+    !,
+    { stream_variable(Ctx, IO) },
     ghc_preprocess_dcg_goals(Body, IO, IO2, Ctx),
     { stream_variable(Ctx, IO2) }.
 ghc_preprocess_dcg_goals([List|Body], IO, IO3, Ctx) -->
-    { List = [_|_], !,
-      stream_variable(Ctx, IO) },
+    { List = [_|_] },
+    !,
+    { stream_variable(Ctx, IO) },
     ghc_preprocess_dcg_list(List, IO, IO2, Ctx),
     { stream_variable(Ctx, IO2) },
     ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx),
@@ -378,14 +394,14 @@ ghc_preprocess_dcg_goals([Goal|Body], IO, IO3, Ctx) -->
     {
       Goal =.. [G | Args],
       append(Args, [IO, IO2], Args2),
-      Goal2 =.. [G | Args2],
-      !,
-      stream_variable(Ctx, IO),
+      Goal2 =.. [G | Args2] },
+    !,
+    { stream_variable(Ctx, IO),
       stream_variable(Ctx, IO2) },
     [ Goal2 ],
     ghc_preprocess_dcg_goals(Body, IO2, IO3, Ctx),
     { stream_variable(Ctx, IO3) }.
-ghc_preprocess_dcg_list([], IO, IO, _) --> {!}.
+ghc_preprocess_dcg_list([], IO, IO, _) --> !.
 ghc_preprocess_dcg_list(List, IO, IO2, Ctx) -->
     { stream_variable(Ctx, IO),
       stream_variable(Ctx, IO2),
